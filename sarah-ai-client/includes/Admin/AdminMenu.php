@@ -6,26 +6,29 @@ namespace SarahAiClient\Admin;
 
 class AdminMenu
 {
-    private SettingsPage $settings;
+    private DashboardPage $dashboard;
 
-    public function __construct(SettingsPage $settings)
+    public function __construct(DashboardPage $dashboard)
     {
-        $this->settings = $settings;
+        $this->dashboard = $dashboard;
     }
 
     public function register(): void
     {
         add_action('admin_menu', [$this, 'registerMenu']);
+        add_action('admin_init', [$this->dashboard, 'maybeRenderStandaloneShell'], 1);
     }
 
     public function registerMenu(): void
     {
-        add_options_page(
-            __('Sarah AI Client', 'sarah-ai-client'),
-            __('Sarah AI Client', 'sarah-ai-client'),
+        add_menu_page(
+            'Sarah AI Client',
+            'Sarah AI Client',
             'manage_options',
-            'sarah-ai-client',
-            [$this->settings, 'render']
+            'sarah-ai-client-shell',
+            [$this->dashboard, 'render'],
+            'dashicons-admin-generic',
+            56
         );
     }
 }

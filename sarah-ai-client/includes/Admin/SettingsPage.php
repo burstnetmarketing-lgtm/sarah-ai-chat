@@ -17,7 +17,19 @@ class SettingsPage
 
     public function register(): void
     {
+        add_action('admin_menu', [$this, 'registerMenu']);
         add_action('admin_init', [$this, 'registerSettings']);
+    }
+
+    public function registerMenu(): void
+    {
+        add_options_page(
+            __('Sarah AI Client', 'sarah-ai-client'),
+            __('Sarah AI Client', 'sarah-ai-client'),
+            'manage_options',
+            'sarah-ai-client',
+            [$this, 'render']
+        );
     }
 
     public function registerSettings(): void
