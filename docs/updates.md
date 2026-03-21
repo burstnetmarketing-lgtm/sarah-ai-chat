@@ -58,3 +58,5 @@
 1057 Replaced menu table with accordion UI supporting parent-child menu items.
 1058 Added up/down reorder buttons for child menu items with ID-based sort order.
 0003 Refactored project-name template into dual-plugin structure: sarah-ai-client and sarah-ai-server.
+0004 Removed admin dashboard from sarah-ai-client; plugin is now a clean frontend chat widget base.
+0005 Added minimal settings page to sarah-ai-client under Settings menu for future widget configuration.
