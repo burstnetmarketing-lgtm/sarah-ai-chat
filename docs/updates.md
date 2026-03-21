@@ -62,3 +62,4 @@
 0005 Added minimal settings page to sarah-ai-client under Settings menu for future widget configuration.
 0006 Restored full React admin dashboard in sarah-ai-client alongside the settings page.
 0007 Fixed disabled Menu Manager and Log buttons; removed logout from Topbar; fixed sidebar brand.
+0008 Removed Settings page from sarah-ai-client.
