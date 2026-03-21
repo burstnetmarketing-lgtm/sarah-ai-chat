@@ -11,8 +11,12 @@ class MenuRepository
     public function ensureCoreItems(): void
     {
         $this->insertIfMissing('dashboard', 'Dashboard', 'dashboard', null, false, false);
-        $this->removeIfExists('menu-manager');
-        $this->removeIfExists('settings');
+        $this->insertIfMissing('settings',  'Settings',  'settings',  null, false, false);
+    }
+
+    public function seedDefaults(): void
+    {
+        $this->ensureCoreItems();
     }
 
     public function allEnabled(): array

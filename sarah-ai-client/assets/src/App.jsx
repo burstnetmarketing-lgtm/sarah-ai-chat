@@ -4,11 +4,13 @@ import Topbar from './components/Topbar.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import MenuManager from './pages/MenuManager.jsx';
 import Log from './pages/Log.jsx';
+import Settings from './pages/Settings.jsx';
 
 const VIEWS = {
   dashboard: Dashboard,
   'menu-manager': MenuManager,
   'log': Log,
+  'settings': Settings,
 };
 
 export default function App() {

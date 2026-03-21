@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 const LABELS = {
   dashboard: 'Dashboard',
   'menu-manager': 'Menu Manager',
+  'settings': 'Settings',
 };
 
 export default function Topbar({ view, onNavigate }) {

@@ -10,11 +10,14 @@ export default defineConfig({
     assetsInlineLimit: 0,
     emptyOutDir: true,
     rollupOptions: {
-      input: resolve(__dirname, 'assets/src/main.jsx'),
+      input: {
+        app:    resolve(__dirname, 'assets/src/main.jsx'),
+        widget: resolve(__dirname, 'assets/src/widget/main.jsx'),
+      },
       output: {
-        entryFileNames: 'app.js',
+        entryFileNames: '[name].js',
         chunkFileNames: 'chunks/[name].js',
-        assetFileNames: (info) => (info.name?.endsWith('.css') ? 'app.css' : '[name][extname]'),
+        assetFileNames: (info) => (info.name?.endsWith('.css') ? '[name].css' : '[name][extname]'),
       },
     },
   },

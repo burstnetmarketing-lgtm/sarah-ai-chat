@@ -63,3 +63,10 @@
 0006 Restored full React admin dashboard in sarah-ai-client alongside the settings page.
 0007 Fixed disabled Menu Manager and Log buttons; removed logout from Topbar; fixed sidebar brand.
 0008 Removed Settings page from sarah-ai-client.
+0009 Added Settings menu item to sidebar seed; fixed missing seedDefaults in MenuRepository.
+0010 Added SettingsController REST API and Settings admin page with widget enable/disable toggle.
+0011 Built chat widget React components: ChatWidget, LauncherButton, ChatWindow, Header, MessageArea, InputBox.
+0012 Added standalone widget CSS with launcher, chat window, header, message area, input, and mobile styles.
+0013 Updated vite.config.js to dual output: app.js/css for admin, widget.js/css for frontend widget.
+0014 Built all assets successfully; widget bundle is 2.7 KB, admin bundle is 95 KB.
+0015 Fixed widget not loading on frontend — added type="module" to script tag via script_loader_tag filter.
