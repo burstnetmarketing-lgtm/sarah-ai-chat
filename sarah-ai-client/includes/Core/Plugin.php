@@ -6,6 +6,7 @@ namespace SarahAiClient\Core;
 
 use SarahAiClient\Admin\AdminMenu;
 use SarahAiClient\Admin\DashboardPage;
+use SarahAiClient\Api\AppearanceController;
 use SarahAiClient\Api\LogController;
 use SarahAiClient\Api\MenuItemsController;
 use SarahAiClient\Api\QuickQuestionsController;
@@ -28,11 +29,13 @@ class Plugin
         $quickQuestionsRepo = new QuickQuestionsRepository();
 
         $menuRepo->ensureCoreItems();
+        $settingsRepo->ensureAppearanceDefaults();
 
         add_action('rest_api_init', [(new MenuItemsController($menuRepo)), 'registerRoutes']);
         add_action('rest_api_init', [(new LogController()), 'registerRoutes']);
         add_action('rest_api_init', [(new SettingsController($settingsRepo)), 'registerRoutes']);
         add_action('rest_api_init', [(new QuickQuestionsController($quickQuestionsRepo)), 'registerRoutes']);
+        add_action('rest_api_init', [(new AppearanceController($settingsRepo)), 'registerRoutes']);
 
         if ($settingsRepo->get('widget_enabled', '1') === '1') {
             add_action('wp_enqueue_scripts', [self::class, 'enqueueWidget']);
@@ -66,6 +69,7 @@ class Plugin
         $quickQuestionsRepo = new QuickQuestionsRepository();
         wp_localize_script('sarah-ai-client-widget', 'SarahAiWidget', [
             'quickQuestions' => $quickQuestionsRepo->allEnabled(),
+            'settings'       => $settingsRepo->getPublishedSettings(),
         ]);
     }
 

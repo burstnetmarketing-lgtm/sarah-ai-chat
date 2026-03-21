@@ -32,6 +32,7 @@ require_once SARAH_AI_CLIENT_PATH . 'includes/Api/MenuItemsController.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Api/LogController.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Api/SettingsController.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Api/QuickQuestionsController.php';
+require_once SARAH_AI_CLIENT_PATH . 'includes/Api/AppearanceController.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Logger.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Activator.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Plugin.php';

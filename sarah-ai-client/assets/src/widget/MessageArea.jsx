@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import TypingIndicator from './TypingIndicator.jsx';
 
-const quickQuestions = (window.SarahAiWidget?.quickQuestions || []).map(q => q.question);
+const quickQuestions  = (window.SarahAiWidget?.quickQuestions || []).map(q => q.question);
+const welcomeMessage  = window.SarahAiWidget?.settings?.welcomeMessage || 'How can I help you today?';
 
 export default function MessageArea({ messages, isTyping, onQuickQuestion }) {
   const bottomRef = useRef(null);
@@ -17,7 +18,7 @@ export default function MessageArea({ messages, isTyping, onQuickQuestion }) {
           <div className="sac-welcome">
             <div className="sac-welcome-emoji">👋</div>
             <p className="sac-welcome-title">Hi there!</p>
-            <p className="sac-welcome-sub">How can I help you today?</p>
+            <p className="sac-welcome-sub">{welcomeMessage}</p>
           </div>
           {quickQuestions.length > 0 && (
             <div className="sac-quick-questions">

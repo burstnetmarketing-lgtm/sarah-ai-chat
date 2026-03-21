@@ -6,10 +6,19 @@ import InputBox from './InputBox.jsx';
 let _id = 0;
 function nextId() { return ++_id; }
 
+const MOCK_RESPONSES = [
+  'Thanks for your message! How can I help you further?',
+  'Great question! Let me look into that for you.',
+  'I appreciate you reaching out. Could you tell me a bit more?',
+  'Got it! I\'m here to help — what else would you like to know?',
+  'Thanks for asking. I\'ll do my best to assist you.',
+];
+
 function getMockResponse() {
   return new Promise(resolve => {
     const delay = 800 + Math.random() * 700;
-    setTimeout(() => resolve('Thanks for your message! How can I help you further?'), delay);
+    const text = MOCK_RESPONSES[Math.floor(Math.random() * MOCK_RESPONSES.length)];
+    setTimeout(() => resolve(text), delay);
   });
 }
 
