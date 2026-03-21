@@ -73,3 +73,4 @@
 0016 Phase 1.5 UI polish — welcome state, launcher cleanup, input contrast, layout improvements.
 0017 Phase 2 — mock chat interaction, typing indicator, quick questions admin page and widget buttons.
 0018 Phase 3 — appearance settings with draft/publish system, live preview, dynamic CSS custom properties.
+0019 Fixed widget positioning gap and added mobile fullscreen mode; fixed PHP fatal error in enqueueWidget.

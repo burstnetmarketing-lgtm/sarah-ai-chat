@@ -67,6 +67,7 @@ class Plugin
         add_filter('script_loader_tag', [self::class, 'addModuleType'], 10, 2);
 
         $quickQuestionsRepo = new QuickQuestionsRepository();
+        $settingsRepo       = new SettingsRepository();
         wp_localize_script('sarah-ai-client-widget', 'SarahAiWidget', [
             'quickQuestions' => $quickQuestionsRepo->allEnabled(),
             'settings'       => $settingsRepo->getPublishedSettings(),
