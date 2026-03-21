@@ -12,7 +12,7 @@ export default function Sidebar({ activeView, onNavigate }) {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-brand">Project <span>Name</span></div>
+      <div className="sidebar-brand">Sarah <span>AI</span></div>
       <nav className="sidebar-nav">
         <ul className="nav flex-column gap-1">
           {parents.map(parent => (

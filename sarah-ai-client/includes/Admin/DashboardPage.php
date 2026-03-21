@@ -34,7 +34,6 @@ class DashboardPage
             'apiUrl'          => rest_url('sarah-ai-client/v1'),
             'nonce'           => wp_create_nonce('wp_rest'),
             'adminUrl'        => admin_url(),
-            'logoutUrl'       => wp_logout_url(admin_url()),
             'userName'        => $userName,
             'initials'        => $this->userInitials($userName),
             'canManageMenus'  => current_user_can('manage_options'),

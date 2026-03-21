@@ -6,7 +6,7 @@ const LABELS = {
 };
 
 export default function Topbar({ view, onNavigate }) {
-  const { adminUrl, logoutUrl, userName, initials, canManageMenus } = window.ProjectNameConfig || {};
+  const { adminUrl, userName, initials, canManageMenus } = window.SarahAiClientConfig || {};
   const title = LABELS[view] ?? view.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -53,13 +53,6 @@ export default function Topbar({ view, onNavigate }) {
                         disabled={!canManageMenus}>
                   <i className="bi bi-journal-text"></i> Log
                 </button>
-              </li>
-              <li><hr className="dropdown-divider" /></li>
-              <li>
-                <a className="dropdown-item d-flex align-items-center gap-2 text-danger"
-                   href={logoutUrl}>
-                  <i className="bi bi-box-arrow-right"></i> Log out
-                </a>
               </li>
             </ul>
           )}
