@@ -1,0 +1,7 @@
+# No npm dependencies — node_modules should never appear
+node_modules/
+
+# Publish — sensitive and generated files
+docs/technical/publish/zip/*
+!docs/technical/publish/zip/.gitkeep
+docs/technical/publish/*.log
