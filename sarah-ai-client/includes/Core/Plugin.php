@@ -8,9 +8,12 @@ use SarahAiClient\Admin\AdminMenu;
 use SarahAiClient\Admin\DashboardPage;
 use SarahAiClient\Api\LogController;
 use SarahAiClient\Api\MenuItemsController;
+use SarahAiClient\Api\QuickQuestionsController;
 use SarahAiClient\Api\SettingsController;
 use SarahAiClient\DB\MenuTable;
+use SarahAiClient\DB\QuickQuestionsTable;
 use SarahAiClient\Infrastructure\MenuRepository;
+use SarahAiClient\Infrastructure\QuickQuestionsRepository;
 use SarahAiClient\Infrastructure\SettingsRepository;
 
 class Plugin
@@ -18,14 +21,18 @@ class Plugin
     public static function boot(): void
     {
         MenuTable::create();
-        $menuRepo = new MenuRepository();
-        $menuRepo->ensureCoreItems();
+        QuickQuestionsTable::create();
 
-        $settingsRepo = new SettingsRepository();
+        $menuRepo           = new MenuRepository();
+        $settingsRepo       = new SettingsRepository();
+        $quickQuestionsRepo = new QuickQuestionsRepository();
+
+        $menuRepo->ensureCoreItems();
 
         add_action('rest_api_init', [(new MenuItemsController($menuRepo)), 'registerRoutes']);
         add_action('rest_api_init', [(new LogController()), 'registerRoutes']);
         add_action('rest_api_init', [(new SettingsController($settingsRepo)), 'registerRoutes']);
+        add_action('rest_api_init', [(new QuickQuestionsController($quickQuestionsRepo)), 'registerRoutes']);
 
         if ($settingsRepo->get('widget_enabled', '1') === '1') {
             add_action('wp_enqueue_scripts', [self::class, 'enqueueWidget']);
@@ -55,6 +62,11 @@ class Plugin
             true
         );
         add_filter('script_loader_tag', [self::class, 'addModuleType'], 10, 2);
+
+        $quickQuestionsRepo = new QuickQuestionsRepository();
+        wp_localize_script('sarah-ai-client-widget', 'SarahAiWidget', [
+            'quickQuestions' => $quickQuestionsRepo->allEnabled(),
+        ]);
     }
 
     public static function addModuleType(string $tag, string $handle): string

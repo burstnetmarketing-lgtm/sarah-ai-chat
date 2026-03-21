@@ -22,13 +22,16 @@ require_once SARAH_AI_CLIENT_PATH . 'update.php';
 
 require_once SARAH_AI_CLIENT_PATH . 'includes/DB/MenuTable.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/DB/SettingsTable.php';
+require_once SARAH_AI_CLIENT_PATH . 'includes/DB/QuickQuestionsTable.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Infrastructure/MenuRepository.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Infrastructure/SettingsRepository.php';
+require_once SARAH_AI_CLIENT_PATH . 'includes/Infrastructure/QuickQuestionsRepository.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Admin/DashboardPage.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Admin/AdminMenu.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Api/MenuItemsController.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Api/LogController.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Api/SettingsController.php';
+require_once SARAH_AI_CLIENT_PATH . 'includes/Api/QuickQuestionsController.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Logger.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Activator.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Plugin.php';

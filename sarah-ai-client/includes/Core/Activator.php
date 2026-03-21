@@ -3,6 +3,7 @@
 namespace SarahAiClient\Core;
 
 use SarahAiClient\DB\MenuTable;
+use SarahAiClient\DB\QuickQuestionsTable;
 use SarahAiClient\DB\SettingsTable;
 use SarahAiClient\Infrastructure\MenuRepository;
 
@@ -12,6 +13,7 @@ class Activator
     {
         SettingsTable::create();
         MenuTable::create();
+        QuickQuestionsTable::create();
         (new MenuRepository())->seedDefaults();
     }
 }

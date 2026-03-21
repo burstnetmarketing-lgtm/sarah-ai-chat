@@ -10,8 +10,9 @@ class MenuRepository
 {
     public function ensureCoreItems(): void
     {
-        $this->insertIfMissing('dashboard', 'Dashboard', 'dashboard', null, false, false);
-        $this->insertIfMissing('settings',  'Settings',  'settings',  null, false, false);
+        $this->insertIfMissing('dashboard',       'Dashboard',       'dashboard',       null, false, false);
+        $this->insertIfMissing('quick-questions', 'Quick Questions', 'quick-questions', null, false, false);
+        $this->insertIfMissing('settings',        'Settings',        'settings',        null, false, false);
     }
 
     public function seedDefaults(): void
