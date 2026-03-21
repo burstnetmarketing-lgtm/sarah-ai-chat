@@ -70,3 +70,4 @@
 0013 Updated vite.config.js to dual output: app.js/css for admin, widget.js/css for frontend widget.
 0014 Built all assets successfully; widget bundle is 2.7 KB, admin bundle is 95 KB.
 0015 Fixed widget not loading on frontend — added type="module" to script tag via script_loader_tag filter.
+0016 Phase 1.5 UI polish — welcome state, launcher cleanup, input contrast, layout improvements.

@@ -8,7 +8,7 @@ export default function ChatWidget() {
   return (
     <>
       {isOpen && <ChatWindow onClose={() => setIsOpen(false)} />}
-      <LauncherButton isOpen={isOpen} onClick={() => setIsOpen(o => !o)} />
+      {!isOpen && <LauncherButton onClick={() => setIsOpen(true)} />}
     </>
   );
 }
