@@ -2,7 +2,7 @@ const logger = {
   error: (context, message, data = {}) => {
     const entry = { level: 'error', context, message, data, time: new Date().toISOString() };
     console.error(`[${context}]`, message, data);
-    const cfg = window.ProjectNameConfig;
+    const cfg = window.SarahAiClientConfig;
     if (!cfg) return;
     fetch(`${cfg.apiUrl}/log`, {
       method: 'POST',

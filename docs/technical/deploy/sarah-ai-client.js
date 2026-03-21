@@ -1,14 +1,13 @@
-// deploy-configs/project-name.js
+// deploy-configs/sarah-ai-client.js
 // ─────────────────────────────────────────────
-// Config for the "project-name" WordPress plugin.
+// Deploy config for the "sarah-ai-client" WordPress plugin.
 // Edit the target paths below to match your local setup.
 // ─────────────────────────────────────────────
 
 module.exports = {
-  pluginSlug: 'project-name',
+  pluginSlug: 'sarah-ai-client',
 
   // Files/folders to skip during deploy (relative to plugin root)
-  // TODO (phase 2): populate as needed
   ignore: [
     'node_modules',
     '.git',
@@ -19,15 +18,15 @@ module.exports = {
     'package-lock.json',
   ],
 
-  // Local WordPress plugins folder — edit manually per OS
+  // Local WordPress plugins folder — edit manually per machine
   targets: {
     win32: {
       // Example: C:\\Users\\YourUser\\Local Sites\\mysite\\app\\public\\wp-content\\plugins
-      localWpPluginsPath: 'C:\\Users\\Marketing\\Local Sites\\template\\app\\public\\wp-content\\plugins',
+      localWpPluginsPath: 'C:\\Users\\Marketing\\Local Sites\\sarah-client\\app\\public\\wp-content\\plugins',
     },
     darwin: {
       // Example: /Users/youruser/Local Sites/mysite/app/public/wp-content/plugins
-      localWpPluginsPath: '/Users/youruser/Local Sites/mysite/app/public/wp-content/plugins',
+      localWpPluginsPath: '/Users/youruser/Local Sites/sarah-client/app/public/wp-content/plugins',
     },
   },
 };

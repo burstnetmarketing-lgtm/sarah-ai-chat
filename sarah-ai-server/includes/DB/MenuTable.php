@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ProjectName\DB;
+namespace SarahAiServer\DB;
 
 class MenuTable
 {
-    public const TABLE = 'project_name_menu_items';
+    public const TABLE = 'sarah_ai_server_menu_items';
 
     public static function create(): void
     {

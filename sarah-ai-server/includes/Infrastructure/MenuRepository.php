@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ProjectName\Infrastructure;
+namespace SarahAiServer\Infrastructure;
 
-use ProjectName\DB\MenuTable;
+use SarahAiServer\DB\MenuTable;
 
 class MenuRepository
 {

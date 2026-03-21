@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ProjectName\Core;
+namespace SarahAiClient\Core;
 
-use ProjectName\Admin\AdminMenu;
-use ProjectName\Admin\DashboardPage;
-use ProjectName\Api\LogController;
-use ProjectName\Api\MenuItemsController;
-use ProjectName\DB\MenuTable;
-use ProjectName\Infrastructure\MenuRepository;
+use SarahAiClient\Admin\AdminMenu;
+use SarahAiClient\Admin\DashboardPage;
+use SarahAiClient\Api\LogController;
+use SarahAiClient\Api\MenuItemsController;
+use SarahAiClient\DB\MenuTable;
+use SarahAiClient\Infrastructure\MenuRepository;
 
 class Plugin
 {

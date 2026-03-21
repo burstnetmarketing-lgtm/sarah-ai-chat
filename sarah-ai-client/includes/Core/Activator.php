@@ -1,10 +1,10 @@
 <?php
 
-namespace ProjectName\Core;
+namespace SarahAiClient\Core;
 
-use ProjectName\DB\MenuTable;
-use ProjectName\DB\SettingsTable;
-use ProjectName\Infrastructure\MenuRepository;
+use SarahAiClient\DB\MenuTable;
+use SarahAiClient\DB\SettingsTable;
+use SarahAiClient\Infrastructure\MenuRepository;
 
 class Activator
 {

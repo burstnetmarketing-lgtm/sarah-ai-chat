@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ProjectName\Core;
+namespace SarahAiServer\Core;
 
 class Logger
 {
@@ -11,7 +11,7 @@ class Logger
     private static function path(): string
     {
         if (self::$logFile === '') {
-            self::$logFile = PROJECT_NAME_PATH . 'project-name.log';
+            self::$logFile = SARAH_AI_SERVER_PATH . 'sarah-ai-server.log';
         }
         return self::$logFile;
     }

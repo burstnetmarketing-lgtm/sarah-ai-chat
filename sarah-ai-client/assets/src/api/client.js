@@ -1,5 +1,5 @@
 function cfg() {
-  return window.ProjectNameConfig || {};
+  return window.SarahAiClientConfig || {};
 }
 
 export async function apiFetch(path, method = 'GET', body = null) {

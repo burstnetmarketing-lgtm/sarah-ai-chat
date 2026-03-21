@@ -1,10 +1,10 @@
 <?php
 
-namespace ProjectName\DB;
+namespace SarahAiServer\DB;
 
 class SettingsTable
 {
-    public const TABLE = 'project_name_settings';
+    public const TABLE = 'sarah_ai_server_settings';
 
     public static function create(): void
     {

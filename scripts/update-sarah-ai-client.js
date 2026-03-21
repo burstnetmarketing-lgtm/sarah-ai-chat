@@ -1,8 +1,8 @@
-// scripts/update-project-name.js
+// scripts/update-sarah-ai-client.js
 // ─────────────────────────────────────────────
-// Bumps the version in the project-name plugin's main PHP file.
+// Bumps the version in the sarah-ai-client plugin's main PHP file.
 // Usage:
-//   npm run update:project-name [patch|minor|major]
+//   npm run update:client [patch|minor|major]
 //   Default versionType: minor
 // ─────────────────────────────────────────────
 
@@ -11,7 +11,7 @@ const path = require('path');
 
 const VALID_TYPES = ['patch', 'minor', 'major'];
 
-const pluginName  = 'project-name';
+const pluginName  = 'sarah-ai-client';
 const versionType = process.argv[2] || 'minor';
 
 if (!VALID_TYPES.includes(versionType)) {

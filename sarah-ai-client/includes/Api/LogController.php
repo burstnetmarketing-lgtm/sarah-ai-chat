@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ProjectName\Api;
+namespace SarahAiClient\Api;
 
-use ProjectName\Core\Logger;
+use SarahAiClient\Core\Logger;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -12,7 +12,7 @@ class LogController
 {
     public function registerRoutes(): void
     {
-        register_rest_route('project-name/v1', '/log', [
+        register_rest_route('sarah-ai-client/v1', '/log', [
             ['methods' => 'POST', 'callback' => [$this, 'store'], 'permission_callback' => [$this, 'can']],
             ['methods' => 'GET',  'callback' => [$this, 'index'], 'permission_callback' => [$this, 'canRead']],
         ]);
@@ -30,7 +30,7 @@ class LogController
 
     public function index(): WP_REST_Response
     {
-        $logFile = PROJECT_NAME_PATH . 'project-name.log';
+        $logFile = SARAH_AI_CLIENT_PATH . 'sarah-ai-client.log';
         if (! file_exists($logFile)) {
             return new WP_REST_Response(['success' => true, 'data' => ['lines' => []]], 200);
         }

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ProjectName\Api;
+namespace SarahAiClient\Api;
 
-use ProjectName\Infrastructure\MenuRepository;
+use SarahAiClient\Infrastructure\MenuRepository;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -19,17 +19,17 @@ class MenuItemsController
 
     public function registerRoutes(): void
     {
-        register_rest_route('project-name/v1', '/menu-items', [
+        register_rest_route('sarah-ai-client/v1', '/menu-items', [
             ['methods' => 'GET',  'callback' => [$this, 'index'], 'permission_callback' => [$this, 'can']],
             ['methods' => 'POST', 'callback' => [$this, 'store'], 'permission_callback' => [$this, 'can']],
         ]);
-        register_rest_route('project-name/v1', '/menu-items/(?P<key>[a-z0-9\-]+)/toggle', [
+        register_rest_route('sarah-ai-client/v1', '/menu-items/(?P<key>[a-z0-9\-]+)/toggle', [
             'methods' => 'POST', 'callback' => [$this, 'toggle'], 'permission_callback' => [$this, 'can'],
         ]);
-        register_rest_route('project-name/v1', '/menu-items/(?P<key>[a-z0-9\-]+)/move', [
+        register_rest_route('sarah-ai-client/v1', '/menu-items/(?P<key>[a-z0-9\-]+)/move', [
             'methods' => 'POST', 'callback' => [$this, 'move'], 'permission_callback' => [$this, 'can'],
         ]);
-        register_rest_route('project-name/v1', '/menu-items/(?P<key>[a-z0-9\-]+)', [
+        register_rest_route('sarah-ai-client/v1', '/menu-items/(?P<key>[a-z0-9\-]+)', [
             'methods' => 'DELETE', 'callback' => [$this, 'destroy'], 'permission_callback' => [$this, 'can'],
         ]);
     }

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ProjectName\Admin;
+namespace SarahAiClient\Admin;
 
 class DashboardPage
 {
     public function maybeRenderStandaloneShell(): void
     {
         $page = sanitize_key((string) ($_GET['page'] ?? ''));
-        if ($page !== 'project-name-shell') {
+        if ($page !== 'sarah-ai-client-shell') {
             return;
         }
         if (! is_admin() || ! current_user_can('manage_options')) {
@@ -31,7 +31,7 @@ class DashboardPage
     {
         $userName = $this->currentUserName();
         $config   = [
-            'apiUrl'          => rest_url('project-name/v1'),
+            'apiUrl'          => rest_url('sarah-ai-client/v1'),
             'nonce'           => wp_create_nonce('wp_rest'),
             'adminUrl'        => admin_url(),
             'logoutUrl'       => wp_logout_url(admin_url()),
@@ -39,8 +39,8 @@ class DashboardPage
             'initials'        => $this->userInitials($userName),
             'canManageMenus'  => current_user_can('manage_options'),
         ];
-        $appCss = esc_url(PROJECT_NAME_URL . 'assets/dist/app.css?ver=' . PROJECT_NAME_VERSION);
-        $appJs  = esc_url(PROJECT_NAME_URL . 'assets/dist/app.js?ver=' . PROJECT_NAME_VERSION);
+        $appCss = esc_url(SARAH_AI_CLIENT_URL . 'assets/dist/app.css?ver=' . SARAH_AI_CLIENT_VERSION);
+        $appJs  = esc_url(SARAH_AI_CLIENT_URL . 'assets/dist/app.js?ver=' . SARAH_AI_CLIENT_VERSION);
         header('Content-Type: text/html; charset=' . get_bloginfo('charset'));
         ?>
 <!DOCTYPE html>
@@ -48,12 +48,12 @@ class DashboardPage
 <head>
     <meta charset="<?php echo esc_attr(get_bloginfo('charset')); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?php echo esc_html(get_bloginfo('name')); ?> — Project Name</title>
+    <title><?php echo esc_html(get_bloginfo('name')); ?> — Sarah AI Client</title>
     <link rel="stylesheet" href="<?php echo $appCss; ?>">
 </head>
 <body>
 <div id="app"></div>
-<script>window.ProjectNameConfig = <?php echo wp_json_encode($config); ?>;</script>
+<script>window.SarahAiClientConfig = <?php echo wp_json_encode($config); ?>;</script>
 <script type="module" src="<?php echo $appJs; ?>"></script>
 </body>
 </html>

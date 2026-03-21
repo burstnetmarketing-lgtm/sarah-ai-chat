@@ -57,3 +57,4 @@
 1056 Added Menu Manager view with Bootstrap 5 table and add/toggle/delete actions.
 1057 Replaced menu table with accordion UI supporting parent-child menu items.
 1058 Added up/down reorder buttons for child menu items with ID-based sort order.
+0003 Refactored project-name template into dual-plugin structure: sarah-ai-client and sarah-ai-server.

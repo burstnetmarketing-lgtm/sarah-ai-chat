@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ProjectName\Admin;
+namespace SarahAiClient\Admin;
 
 class AdminMenu
 {
@@ -22,10 +22,10 @@ class AdminMenu
     public function registerMenu(): void
     {
         add_menu_page(
-            'Project Name',
-            'Project Name',
+            'Sarah AI Client',
+            'Sarah AI Client',
             'manage_options',
-            'project-name-shell',
+            'sarah-ai-client-shell',
             [$this->dashboard, 'render'],
             'dashicons-admin-generic',
             56

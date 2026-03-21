@@ -1,8 +1,14 @@
 {
-  "name": "project-name",
+  "name": "sarah-ai-chat",
   "scripts": {
+    "dev:client": "cd sarah-ai-client && npm run dev",
+    "dev:server": "cd sarah-ai-server && npm run dev",
+    "build:client": "cd sarah-ai-client && npm run build",
+    "build:server": "cd sarah-ai-server && npm run build",
+    "build": "npm run build:client && npm run build:server",
     "deploy": "node scripts/deploy.js",
-    "update:project-name": "node scripts/update-project-name.js",
+    "update:client": "node scripts/update-sarah-ai-client.js",
+    "update:server": "node scripts/update-sarah-ai-server.js",
     "commit": "node scripts/commit.js",
     "git": "node scripts/git.js",
     "menu": "node scripts/menu.js",

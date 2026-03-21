@@ -1,8 +1,8 @@
 <?php
 
-namespace ProjectName\Infrastructure;
+namespace SarahAiServer\Infrastructure;
 
-use ProjectName\DB\SettingsTable;
+use SarahAiServer\DB\SettingsTable;
 
 class SettingsRepository
 {
