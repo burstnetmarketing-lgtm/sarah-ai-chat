@@ -30,6 +30,7 @@ use SarahAiServer\Api\SiteTokenController;
 use SarahAiServer\Api\TenantController;
 use SarahAiServer\Api\UserTenantController;
 use SarahAiServer\Infrastructure\MenuRepository;
+use SarahAiServer\Infrastructure\SettingsRepository;
 
 class Plugin
 {
@@ -53,6 +54,12 @@ class Plugin
 
         // Seed baseline data (idempotent)
         Seeder::run();
+
+        // Wire logger on/off from DB setting and register PHP error hooks
+        $settingsRepo   = new SettingsRepository();
+        $loggingEnabled = $settingsRepo->get('logging_enabled', '1', 'platform') === '1';
+        Logger::setEnabled($loggingEnabled);
+        Logger::registerShutdownHandler();
 
         $menuRepo = new MenuRepository();
         $menuRepo->ensureCoreItems();

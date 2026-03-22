@@ -83,6 +83,7 @@ class Seeder
             'platform_name'       => 'Sarah',
             'trial_duration_days' => '14',
             'default_agent_slug'  => 'sarah-basic',
+            'logging_enabled'     => '1',
         ];
 
         foreach ($defaults as $key => $value) {

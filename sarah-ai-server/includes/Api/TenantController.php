@@ -74,7 +74,7 @@ class TenantController
         }
 
         $metaArray = is_array($meta) ? $meta : [];
-        $tenantId  = $this->tenants->create($name, $slug ?: $this->slugify($name), $metaArray);
+        $tenantId  = $this->tenants->create($name, $slug ?: $this->slugify($name), 'active', $metaArray);
 
         // Auto-assign trial subscription
         $plan = $this->plans->findBySlug('trial');
