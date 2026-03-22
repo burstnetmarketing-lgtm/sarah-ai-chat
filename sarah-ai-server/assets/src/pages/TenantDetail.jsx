@@ -425,7 +425,7 @@ function SiteStatusPanel({ site, onReload }) {
 
 // ─── Step 5: Account Keys ─────────────────────────────────────────────────────
 
-function AccountKeysSection({ tenantUuid, onReload }) {
+function AccountKeysSection({ tenantUuid, onKeysChange }) {
   const [keys, setKeys]       = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm]       = useState({ label: '' });
@@ -436,7 +436,7 @@ function AccountKeysSection({ tenantUuid, onReload }) {
   const load = useCallback(() => {
     setLoading(true);
     listAccountKeys(tenantUuid)
-      .then(res => { if (res.success) setKeys(res.data); })
+      .then(res => { if (res.success) { setKeys(res.data); onKeysChange?.(res.data); } })
       .finally(() => setLoading(false));
   }, [tenantUuid]);
 
@@ -447,7 +447,7 @@ function AccountKeysSection({ tenantUuid, onReload }) {
     setSaving(true); setMsg(null); setRawKey(null);
     try {
       const res = await createAccountKey(tenantUuid, { label: form.label.trim() || 'default' });
-      if (res.success) { setRawKey(res.data.raw_key); setForm({ label: '' }); load(); onReload?.(); }
+      if (res.success) { setRawKey(res.data.raw_key); setForm({ label: '' }); load(); }
       else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
     } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
     finally { setSaving(false); }
@@ -518,27 +518,30 @@ function AccountKeysSection({ tenantUuid, onReload }) {
 
 // ─── Step 6: Site Keys ────────────────────────────────────────────────────────
 
-function SiteKeysSection({ siteUuid, onKeysChange }) {
+function SiteKeysSection({ sites = [], onKeysChange }) {
+  const [selectedUuid, setSelectedUuid] = useState(sites.length === 1 ? sites[0].uuid : '');
   const [keys, setKeys]       = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [form, setForm]       = useState({ label: '' });
   const [saving, setSaving]   = useState(false);
   const [rawKey, setRawKey]   = useState(null);
 
   const load = useCallback(() => {
+    if (!selectedUuid) return;
     setLoading(true);
-    listSiteKeys(siteUuid)
+    listSiteKeys(selectedUuid)
       .then(res => { if (res.success) { setKeys(res.data); onKeysChange?.(res.data); } })
       .finally(() => setLoading(false));
-  }, [siteUuid]);
+  }, [selectedUuid]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setKeys([]); setRawKey(null); load(); }, [load]);
 
   async function handleIssue(e) {
     e.preventDefault();
+    if (!selectedUuid) return;
     setSaving(true); setRawKey(null);
     try {
-      const res = await createSiteKey(siteUuid, { label: form.label.trim() || 'default' });
+      const res = await createSiteKey(selectedUuid, { label: form.label.trim() || 'default' });
       if (res.success) { setRawKey(res.data.raw_key); setForm({ label: '' }); load(); }
     } catch { alert('Request failed.'); }
     finally { setSaving(false); }
@@ -550,6 +553,8 @@ function SiteKeysSection({ siteUuid, onKeysChange }) {
     catch { alert('Failed.'); }
   }
 
+  const selectedSite = sites.find(s => s.uuid === selectedUuid);
+
   return (
     <div className="card border-0 shadow-sm">
       <div className="card-header">
@@ -559,13 +564,28 @@ function SiteKeysSection({ siteUuid, onKeysChange }) {
       <div className="card-body">
         <form onSubmit={handleIssue} className="mb-3">
           <div className="row g-2 align-items-end">
+            <div className="col-md-12">
+              <label className="form-label small fw-semibold">Site</label>
+              <select
+                className="form-select form-select-sm"
+                value={selectedUuid}
+                onChange={e => { setSelectedUuid(e.target.value); setRawKey(null); }}
+                required
+              >
+                <option value="">— Select a site —</option>
+                {sites.map(s => (
+                  <option key={s.uuid} value={s.uuid}>{s.name} — {s.url}</option>
+                ))}
+              </select>
+            </div>
             <div className="col-md-8">
               <label className="form-label small fw-semibold">Label</label>
               <input className="form-control form-control-sm" placeholder="default"
-                value={form.label} onChange={e => setForm({ label: e.target.value })} />
+                value={form.label} onChange={e => setForm({ label: e.target.value })}
+                disabled={!selectedUuid} />
             </div>
             <div className="col-md-4">
-              <button className="btn btn-primary btn-sm w-100" type="submit" disabled={saving}>
+              <button className="btn btn-primary btn-sm w-100" type="submit" disabled={saving || !selectedUuid}>
                 {saving ? '…' : 'Issue Key'}
               </button>
             </div>
@@ -577,8 +597,12 @@ function SiteKeysSection({ siteUuid, onKeysChange }) {
             <div className="font-monospace mt-1 user-select-all small bg-body border rounded px-2 py-1">{rawKey}</div>
           </div>
         )}
-        {loading ? <p className="text-muted small mb-0">Loading…</p> : keys.length === 0 ? (
-          <p className="text-muted small mb-0">No site keys issued.</p>
+        {!selectedUuid ? (
+          <p className="text-muted small mb-0">Select a site to view its keys.</p>
+        ) : loading ? (
+          <p className="text-muted small mb-0">Loading…</p>
+        ) : keys.length === 0 ? (
+          <p className="text-muted small mb-0">No site keys issued for <strong>{selectedSite?.name ?? selectedUuid}</strong>.</p>
         ) : (
           <table className="table table-sm mb-0">
             <thead className="table-light">
@@ -934,9 +958,9 @@ export default function TenantDetail({ param, onNavigate }) {
       case 4: return firstSite
         ? <SiteStatusPanel site={firstSite} onReload={load} />
         : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
-      case 5: return <AccountKeysSection tenantUuid={tenantUuid} onReload={load} />;
-      case 6: return firstSiteUuid
-        ? <SiteKeysSection siteUuid={firstSiteUuid} onKeysChange={keys => setFirstSiteKeys(keys)} />
+      case 5: return <AccountKeysSection tenantUuid={tenantUuid} onKeysChange={keys => setAccountKeys(keys)} />;
+      case 6: return sites.length > 0
+        ? <SiteKeysSection sites={sites} onKeysChange={keys => setFirstSiteKeys(keys)} />
         : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
       case 7: return firstSiteUuid
         ? <AgentSection
