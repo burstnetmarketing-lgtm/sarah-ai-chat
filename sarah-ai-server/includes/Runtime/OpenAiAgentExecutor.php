@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SarahAiServer\Runtime;
 
 use SarahAiServer\Infrastructure\SettingsRepository;
+use SarahAiServer\Processing\SemanticRetriever;
 
 /**
  * OpenAI-backed agent executor.
@@ -37,10 +38,11 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         $message   = $context['message'];
         $history   = $context['history'] ?? [];
         $knowledge = $context['knowledge'] ?? [];
+        $site      = $context['site']      ?? [];
 
-        $config     = is_array($agent['config']) ? $agent['config'] : (json_decode($agent['config'] ?? '{}', true) ?? []);
-        $model      = $config['model']       ?? $agent['slug'];
-        $maxTokens  = (int) ($config['max_tokens']  ?? 1024);
+        $config      = is_array($agent['config']) ? $agent['config'] : (json_decode($agent['config'] ?? '{}', true) ?? []);
+        $model       = $config['model']       ?? $agent['slug'];
+        $maxTokens   = (int)   ($config['max_tokens']  ?? 1024);
         $temperature = (float) ($config['temperature'] ?? 0.7);
 
         $apiKey = $this->settings->get('openai_api_key', '', 'platform');
@@ -54,11 +56,22 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
             ];
         }
 
+        // ── RAG retrieval ──────────────────────────────────────────────────────
+        // Retrieve the most relevant chunks for this message via semantic search.
+        // SemanticRetriever returns [] when no embeddings exist or key is missing,
+        // which causes buildSystemPrompt() to fall back to raw source_content injection.
+        $siteId          = (int) ($site['id'] ?? 0);
+        $retrievedChunks = [];
+        if ($siteId > 0 && ! empty($knowledge)) {
+            $retriever       = new SemanticRetriever();
+            $retrievedChunks = $retriever->retrieve($siteId, $message);
+        }
+
         $messages = [];
 
-        // System prompt with knowledge injection
+        // System prompt: use retrieved chunks if available, else raw knowledge
         $siteIdentity = $context['site_identity'] ?? [];
-        $systemPrompt = $this->buildSystemPrompt($agent, $knowledge, $siteIdentity);
+        $systemPrompt = $this->buildSystemPrompt($agent, $knowledge, $siteIdentity, $retrievedChunks);
         if ($systemPrompt) {
             $messages[] = ['role' => 'system', 'content' => $systemPrompt];
         }
@@ -120,22 +133,31 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
     }
 
     /**
-     * Builds the system prompt from agent config + site identity + knowledge resources.
+     * Builds the system prompt from agent config + site identity + knowledge context.
      *
      * Priority:
      *   1. If config.system_prompt is set — use it as the full prompt, append identity + knowledge below.
      *   2. Otherwise — compose from role, tone, description, and standard guardrails.
      *
+     * Knowledge injection (mutually exclusive, retrieved takes priority):
+     *   - $retrievedChunks non-empty → Phase 6.2 RAG: inject top-K semantically matched chunks
+     *   - $retrievedChunks empty     → Phase ≤6.1 fallback: inject raw source_content from all active resources
+     *
      * Site identity fields (site-level, override agent defaults):
      *   agent_display_name — name the agent uses when introducing itself
      *   intro_message      — how the agent introduces itself
      *
-     * @param array  $agent        Agent row (including parsed config array)
-     * @param array  $knowledge    Active knowledge resources for the site
-     * @param array  $siteIdentity Site-level identity fields
+     * @param array  $agent           Agent row (including parsed config array)
+     * @param array  $knowledge       Active knowledge resources for the site (fallback)
+     * @param array  $siteIdentity    Site-level identity fields
+     * @param array  $retrievedChunks Top-K chunks from SemanticRetriever (preferred)
      */
-    private function buildSystemPrompt(array $agent, array $knowledge, array $siteIdentity = []): string
-    {
+    private function buildSystemPrompt(
+        array $agent,
+        array $knowledge,
+        array $siteIdentity = [],
+        array $retrievedChunks = []
+    ): string {
         $config      = is_array($agent['config']) ? $agent['config'] : [];
         $customPrompt      = trim((string) ($config['system_prompt'] ?? ''));
         $role              = trim((string) ($config['role']          ?? ''));
@@ -144,19 +166,37 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         $agentDisplayName  = trim((string) ($siteIdentity['agent_display_name'] ?? ''));
         $introMessage      = trim((string) ($siteIdentity['intro_message']      ?? ''));
 
-        // ── Knowledge sections ─────────────────────────────────────────────
-        $knowledgeParts = [];
-        foreach ($knowledge as $resource) {
-            $content = trim((string) ($resource['source_content'] ?? ''));
-            if (! $content) {
-                continue;
+        // ── Knowledge section (RAG or raw fallback) ────────────────────────
+        $knowledgeSection = '';
+        if (! empty($retrievedChunks)) {
+            // Phase 6.2: inject semantically retrieved chunks
+            $parts = [];
+            foreach ($retrievedChunks as $item) {
+                $text  = trim((string) ($item['chunk_text'] ?? ''));
+                $title = trim((string) ($item['resource_title'] ?? ''));
+                if (! $text) {
+                    continue;
+                }
+                $parts[] = $title ? "### {$title}\n{$text}" : $text;
             }
-            $title = trim((string) ($resource['title'] ?? ''));
-            $knowledgeParts[] = $title ? "### {$title}\n{$content}" : $content;
+            if ($parts) {
+                $knowledgeSection = "\n\n## Knowledge Base\n\nUse the following information to answer questions. Rely only on what is provided below — do not invent facts.\n\n" . implode("\n\n", $parts);
+            }
+        } else {
+            // Fallback: raw source_content from all active resources
+            $knowledgeParts = [];
+            foreach ($knowledge as $resource) {
+                $content = trim((string) ($resource['source_content'] ?? ''));
+                if (! $content) {
+                    continue;
+                }
+                $title = trim((string) ($resource['title'] ?? ''));
+                $knowledgeParts[] = $title ? "### {$title}\n{$content}" : $content;
+            }
+            if ($knowledgeParts) {
+                $knowledgeSection = "\n\n## Knowledge Base\n\nUse the following information to answer questions. Rely only on what is provided below — do not invent facts.\n\n" . implode("\n\n", $knowledgeParts);
+            }
         }
-        $knowledgeSection = $knowledgeParts
-            ? "\n\n## Knowledge Base\n\nUse the following information to answer questions. Rely only on what is provided below — do not invent facts.\n\n" . implode("\n\n", $knowledgeParts)
-            : '';
 
         // ── Identity section (appended to both modes) ─────────────────────
         $identitySection = '';

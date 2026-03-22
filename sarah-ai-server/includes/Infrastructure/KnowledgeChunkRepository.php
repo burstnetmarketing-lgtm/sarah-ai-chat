@@ -103,4 +103,37 @@ class KnowledgeChunkRepository
             $wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE resource_id = %d", $resourceId)
         );
     }
+
+    /**
+     * Return all chunks with embeddings for a site, restricted to resources
+     * that are active (status = active) and fully processed (processing_status = done).
+     *
+     * Used by SemanticRetriever to load the search corpus at runtime.
+     * Includes resource_title (joined from knowledge_resources) for prompt labelling.
+     */
+    public function findWithEmbeddingsBySite(int $siteId): array
+    {
+        global $wpdb;
+        $chunksTable    = $wpdb->prefix . KnowledgeChunksTable::TABLE;
+        $resourcesTable = $wpdb->prefix . 'sarah_ai_server_knowledge_resources';
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT kc.id, kc.resource_id, kc.chunk_index, kc.chunk_text, kc.embedding,
+                        kr.title AS resource_title
+                 FROM {$chunksTable} kc
+                 INNER JOIN {$resourcesTable} kr ON kr.id = kc.resource_id
+                 WHERE kc.site_id = %d
+                   AND kc.embedding IS NOT NULL
+                   AND kr.status = 'active'
+                   AND kr.processing_status = 'done'
+                   AND kr.deleted_at IS NULL
+                 ORDER BY kc.resource_id ASC, kc.chunk_index ASC",
+                $siteId
+            ),
+            ARRAY_A
+        );
+
+        return is_array($rows) ? $rows : [];
+    }
 }
