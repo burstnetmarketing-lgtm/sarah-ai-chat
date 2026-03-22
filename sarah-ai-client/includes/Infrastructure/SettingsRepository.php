@@ -8,13 +8,48 @@ use SarahAiClient\DB\SettingsTable;
 
 class SettingsRepository
 {
-    public const APPEARANCE_KEYS = ['chat_title', 'welcome_message', 'primary_color', 'widget_position'];
+    public const APPEARANCE_KEYS = [
+        // General / Layout
+        'widget_width', 'widget_height', 'widget_position',
+        // Launcher Button
+        'launcher_bg_color', 'launcher_icon', 'launcher_image',
+        // Header
+        'header_bg_color', 'header_text', 'header_text_color',
+        'header_font_family', 'close_btn_color', 'close_btn_size',
+        // Messages / Welcome
+        'welcome_message', 'msg_area_bg',
+        'bubble_user_bg', 'bubble_user_text',
+        'bubble_ai_bg',  'bubble_ai_text',
+        // Input & Send
+        'send_bg_color',
+        // Quick Questions
+        'qq_border_color', 'qq_text_color', 'qq_hover_bg', 'qq_border_radius',
+    ];
 
     public const APPEARANCE_DEFAULTS = [
-        'chat_title'      => 'Sarah Assistant',
-        'welcome_message' => 'Hi 👋 How can I help you today?',
-        'primary_color'   => '#2563eb',
-        'widget_position' => 'right',
+        'widget_width'       => '360',
+        'widget_height'      => '500',
+        'widget_position'    => 'right',
+        'launcher_bg_color'  => '#2563eb',
+        'launcher_icon'      => 'bubble',
+        'launcher_image'     => '',
+        'header_bg_color'    => '#2563eb',
+        'header_text'        => 'Sarah Assistant',
+        'header_text_color'  => '#ffffff',
+        'header_font_family' => 'inherit',
+        'close_btn_color'    => '#ffffff',
+        'close_btn_size'     => '16',
+        'welcome_message'    => 'Hi 👋 How can I help you today?',
+        'msg_area_bg'        => '#f8fafc',
+        'bubble_user_bg'     => '#2563eb',
+        'bubble_user_text'   => '#ffffff',
+        'bubble_ai_bg'       => '#ffffff',
+        'bubble_ai_text'     => '#1e293b',
+        'send_bg_color'      => '#2563eb',
+        'qq_border_color'    => '#2563eb',
+        'qq_text_color'      => '#2563eb',
+        'qq_hover_bg'        => '#2563eb',
+        'qq_border_radius'   => '20',
     ];
 
     /* ── Generic get/set (used for widget_enabled etc.) ───────── */
@@ -179,12 +214,11 @@ class SettingsRepository
 
     public function getPublishedSettings(): array
     {
-        $d = self::APPEARANCE_DEFAULTS;
-        return [
-            'chatTitle'      => $this->get('chat_title',      $d['chat_title']),
-            'welcomeMessage' => $this->get('welcome_message',  $d['welcome_message']),
-            'primaryColor'   => $this->get('primary_color',   $d['primary_color']),
-            'position'       => $this->get('widget_position', $d['widget_position']),
-        ];
+        $d       = self::APPEARANCE_DEFAULTS;
+        $result  = [];
+        foreach (self::APPEARANCE_KEYS as $key) {
+            $result[$key] = $this->get($key, $d[$key]);
+        }
+        return $result;
     }
 }

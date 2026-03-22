@@ -74,3 +74,4 @@
 0017 Phase 2 — mock chat interaction, typing indicator, quick questions admin page and widget buttons.
 0018 Phase 3 — appearance settings with draft/publish system, live preview, dynamic CSS custom properties.
 0019 Fixed widget positioning gap and added mobile fullscreen mode; fixed PHP fatal error in enqueueWidget.
+0020 Expanded appearance settings to 6 tabs with per-element color/size controls and full-height sticky live preview.
