@@ -84,11 +84,13 @@ class Seeder
         $agentRepo = new AgentRepository();
         $repo      = new PlanAgentRepository();
 
-        $trial   = $planRepo->findBySlug('trial');
-        $mini    = $agentRepo->findBySlug('gpt-4o-mini');
+        $trial = $planRepo->findBySlug('trial');
 
-        if ($trial && $mini) {
-            $repo->insertIfMissing((int) $trial['id'], (int) $mini['id']);
+        foreach (['gpt-4o-mini', 'gpt-4o', 'o1'] as $slug) {
+            $agent = $agentRepo->findBySlug($slug);
+            if ($trial && $agent) {
+                $repo->insertIfMissing((int) $trial['id'], (int) $agent['id']);
+            }
         }
     }
 

@@ -9,7 +9,7 @@ const TONES = [
   { value: 'formal',      label: 'Formal' },
 ];
 
-function AgentCard({ agent, onSaved }) {
+function AgentPanel({ agent, onSaved }) {
   const config = (() => {
     try { return typeof agent.config === 'string' ? JSON.parse(agent.config) : (agent.config || {}); }
     catch { return {}; }
@@ -42,81 +42,69 @@ function AgentCard({ agent, onSaved }) {
     : <span className="text-muted small">Composed from role + tone + guardrails</span>;
 
   return (
-    <div className="card border-0 shadow-sm mb-3">
-      <div className="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
-        <div>
-          <span className="fw-semibold">{agent.name}</span>
-          <span className="text-muted small ms-2">({agent.slug})</span>
-        </div>
-        <span className={`badge ${agent.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
-          {agent.status}
-        </span>
-      </div>
-      <div className="card-body">
-        {agent.description && (
-          <p className="text-muted small mb-3">{agent.description}</p>
-        )}
+    <div className="p-3">
+      {agent.description && (
+        <p className="text-muted small mb-3">{agent.description}</p>
+      )}
 
-        <form onSubmit={handleSave}>
-          <div className="row g-3 mb-3">
-            <div className="col-md-5">
-              <label className="form-label small fw-semibold">Role</label>
-              <input
-                type="text"
-                className="form-control form-control-sm"
-                value={role}
-                onChange={e => setRole(e.target.value)}
-                placeholder="e.g. customer support assistant, sales agent"
-                disabled={saving}
-              />
-              <div className="form-text">Defines what the agent does. Used in the system prompt.</div>
-            </div>
-            <div className="col-md-3">
-              <label className="form-label small fw-semibold">Tone</label>
-              <select
-                className="form-select form-select-sm"
-                value={tone}
-                onChange={e => setTone(e.target.value)}
-                disabled={saving}
-              >
-                {TONES.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="mb-3">
-            <label className="form-label small fw-semibold">
-              Custom System Prompt
-              <span className="text-muted fw-normal ms-2">(optional override)</span>
-            </label>
-            <textarea
-              className="form-control form-control-sm font-monospace"
-              rows={6}
-              value={systemPrompt}
-              onChange={e => setSystemPrompt(e.target.value)}
-              placeholder={"If set, this replaces the auto-composed prompt entirely.\nLeave blank to use role + tone + guardrails."}
+      <form onSubmit={handleSave}>
+        <div className="row g-3 mb-3">
+          <div className="col-md-5">
+            <label className="form-label small fw-semibold">Role</label>
+            <input
+              type="text"
+              className="form-control form-control-sm"
+              value={role}
+              onChange={e => setRole(e.target.value)}
+              placeholder="e.g. customer support assistant, sales agent"
               disabled={saving}
             />
-            <div className="form-text mt-1">{promptPreview}</div>
+            <div className="form-text">Defines what the agent does. Used in the system prompt.</div>
           </div>
-
-          <div className="d-flex align-items-center gap-2">
-            <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
-              {saving ? 'Saving…' : 'Save'}
-            </button>
-            {saved  && <span className="text-success small">Saved.</span>}
-            {error  && <span className="text-danger small">{error}</span>}
+          <div className="col-md-3">
+            <label className="form-label small fw-semibold">Tone</label>
+            <select
+              className="form-select form-select-sm"
+              value={tone}
+              onChange={e => setTone(e.target.value)}
+              disabled={saving}
+            >
+              {TONES.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
           </div>
-        </form>
-
-        {/* Model info */}
-        <div className="mt-3 pt-3 border-top d-flex gap-3">
-          {config.model      && <span className="text-muted small">Model: <strong>{config.model}</strong></span>}
-          {config.max_tokens && <span className="text-muted small">Max tokens: <strong>{config.max_tokens}</strong></span>}
-          {config.temperature !== undefined && <span className="text-muted small">Temperature: <strong>{config.temperature}</strong></span>}
         </div>
+
+        <div className="mb-3">
+          <label className="form-label small fw-semibold">
+            Custom System Prompt
+            <span className="text-muted fw-normal ms-2">(optional override)</span>
+          </label>
+          <textarea
+            className="form-control form-control-sm font-monospace"
+            rows={6}
+            value={systemPrompt}
+            onChange={e => setSystemPrompt(e.target.value)}
+            placeholder={"If set, this replaces the auto-composed prompt entirely.\nLeave blank to use role + tone + guardrails."}
+            disabled={saving}
+          />
+          <div className="form-text mt-1">{promptPreview}</div>
+        </div>
+
+        <div className="d-flex align-items-center gap-2">
+          <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+          {saved && <span className="text-success small">Saved.</span>}
+          {error && <span className="text-danger small">{error}</span>}
+        </div>
+      </form>
+
+      <div className="mt-3 pt-3 border-top d-flex gap-3">
+        {config.model       && <span className="text-muted small">Model: <strong>{config.model}</strong></span>}
+        {config.max_tokens  && <span className="text-muted small">Max tokens: <strong>{config.max_tokens}</strong></span>}
+        {config.temperature !== undefined && <span className="text-muted small">Temperature: <strong>{config.temperature}</strong></span>}
       </div>
     </div>
   );
@@ -126,6 +114,7 @@ export default function Agents() {
   const [agents,  setAgents]  = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
+  const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
     listAgents()
@@ -155,9 +144,29 @@ export default function Agents() {
         <p className="text-muted small">No active agents found.</p>
       )}
 
-      {agents.map(agent => (
-        <AgentCard key={agent.id} agent={agent} onSaved={handleSaved} />
-      ))}
+      {!loading && !error && agents.length > 0 && (
+        <div className="card border-0 shadow-sm">
+          <div className="card-header bg-white border-bottom p-0">
+            <ul className="nav nav-tabs border-0 px-2 pt-2">
+              {agents.map((agent, i) => (
+                <li key={agent.id} className="nav-item">
+                  <button
+                    className={`nav-link${activeTab === i ? ' active' : ''}`}
+                    onClick={() => setActiveTab(i)}
+                  >
+                    {agent.name}
+                    <span className={`badge ms-2 ${agent.status === 'active' ? 'bg-success' : 'bg-secondary'}`}
+                      style={{ fontSize: '0.65rem' }}>
+                      {agent.status}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <AgentPanel key={agents[activeTab].id} agent={agents[activeTab]} onSaved={handleSaved} />
+        </div>
+      )}
     </>
   );
 }
