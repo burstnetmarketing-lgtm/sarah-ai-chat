@@ -46,7 +46,7 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         $apiKey = $this->settings->get('openai_api_key', '', 'platform');
         if (! $apiKey) {
             return [
-                'content'    => 'Service is not configured. Please contact the site administrator.',
+                'content'    => '[TEST MODE] Hello! I am ' . ($agent['name'] ?? 'Sarah AI') . '. OpenAI API key is not set — this is a mock response.',
                 'tokens_in'  => null,
                 'tokens_out' => null,
                 'provider'   => 'openai',

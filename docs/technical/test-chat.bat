@@ -8,8 +8,9 @@ setlocal enabledelayedexpansion
 
 :: ── CONFIGURATION ────────────────────────────────────────────────────────────
 set BASE_URL=http://sarah-server.local/wp-json/sarah-ai-server/v1
-set ACCOUNT_KEY=your-account-key-here
-set SITE_KEY=your-site-key-here
+set ACCOUNT_KEY=3e928cf79fc83453cd8447ef98ba395f0c8de38a11a7a957827f5ba6e8e1466d
+set SITE_KEY=0741fc0800b9ed96152213226f69dabdad2b6527cbc70af05ea88f714b5a3da3
+set PLATFORM_KEY=www.BurstNET.com.au
 set MESSAGE_1=Hello! What services do you offer?
 set MESSAGE_2=Can you tell me more about pricing?
 :: ─────────────────────────────────────────────────────────────────────────────
@@ -102,8 +103,8 @@ call :log ""
 call :log "[STEP 3] Fetching session..."
 echo [STEP 3] Fetching session...
 
-curl -s -X GET "%BASE_URL%/sessions/!SESSION_UUID!" ^
-  --user "admin:your-wp-app-password" ^
+curl -s -X GET "%BASE_URL%/sessions/!SESSION_UUID!?account_key=%ACCOUNT_KEY%&site_key=%SITE_KEY%" ^
+  -H "X-Sarah-Platform-Key: %PLATFORM_KEY%" ^
   -o "%OUT%session.json"
 
 call :log "[STEP 3] Response saved to session.json"
@@ -115,8 +116,8 @@ call :log ""
 call :log "[STEP 4] Fetching messages..."
 echo [STEP 4] Fetching messages...
 
-curl -s -X GET "%BASE_URL%/sessions/!SESSION_UUID!/messages" ^
-  --user "admin:your-wp-app-password" ^
+curl -s -X GET "%BASE_URL%/sessions/!SESSION_UUID!/messages?account_key=%ACCOUNT_KEY%&site_key=%SITE_KEY%" ^
+  -H "X-Sarah-Platform-Key: %PLATFORM_KEY%" ^
   -o "%OUT%messages.json"
 
 call :log "[STEP 4] Response saved to messages.json"

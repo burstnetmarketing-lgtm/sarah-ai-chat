@@ -192,10 +192,7 @@ class ChatRuntime
     {
         $type = $agent['type'] ?? 'openai';
 
-        return match ($type) {
-            'openai' => new OpenAiAgentExecutor(),
-            default  => new OpenAiAgentExecutor(),
-        };
+        return new OpenAiAgentExecutor();
     }
 
     private function error(string $code, string $message, int $status): array

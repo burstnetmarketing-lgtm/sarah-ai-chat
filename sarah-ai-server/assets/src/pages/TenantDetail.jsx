@@ -6,7 +6,7 @@ import {
   listAccountKeys, createAccountKey, deleteAccountKey,
   createSite,
   listSiteKeys, createSiteKey, deleteSiteKey,
-  listAgents, assignAgent, listAvailableAgents,
+  listAgents, assignAgent, unassignAgent,
   listKnowledge, createKnowledge, deleteKnowledge,
   markTenantSetupComplete,
 } from '../api/provisioning.js';
@@ -310,7 +310,7 @@ function UsersSection({ tenantUuid, onReload }) {
 
 // ─── Step 3: Register Site ────────────────────────────────────────────────────
 
-function SiteCreateSection({ tenantUuid, sites, onReload }) {
+function SiteCreateSection({ tenantUuid, sites, agents, onReload }) {
   const [form, setForm]     = useState({ name: '', url: '' });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg]       = useState(null);
@@ -360,16 +360,20 @@ function SiteCreateSection({ tenantUuid, sites, onReload }) {
         ) : (
           <table className="table table-sm mb-0">
             <thead className="table-light">
-              <tr><th>Name</th><th>URL</th><th>Status</th></tr>
+              <tr><th>Name</th><th>URL</th><th>Status</th><th>Agent</th></tr>
             </thead>
             <tbody>
-              {sites.map(site => (
-                <tr key={site.uuid ?? site.id}>
-                  <td className="fw-semibold">{site.name}</td>
-                  <td className="text-muted small">{site.url}</td>
-                  <td><StatusBadge status={site.status} map={{ active: 'success', inactive: 'secondary', suspended: 'warning' }} /></td>
-                </tr>
-              ))}
+              {sites.map(site => {
+                const agent = agents.find(a => a.id == site.active_agent_id);
+                return (
+                  <tr key={site.uuid ?? site.id}>
+                    <td className="fw-semibold">{site.name}</td>
+                    <td className="text-muted small">{site.url}</td>
+                    <td><StatusBadge status={site.status} map={{ active: 'success', inactive: 'secondary', suspended: 'warning' }} /></td>
+                    <td>{agent ? <span className="badge bg-success-subtle text-success">{agent.name}</span> : <span className="text-muted">—</span>}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -631,68 +635,106 @@ function SiteKeysSection({ sites = [], onKeysChange }) {
 
 // ─── Step 7: Agent ────────────────────────────────────────────────────────────
 
-function AgentSection({ siteUuid, tenantUuid, currentAgentId, onAgentChange }) {
-  const [agents, setAgents]     = useState([]);
-  const [selected, setSelected] = useState(currentAgentId ?? '');
-  const [saving, setSaving]     = useState(false);
-  const [msg, setMsg]           = useState(null);
+function AgentSection({ sites = [], agents = [], onAgentChange }) {
+  const [editing, setEditing]       = useState(null); // siteUuid being edited
+  const [editSelected, setEditSel]  = useState('');
+  const [saving, setSaving]         = useState(null); // siteUuid being saved
 
-  useEffect(() => {
-    const fetch = tenantUuid ? listAvailableAgents(tenantUuid) : listAgents();
-    fetch.then(res => { if (res.success) setAgents(res.data); }).catch(() => {});
-  }, [tenantUuid]);
-
-  useEffect(() => { setSelected(currentAgentId ?? ''); }, [currentAgentId]);
-
-  async function handleAssign(e) {
-    e.preventDefault();
-    if (!selected) return;
-    setSaving(true); setMsg(null);
-    try {
-      const res = await assignAgent(siteUuid, parseInt(selected, 10));
-      if (res.success) {
-        setMsg({ type: 'success', text: 'Agent assigned.' });
-        onAgentChange?.(parseInt(selected, 10));
-      } else {
-        setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
-      }
-    } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
-    finally { setSaving(false); }
+  function startEdit(site) {
+    setEditing(site.uuid);
+    setEditSel(site.active_agent_id ? String(site.active_agent_id) : '');
   }
 
-  const currentAgent = agents.find(a => a.id == currentAgentId);
+  async function handleAssign(siteUuid) {
+    if (!editSelected) return;
+    setSaving(siteUuid);
+    try {
+      const res = await assignAgent(siteUuid, parseInt(editSelected, 10));
+      if (res.success) { setEditing(null); onAgentChange?.(siteUuid, parseInt(editSelected, 10)); }
+    } catch {} finally { setSaving(null); }
+  }
+
+  async function handleUnassign(siteUuid) {
+    if (!confirm('Remove agent from this site?')) return;
+    setSaving(siteUuid);
+    try {
+      const res = await unassignAgent(siteUuid);
+      if (res.success) { setEditing(null); onAgentChange?.(siteUuid, null); }
+    } catch {} finally { setSaving(null); }
+  }
 
   return (
     <div className="card border-0 shadow-sm">
       <div className="card-header">
-        <h6 className="fw-semibold mb-0">
-          Agent Assignment
-          {currentAgent && <span className="badge bg-success ms-2">{currentAgent.name}</span>}
-        </h6>
-        <p className="text-muted small mb-0">Assign the AI agent that will handle chat for this site.</p>
+        <h6 className="fw-semibold mb-0">Agent Assignment</h6>
+        <p className="text-muted small mb-0">Assign the AI agent that will handle chat for each site.</p>
       </div>
-      <div className="card-body">
-        <form onSubmit={handleAssign}>
-          <div className="row g-2 align-items-end">
-            <div className="col-md-8">
-              <label className="form-label small fw-semibold">Agent</label>
-              <select className="form-select form-select-sm"
-                value={selected} onChange={e => setSelected(e.target.value)}>
-                <option value="">— select agent —</option>
-                {agents.map(a => (
-                  <option key={a.id} value={a.id}>{a.name} ({a.slug})</option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-4">
-              <button className="btn btn-primary btn-sm w-100" type="submit" disabled={saving || !selected}>
-                {saving ? '…' : 'Assign'}
-              </button>
-            </div>
-          </div>
-          {msg && <Alert type={msg.type} msg={msg.text} />}
-        </form>
-      </div>
+      {sites.length === 0 ? (
+        <div className="card-body"><p className="text-muted small mb-0">No sites registered yet.</p></div>
+      ) : (
+        <table className="table align-middle mb-0">
+          <thead className="table-light text-capitalize">
+            <tr><th>Site</th><th>URL</th><th>Agent</th><th></th></tr>
+          </thead>
+          <tbody>
+            {sites.map(site => {
+              const agent     = agents.find(a => a.id == site.active_agent_id);
+              const isEditing = editing === site.uuid;
+              const isSaving  = saving  === site.uuid;
+              return (
+                <tr key={site.uuid}>
+                  <td className="fw-semibold">{site.name}</td>
+                  <td className="text-muted small">{site.url}</td>
+                  <td>
+                    {isEditing ? (
+                      <select className="form-select form-select-sm" style={{ minWidth: 180 }}
+                        value={editSelected} onChange={e => setEditSel(e.target.value)}>
+                        <option value="">— select agent —</option>
+                        {agents.map(a => (
+                          <option key={a.id} value={a.id}>{a.name} ({a.slug})</option>
+                        ))}
+                      </select>
+                    ) : agent ? (
+                      <span className="badge bg-success-subtle text-success">{agent.name}</span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
+                  <td className="text-end" style={{ whiteSpace: 'nowrap' }}>
+                    {isEditing ? (
+                      <div className="d-flex gap-1 justify-content-end">
+                        <button className="btn btn-primary btn-sm"
+                          onClick={() => handleAssign(site.uuid)}
+                          disabled={isSaving || !editSelected}>
+                          {isSaving ? '…' : 'Save'}
+                        </button>
+                        <button className="btn btn-outline-secondary btn-sm"
+                          onClick={() => setEditing(null)} disabled={isSaving}>
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="d-flex gap-1 justify-content-end">
+                        <button className="btn btn-outline-primary btn-sm"
+                          onClick={() => startEdit(site)}>
+                          {agent ? 'Change' : 'Assign'}
+                        </button>
+                        {agent && (
+                          <button className="btn btn-outline-danger btn-sm"
+                            onClick={() => handleUnassign(site.uuid)}
+                            disabled={isSaving}>
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
@@ -846,6 +888,7 @@ export default function TenantDetail({ param, onNavigate }) {
   const [sites, setSites]             = useState([]);
   const [users, setUsers]             = useState([]);
   const [accountKeys, setAccountKeys] = useState([]);
+  const [agentsList, setAgentsList]   = useState([]);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(null);
   const [activeStep, setActiveStep]   = useState(null);
@@ -884,9 +927,10 @@ export default function TenantDetail({ param, onNavigate }) {
     if (!tenantUuid) return;
     setLoading(true);
     try {
-      const [tenantRes, keysRes] = await Promise.all([
+      const [tenantRes, keysRes, agentsRes] = await Promise.all([
         getTenant(tenantUuid),
         listAccountKeys(tenantUuid),
+        listAgents(),
       ]);
 
       if (!tenantRes.success) { setError('Tenant not found.'); return; }
@@ -897,6 +941,7 @@ export default function TenantDetail({ param, onNavigate }) {
       setSites(loadedSites);
       setUsers(tenantRes.data.users ?? []);
       if (keysRes.success) setAccountKeys(keysRes.data);
+      if (agentsRes.success) setAgentsList(agentsRes.data);
 
       // Pre-load first-site sub-data so stepper reflects real state
       const fsuuid = loadedSites[0]?.uuid ?? null;
@@ -954,7 +999,7 @@ export default function TenantDetail({ param, onNavigate }) {
       case 0: return <TenantInfoPanel tenant={tenant} />;
       case 1: return <SubscriptionPanel subscription={subscription} />;
       case 2: return <UsersSection tenantUuid={tenantUuid} onReload={load} />;
-      case 3: return <SiteCreateSection tenantUuid={tenantUuid} sites={sites} onReload={load} />;
+      case 3: return <SiteCreateSection tenantUuid={tenantUuid} sites={sites} agents={agentsList} onReload={load} />;
       case 4: return firstSite
         ? <SiteStatusPanel site={firstSite} onReload={load} />
         : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
@@ -962,12 +1007,14 @@ export default function TenantDetail({ param, onNavigate }) {
       case 6: return sites.length > 0
         ? <SiteKeysSection sites={sites} onKeysChange={keys => setFirstSiteKeys(keys)} />
         : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
-      case 7: return firstSiteUuid
+      case 7: return sites.length > 0
         ? <AgentSection
-            siteUuid={firstSiteUuid}
-            tenantUuid={tenantUuid}
-            currentAgentId={firstSiteAgentId}
-            onAgentChange={id => { setFirstSiteAgentId(id); load(); }}
+            sites={sites}
+            agents={agentsList}
+            onAgentChange={(siteUuid, agentId) => {
+              setSites(prev => prev.map(s => s.uuid === siteUuid ? { ...s, active_agent_id: agentId } : s));
+              if (siteUuid === firstSiteUuid) setFirstSiteAgentId(agentId);
+            }}
           />
         : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
       case 8: return firstSiteUuid

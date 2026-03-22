@@ -39,6 +39,12 @@ class AgentController
             'callback'            => [$this, 'assign'],
             'permission_callback' => [$this, 'isAdmin'],
         ]);
+
+        register_rest_route('sarah-ai-server/v1', '/sites/(?P<uuid>[0-9a-f-]{36})/agent', [
+            'methods'             => 'DELETE',
+            'callback'            => [$this, 'unassign'],
+            'permission_callback' => [$this, 'isAdmin'],
+        ]);
     }
 
     /** List all active agents available for assignment. */
@@ -86,5 +92,18 @@ class AgentController
                 'agent' => $agent,
             ],
         ], 200);
+    }
+
+    /** Remove the agent assignment from a site. */
+    public function unassign(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $site = $this->sites->findByUuid((string) $request->get_param('uuid'));
+        if (! $site) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Site not found'], 404);
+        }
+
+        $this->sites->updateActiveAgent((int) $site['id'], null);
+
+        return new \WP_REST_Response(['success' => true], 200);
     }
 }

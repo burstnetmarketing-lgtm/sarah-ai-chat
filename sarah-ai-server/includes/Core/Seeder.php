@@ -114,6 +114,7 @@ class Seeder
             'default_agent_slug'  => 'gpt-4o-mini',
             'logging_enabled'     => '1',
             'openai_api_key'      => '',
+            'platform_api_key'    => 'www.BurstNET.com.au',
         ];
 
         foreach ($defaults as $key => $value) {

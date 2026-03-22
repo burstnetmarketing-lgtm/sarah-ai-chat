@@ -6,36 +6,38 @@ namespace SarahAiServer\Api;
 
 use SarahAiServer\Infrastructure\ChatSessionRepository;
 use SarahAiServer\Infrastructure\ChatMessageRepository;
-use SarahAiServer\Infrastructure\SiteRepository;
+use SarahAiServer\Infrastructure\CredentialValidator;
+use SarahAiServer\Infrastructure\SettingsRepository;
 
 /**
- * Read-only admin endpoints for session inspection and reporting.
+ * Session inspection endpoints — public, credential-authenticated.
  *
- * These endpoints do not mutate data and do not affect the runtime chat pipeline.
- * Authentication is WordPress admin (manage_options) — compatible with future
- * tenant-scoped or role-based restriction without structural changes.
+ * Authentication requires ALL THREE of:
+ *   1. account_key   (query param or body) — identifies tenant
+ *   2. site_key      (query param or body) — identifies site
+ *   3. X-Sarah-Platform-Key header         — static platform secret
+ *
+ * All responses are scoped to the resolved tenant/site.
+ * No WordPress login is required.
  *
  * Endpoints:
- *   GET /sessions/{session_uuid}           — session detail
+ *   GET /sessions                          — list sessions for the authenticated site
+ *   GET /sessions/{session_uuid}           — session detail (must belong to resolved site)
  *   GET /sessions/{session_uuid}/messages  — ordered message history
- *   GET /sessions?site_id=&tenant_id=      — list sessions (pagination-ready)
  */
 class SessionController
 {
     private ChatSessionRepository $sessions;
     private ChatMessageRepository $messages;
-    private SiteRepository $sites;
+    private CredentialValidator   $credentials;
+    private SettingsRepository    $settings;
 
     public function __construct()
     {
-        $this->sessions = new ChatSessionRepository();
-        $this->messages = new ChatMessageRepository();
-        $this->sites    = new SiteRepository();
-    }
-
-    public function isAdmin(): bool
-    {
-        return current_user_can('manage_options');
+        $this->sessions    = new ChatSessionRepository();
+        $this->messages    = new ChatMessageRepository();
+        $this->credentials = new CredentialValidator();
+        $this->settings    = new SettingsRepository();
     }
 
     public function registerRoutes(): void
@@ -43,44 +45,71 @@ class SessionController
         register_rest_route('sarah-ai-server/v1', '/sessions', [
             'methods'             => 'GET',
             'callback'            => [$this, 'index'],
-            'permission_callback' => [$this, 'isAdmin'],
+            'permission_callback' => '__return_true',
         ]);
 
         register_rest_route('sarah-ai-server/v1', '/sessions/(?P<uuid>[0-9a-f-]{36})', [
             'methods'             => 'GET',
             'callback'            => [$this, 'show'],
-            'permission_callback' => [$this, 'isAdmin'],
+            'permission_callback' => '__return_true',
         ]);
 
         register_rest_route('sarah-ai-server/v1', '/sessions/(?P<uuid>[0-9a-f-]{36})/messages', [
             'methods'             => 'GET',
             'callback'            => [$this, 'messages'],
-            'permission_callback' => [$this, 'isAdmin'],
+            'permission_callback' => '__return_true',
         ]);
     }
 
     /**
-     * GET /sessions?site_id=&tenant_id=&limit=&offset=
-     * Lists sessions for a site or tenant. Pagination-ready via limit/offset.
+     * Validates all three credentials and returns resolved context.
+     * Returns null with a WP_REST_Response error if any check fails.
+     *
+     * @return array{tenant: array, site: array}|null
+     */
+    private function resolveAuth(\WP_REST_Request $request): ?array
+    {
+        // 1. Platform key header — always required
+        $storedKey   = trim((string) $this->settings->get('platform_api_key', '', 'platform'));
+        $platformKey = trim((string) $request->get_header('X-Sarah-Platform-Key'));
+        if (! $storedKey || ! $platformKey || ! hash_equals($storedKey, $platformKey)) {
+            return null;
+        }
+
+        // 2. account_key + site_key → tenant + site
+        $accountKey = trim((string) ($request->get_param('account_key') ?? ''));
+        $siteKey    = trim((string) ($request->get_param('site_key')    ?? ''));
+
+        if (! $accountKey || ! $siteKey) {
+            return null;
+        }
+
+        return $this->credentials->resolveContext($accountKey, $siteKey);
+    }
+
+    private function unauthorized(): \WP_REST_Response
+    {
+        return new \WP_REST_Response([
+            'success' => false,
+            'message' => 'Authentication failed.',
+        ], 401);
+    }
+
+    /**
+     * GET /sessions?account_key=&site_key=&limit=&offset=
      */
     public function index(\WP_REST_Request $request): \WP_REST_Response
     {
-        $siteId   = (int) ($request->get_param('site_id')   ?? 0);
-        $tenantId = (int) ($request->get_param('tenant_id') ?? 0);
-        $limit    = min((int) ($request->get_param('limit')  ?? 50), 200);
-        $offset   = max((int) ($request->get_param('offset') ?? 0), 0);
-
-        if (! $siteId && ! $tenantId) {
-            return new \WP_REST_Response([
-                'success' => false,
-                'message' => 'site_id or tenant_id is required.',
-            ], 400);
+        $context = $this->resolveAuth($request);
+        if (! $context) {
+            return $this->unauthorized();
         }
 
-        $rows = $siteId
-            ? $this->sessions->findBySite($siteId, $limit, $offset)
-            : $this->sessions->findByTenant($tenantId, $limit, $offset);
+        $siteId = (int) $context['site']['id'];
+        $limit  = min((int) ($request->get_param('limit')  ?? 50), 200);
+        $offset = max((int) ($request->get_param('offset') ?? 0), 0);
 
+        $rows = $this->sessions->findBySite($siteId, $limit, $offset);
         $data = array_map([$this, 'formatSession'], $rows);
 
         return new \WP_REST_Response([
@@ -91,14 +120,18 @@ class SessionController
     }
 
     /**
-     * GET /sessions/{uuid}
-     * Returns full session detail (no credential or hash fields).
+     * GET /sessions/{uuid}?account_key=&site_key=
      */
     public function show(\WP_REST_Request $request): \WP_REST_Response
     {
+        $context = $this->resolveAuth($request);
+        if (! $context) {
+            return $this->unauthorized();
+        }
+
         $session = $this->sessions->findByUuid((string) $request->get_param('uuid'));
 
-        if (! $session) {
+        if (! $session || (int) $session['site_id'] !== (int) $context['site']['id']) {
             return new \WP_REST_Response(['success' => false, 'message' => 'Session not found.'], 404);
         }
 
@@ -106,14 +139,18 @@ class SessionController
     }
 
     /**
-     * GET /sessions/{uuid}/messages
-     * Returns full ordered message history for a session.
+     * GET /sessions/{uuid}/messages?account_key=&site_key=
      */
     public function messages(\WP_REST_Request $request): \WP_REST_Response
     {
+        $context = $this->resolveAuth($request);
+        if (! $context) {
+            return $this->unauthorized();
+        }
+
         $session = $this->sessions->findByUuid((string) $request->get_param('uuid'));
 
-        if (! $session) {
+        if (! $session || (int) $session['site_id'] !== (int) $context['site']['id']) {
             return new \WP_REST_Response(['success' => false, 'message' => 'Session not found.'], 404);
         }
 
@@ -137,21 +174,20 @@ class SessionController
         ], 200);
     }
 
-    /** Formats a session record for API output — strips internal IDs, keeps UUIDs. */
     private function formatSession(array $session): array
     {
         return [
-            'uuid'           => $session['uuid'],
-            'tenant_id'      => (int) $session['tenant_id'],
-            'site_id'        => (int) $session['site_id'],
-            'agent_id'       => $session['agent_id'] ? (int) $session['agent_id'] : null,
-            'status'         => $session['status'],
-            'visitor_name'   => $session['visitor_name'],
-            'visitor_phone'  => $session['visitor_phone'],
-            'visitor_email'  => $session['visitor_email'],
-            'captured_data'  => $session['captured_data'] ? json_decode($session['captured_data'], true) : null,
-            'created_at'     => $session['created_at'],
-            'updated_at'     => $session['updated_at'],
+            'uuid'          => $session['uuid'],
+            'tenant_id'     => (int) $session['tenant_id'],
+            'site_id'       => (int) $session['site_id'],
+            'agent_id'      => $session['agent_id'] ? (int) $session['agent_id'] : null,
+            'status'        => $session['status'],
+            'visitor_name'  => $session['visitor_name'],
+            'visitor_phone' => $session['visitor_phone'],
+            'visitor_email' => $session['visitor_email'],
+            'captured_data' => $session['captured_data'] ? json_decode($session['captured_data'], true) : null,
+            'created_at'    => $session['created_at'],
+            'updated_at'    => $session['updated_at'],
         ];
     }
 }
