@@ -35,6 +35,7 @@ use SarahAiServer\Api\SiteController;
 use SarahAiServer\Api\SiteTokenController;
 use SarahAiServer\Api\TenantController;
 use SarahAiServer\Api\UserTenantController;
+use SarahAiServer\Api\UsageController;
 use SarahAiServer\Infrastructure\MenuRepository;
 use SarahAiServer\Infrastructure\SettingsRepository;
 
@@ -90,6 +91,7 @@ class Plugin
         add_action('rest_api_init', [(new SubscriptionController()), 'registerRoutes']);
         add_action('rest_api_init', [(new ChatController()), 'registerRoutes']);
         add_action('rest_api_init', [(new \SarahAiServer\Api\SessionController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new UsageController()), 'registerRoutes']);
 
         if (! is_admin()) {
             return;

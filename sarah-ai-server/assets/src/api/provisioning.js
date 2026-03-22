@@ -38,6 +38,10 @@ export const listPlans        = ()                    => apiFetch('plans');
 export const getPlanAgents    = (planId)              => apiFetch(`plans/${planId}/agents`);
 export const syncPlanAgents   = (planId, agentIds)    => apiFetch(`plans/${planId}/agents`, 'POST', { agent_ids: agentIds });
 
+// Usage
+export const getUsage        = (params = {}) => apiFetch('usage?' + new URLSearchParams(params).toString());
+export const getUsageSummary = (params = {}) => apiFetch('usage/summary?' + new URLSearchParams(params).toString());
+
 // Knowledge Resources
 export const listKnowledge         = (siteUuid)       => apiFetch(`knowledge-resources?site_uuid=${siteUuid}`);
 export const createKnowledge       = (data)           => apiFetch('knowledge-resources', 'POST', data);

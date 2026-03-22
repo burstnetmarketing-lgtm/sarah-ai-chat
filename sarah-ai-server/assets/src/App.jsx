@@ -8,6 +8,7 @@ import Tenants from './pages/Tenants.jsx';
 import TenantDetail from './pages/TenantDetail.jsx';
 import Plans from './pages/Plans.jsx';
 import Subscriptions from './pages/Subscriptions.jsx';
+import Usage from './pages/Usage.jsx';
 
 const VIEWS = {
   dashboard:       Dashboard,
@@ -17,6 +18,7 @@ const VIEWS = {
   'tenant-detail': TenantDetail,
   'plans':         Plans,
   'subscriptions': Subscriptions,
+  'usage':         Usage,
 };
 
 const LABELS = {
@@ -27,6 +29,7 @@ const LABELS = {
   'tenant-detail': 'Tenant Setup',
   'plans':         'Plans',
   'subscriptions': 'Subscriptions',
+  'usage':         'Usage',
 };
 
 function parseHash() {
