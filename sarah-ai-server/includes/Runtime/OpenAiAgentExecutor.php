@@ -209,7 +209,7 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
 
         // ── Custom override ────────────────────────────────────────────────
         if ($customPrompt) {
-            return $customPrompt . $identitySection . $knowledgeSection;
+            return $customPrompt . $identitySection . $knowledgeSection . $this->buildStructuredOutputInstruction();
         }
 
         // ── Composed prompt ────────────────────────────────────────────────
@@ -238,6 +238,40 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         $lines[] = '- If a question is outside your scope, politely say you cannot help with that.';
         $lines[] = '- Do not generate harmful, misleading, or offensive content.';
 
-        return implode("\n", $lines) . $identitySection . $knowledgeSection;
+        return implode("\n", $lines) . $identitySection . $knowledgeSection . $this->buildStructuredOutputInstruction();
+    }
+
+    /**
+     * Returns the structured output instruction appended to every system prompt.
+     *
+     * When the AI response contains contact information, it should append a
+     * <sarah_card> JSON block so the widget can render a formatted contact card
+     * instead of displaying raw text.
+     *
+     * The widget strips the tag from the displayed bubble text and renders
+     * ContactCard alongside it.
+     *
+     * Canonical key names:
+     *   contact.phone_admin, contact.phone_marketing,
+     *   contact.website, contact.email_support,
+     *   business.address, business.hours
+     */
+    private function buildStructuredOutputInstruction(): string
+    {
+        return <<<'PROMPT'
+
+
+## Structured Contact Output
+
+When your response mentions specific contact information (phone numbers, email addresses, website URLs, or physical addresses), append a structured data block at the VERY END of your response using this exact format:
+
+<sarah_card>{"type":"contact","fields":[{"key":"contact.phone_admin","label":"Phone","value":"0449948867"}]}</sarah_card>
+
+Rules:
+- Only include fields that are actually mentioned in your response text
+- Do not include this block if your response contains no contact information
+- The block must appear on its own line at the very end of your response
+- Canonical key names: contact.phone_admin, contact.phone_marketing, contact.website, contact.email_support, business.address, business.hours
+PROMPT;
     }
 }

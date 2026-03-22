@@ -344,6 +344,110 @@
   color: #fff;
 }
 
+/* ── Error Bubble & Retry ────────────────── */
+
+.sac-bubble-error {
+  border-color: #fca5a5;
+  background: #fff5f5;
+  color: #991b1b;
+}
+
+.sac-retry-btn {
+  display: block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  background: none;
+  border: 1.5px solid #fca5a5;
+  border-radius: 8px;
+  color: #991b1b;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sac-retry-btn:hover {
+  background: #fee2e2;
+}
+
+/* ── Header Actions ──────────────────────── */
+
+.sac-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sac-reset-btn {
+  background: none;
+  border: none;
+  color: var(--sac-close-color);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.sac-reset-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Contact Card ────────────────────────── */
+
+.sac-contact-card {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.sac-contact-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.sac-contact-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.sac-contact-label {
+  color: #64748b;
+  font-size: 12px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.sac-contact-value {
+  color: #1e293b;
+  word-break: break-all;
+}
+
+.sac-contact-link {
+  color: #1a3460;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(26, 52, 96, 0.25);
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.sac-contact-link:hover {
+  color: #0f2040;
+  border-bottom-color: #1a3460;
+}
+
 /* ── Mobile Fullscreen ───────────────────── */
 
 @media (max-width: 768px) {

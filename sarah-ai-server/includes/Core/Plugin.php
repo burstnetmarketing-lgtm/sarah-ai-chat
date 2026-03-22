@@ -21,6 +21,7 @@ use SarahAiServer\DB\TenantTable;
 use SarahAiServer\DB\AccountKeyTable;
 use SarahAiServer\DB\KnowledgeResourceTable;
 use SarahAiServer\DB\KnowledgeChunksTable;
+use SarahAiServer\DB\KnowledgeResourceTypeTable;
 use SarahAiServer\DB\PlanAgentTable;
 use SarahAiServer\DB\UsageLogTable;
 use SarahAiServer\DB\ChatSessionTable;
@@ -61,6 +62,7 @@ class Plugin
         UsageLogTable::create();
         KnowledgeResourceTable::create();
         KnowledgeChunksTable::create();
+        KnowledgeResourceTypeTable::create();
         AccountKeyTable::create();
         PlanAgentTable::create();
         ChatSessionTable::create();

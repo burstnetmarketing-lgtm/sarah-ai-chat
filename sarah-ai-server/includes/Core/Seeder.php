@@ -6,6 +6,7 @@ namespace SarahAiServer\Core;
 
 use SarahAiServer\Infrastructure\AgentRepository;
 use SarahAiServer\Infrastructure\EmailTemplateRepository;
+use SarahAiServer\Infrastructure\KnowledgeResourceTypeRepository;
 use SarahAiServer\Infrastructure\PlanAgentRepository;
 use SarahAiServer\Infrastructure\PlanRepository;
 use SarahAiServer\Infrastructure\SettingsRepository;
@@ -23,6 +24,7 @@ class Seeder
         self::seedPlanAgents();
         self::seedEmailTemplates();
         self::seedSettings();
+        self::seedKnowledgeResourceTypes();
     }
 
     private static function seedAgents(): void
@@ -101,6 +103,24 @@ class Seeder
             "Hello {{name}},\n\nWelcome to Sarah! Your account has been created successfully.\n\nHere are your login details:\n\nSite: {{site_url}}\nUsername: {{username}}\n\nYour trial period is active for {{trial_days}} days.\n\nIf you have any questions, feel free to reach out.\n\nBest regards,\nThe Sarah Team",
             ['name', 'site_url', 'username', 'trial_days']
         );
+    }
+
+    private static function seedKnowledgeResourceTypes(): void
+    {
+        $repo = new KnowledgeResourceTypeRepository();
+
+        // enabled = 1 → available in UI;  enabled = 0 → hidden until re-enabled via DB
+        $types = [
+            ['text', 'Plain Text',    1, 10],
+            ['link', 'Website Link',  1, 20],
+            ['txt',  'Text File URL', 1, 30],
+            ['pdf',  'PDF File',      0, 40],  // disabled — not production-ready yet
+            ['docx', 'Word Document', 0, 50],  // disabled — not production-ready yet
+        ];
+
+        foreach ($types as [$key, $label, $enabled, $order]) {
+            $repo->seed($key, $label, $enabled, $order);
+        }
     }
 
     private static function seedSettings(): void

@@ -6,6 +6,7 @@ namespace SarahAiServer\Api;
 
 use SarahAiServer\DB\KnowledgeResourceTable;
 use SarahAiServer\Infrastructure\KnowledgeResourceRepository;
+use SarahAiServer\Infrastructure\KnowledgeResourceTypeRepository;
 use SarahAiServer\Infrastructure\SiteRepository;
 
 class KnowledgeController
@@ -26,6 +27,18 @@ class KnowledgeController
 
     public function registerRoutes(): void
     {
+        register_rest_route('sarah-ai-server/v1', '/knowledge-resource-types', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'listTypes'],
+            'permission_callback' => [$this, 'isAdmin'],
+        ]);
+
+        register_rest_route('sarah-ai-server/v1', '/knowledge-resources/upload', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'upload'],
+            'permission_callback' => [$this, 'isAdmin'],
+        ]);
+
         register_rest_route('sarah-ai-server/v1', '/knowledge-resources', [
             'methods'             => 'GET',
             'callback'            => [$this, 'index'],
@@ -55,6 +68,12 @@ class KnowledgeController
             'callback'            => [$this, 'updateStatus'],
             'permission_callback' => [$this, 'isAdmin'],
         ]);
+    }
+
+    public function listTypes(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $types = (new KnowledgeResourceTypeRepository())->findEnabled();
+        return new \WP_REST_Response(['success' => true, 'types' => $types]);
     }
 
     public function index(\WP_REST_Request $request): \WP_REST_Response
@@ -132,6 +151,69 @@ class KnowledgeController
         }
         $this->repo->softDelete((int) $resource['id']);
         return new \WP_REST_Response(['success' => true, 'message' => 'Resource deleted'], 200);
+    }
+
+    /**
+     * POST /knowledge-resources/upload
+     *
+     * Accepts a PDF or DOCX file upload and creates a knowledge resource for it.
+     * The file is stored at:  {wp-uploads}/sarah-ai/{site_uuid}/{resource_uuid}.{ext}
+     * The original filename is preserved in meta.original_filename.
+     */
+    public function upload(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $siteUuid = trim((string) ($request->get_param('site_uuid') ?? ''));
+        if (! $siteUuid) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'site_uuid is required'], 400);
+        }
+
+        if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+            $err = $_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE;
+            return new \WP_REST_Response(['success' => false, 'message' => 'File upload error code: ' . $err], 400);
+        }
+
+        $site = $this->sites->findByUuid($siteUuid);
+        if (! $site) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Site not found'], 404);
+        }
+
+        $originalName = sanitize_file_name(basename($_FILES['file']['name']));
+        $ext          = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+
+        if (! in_array($ext, ['pdf', 'docx'], true)) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Only PDF and DOCX files are supported.'], 400);
+        }
+
+        // Build upload directory: {uploads}/sarah-ai/{site_uuid}/
+        $uploadsDir = wp_upload_dir()['basedir'];
+        $targetDir  = $uploadsDir . '/sarah-ai/' . $siteUuid;
+
+        if (! wp_mkdir_p($targetDir)) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Could not create upload directory.'], 500);
+        }
+
+        // Store file as {resource_uuid}.{ext} to avoid collisions
+        $fileUuid   = sarah_ai_uuid();
+        $targetPath = $targetDir . '/' . $fileUuid . '.' . $ext;
+
+        if (! move_uploaded_file($_FILES['file']['tmp_name'], $targetPath)) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Failed to move uploaded file.'], 500);
+        }
+
+        $title = trim((string) ($request->get_param('title') ?? ''));
+        if ($title === '') {
+            $title = pathinfo($originalName, PATHINFO_FILENAME);
+        }
+
+        $meta = ['original_filename' => $originalName, 'file_uuid' => $fileUuid];
+        $id   = $this->repo->create((int) $site['id'], $ext, $title, $targetPath, '', $meta);
+
+        if (! $id) {
+            @unlink($targetPath);
+            return new \WP_REST_Response(['success' => false, 'message' => 'Failed to create knowledge resource.'], 500);
+        }
+
+        return new \WP_REST_Response(['success' => true, 'data' => $this->repo->findById($id)], 201);
     }
 
     public function updateStatus(\WP_REST_Request $request): \WP_REST_Response

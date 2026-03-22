@@ -50,9 +50,24 @@ export const getUsage        = (params = {}) => apiFetch('usage?' + new URLSearc
 export const getUsageSummary = (params = {}) => apiFetch('usage/summary?' + new URLSearchParams(params).toString());
 
 // Knowledge Resources
-export const listKnowledge         = (siteUuid)       => apiFetch(`knowledge-resources?site_uuid=${siteUuid}`);
+export const getKnowledgeResourceTypes = ()           => apiFetch('knowledge-resource-types');
+export const listKnowledge             = (siteUuid)   => apiFetch(`knowledge-resources?site_uuid=${siteUuid}`);
 export const createKnowledge       = (data)           => apiFetch('knowledge-resources', 'POST', data);
 export const deleteKnowledge       = (uuid)           => apiFetch(`knowledge-resources/${uuid}`, 'DELETE');
 export const updateKnowledgeStatus = (uuid, status)   => apiFetch(`knowledge-resources/${uuid}/status`, 'POST', { status });
 export const processKnowledge      = (uuid)           => apiFetch(`knowledge-resources/${uuid}/process`, 'POST');
 export const getKnowledgeChunks    = (uuid)           => apiFetch(`knowledge-resources/${uuid}/chunks`);
+
+export async function uploadKnowledgeFile(siteUuid, file, title = '') {
+  const { apiUrl, nonce } = window.SarahAiServerConfig || {};
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('site_uuid', siteUuid);
+  if (title) formData.append('title', title);
+  const res = await fetch(`${apiUrl}/knowledge-resources/upload`, {
+    method: 'POST',
+    headers: { 'X-WP-Nonce': nonce },
+    body: formData,
+  });
+  return res.json();
+}

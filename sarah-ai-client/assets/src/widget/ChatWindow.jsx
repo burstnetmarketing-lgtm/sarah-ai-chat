@@ -7,6 +7,31 @@ import { sendChatMessage, fetchChatHistory } from './chatApi.js';
 let _id = 0;
 function nextId() { return ++_id; }
 
+// ─── Structured response parser ──────────────────────────────────────────────
+// The AI may append a <sarah_card>...</sarah_card> block containing structured
+// contact data. This function strips the tag from display text and returns the
+// parsed card data separately so MessageArea can render a formatted ContactCard.
+//
+// TODO: add policy/access-control filtering before formatter
+// TODO: support tenant-specific business data source
+
+const SARAH_CARD_RE = /<sarah_card>([\s\S]*?)<\/sarah_card>/i;
+
+function parseAiResponse(rawText) {
+  const match = rawText.match(SARAH_CARD_RE);
+  if (!match) return { text: rawText, cardData: null };
+
+  const text = rawText.replace(SARAH_CARD_RE, '').trim();
+  try {
+    const cardData = JSON.parse(match[1]);
+    // Only accept the expected shape
+    if (cardData && Array.isArray(cardData.fields)) {
+      return { text, cardData };
+    }
+  } catch { /* malformed JSON — discard the tag, show full text */ }
+  return { text: rawText, cardData: null };
+}
+
 // ─── localStorage helpers ────────────────────────────────────────────────────
 // Key is scoped to the site_key so multiple sites on the same domain don't collide.
 
@@ -79,11 +104,13 @@ export default function ChatWindow({ onClose }) {
           setMessages(greetingMessage());
         } else {
           // Restore conversation — no greeting (user already saw it)
-          setMessages(history.map(msg => ({
-            id:   nextId(),
-            type: msg.role === 'customer' ? 'user' : 'ai',
-            text: msg.content,
-          })));
+          setMessages(history.map(msg => {
+            if (msg.role !== 'customer') {
+              const { text, cardData } = parseAiResponse(msg.content);
+              return { id: nextId(), type: 'ai', text, cardData };
+            }
+            return { id: nextId(), type: 'user', text: msg.content };
+          }));
         }
       })
       .catch(() => {
@@ -111,7 +138,8 @@ export default function ChatWindow({ onClose }) {
             saveStoredSession(data.session_uuid);
           }
         }
-        setMessages(prev => [...prev, { id: nextId(), type: 'ai', text: data.message }]);
+        const { text: aiText, cardData } = parseAiResponse(data.message);
+        setMessages(prev => [...prev, { id: nextId(), type: 'ai', text: aiText, cardData }]);
       })
       .catch(err => {
         const errorText = err.message?.includes('not configured')

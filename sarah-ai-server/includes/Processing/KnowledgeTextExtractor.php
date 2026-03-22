@@ -117,11 +117,15 @@ class KnowledgeTextExtractor
             throw new \RuntimeException('PDF resource has empty source_content.');
         }
 
-        // Fetch if URL, otherwise treat as raw binary content
         if (preg_match('#^https?://#i', $source)) {
             $binary = $this->fetchUrlBinary($source);
+        } elseif (file_exists($source)) {
+            $binary = file_get_contents($source);
+            if ($binary === false) {
+                throw new \RuntimeException("Could not read PDF file from disk: '{$source}'");
+            }
         } else {
-            $binary = $source;
+            throw new \RuntimeException("PDF source_content is not a valid URL or file path: '{$source}'");
         }
 
         if (substr($binary, 0, 4) !== '%PDF') {
@@ -144,24 +148,24 @@ class KnowledgeTextExtractor
             throw new \RuntimeException('DOCX resource has empty source_content.');
         }
 
-        // Fetch if URL
         if (preg_match('#^https?://#i', $source)) {
-            $binary = $this->fetchUrlBinary($source);
+            // Fetch and write to temp file
+            $binary  = $this->fetchUrlBinary($source);
+            $tmpFile = wp_tempnam('sarah_docx_');
+            if ($tmpFile === false || $tmpFile === '') {
+                throw new \RuntimeException('Could not create temporary file for DOCX extraction.');
+            }
+            try {
+                file_put_contents($tmpFile, $binary);
+                $text = $this->parseDocxText($tmpFile);
+            } finally {
+                @unlink($tmpFile);
+            }
+        } elseif (file_exists($source)) {
+            // Already on disk — read directly
+            $text = $this->parseDocxText($source);
         } else {
-            $binary = $source;
-        }
-
-        // Write to temp file so ZipArchive can read it
-        $tmpFile = wp_tempnam('sarah_docx_');
-        if ($tmpFile === false || $tmpFile === '') {
-            throw new \RuntimeException('Could not create temporary file for DOCX extraction.');
-        }
-
-        try {
-            file_put_contents($tmpFile, $binary);
-            $text = $this->parseDocxText($tmpFile);
-        } finally {
-            @unlink($tmpFile);
+            throw new \RuntimeException("DOCX source_content is not a valid URL or file path: '{$source}'");
         }
 
         $text = trim($text);
@@ -174,77 +178,199 @@ class KnowledgeTextExtractor
     // ─── File parsers ────────────────────────────────────────────────────────
 
     /**
-     * Extract text from PDF binary using regex-based stream parsing.
-     * Works for simple text-based PDFs. Image-based PDFs will yield empty result.
+     * Extract text from a PDF binary.
+     *
+     * Strategy:
+     * 1. Collect all stream segments — try gzuncompress (zlib) and gzinflate (deflate raw)
+     * 2. For each segment: extract text from BT/ET blocks
+     *    - literal strings  (text) Tj / TJ
+     *    - hex strings      <ABCDEF> Tj / TJ
+     * 3. Decode UTF-16BE (common in CIDFont PDFs and many Word-exported PDFs)
+     * 4. Fallback: scan raw binary for printable ASCII strings
+     *
+     * Image-only PDFs and heavily encrypted PDFs will still yield empty result.
      */
     private function parsePdfText(string $binary): string
     {
-        $text = '';
+        // Collect content sources: raw binary + all decompressed streams
+        $sources = [$binary];
 
-        // Decompress any FlateDecode streams first
-        if (function_exists('gzuncompress')) {
-            // Find all compressed streams and try to decompress
-            preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $binary, $streamMatches);
-            $decompressed = '';
-            foreach ($streamMatches[1] as $stream) {
+        preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $binary, $streamMatches);
+        foreach ($streamMatches[1] as $stream) {
+            // zlib (FlateDecode with header)
+            if (function_exists('gzuncompress')) {
                 $raw = @gzuncompress($stream);
                 if ($raw !== false) {
-                    $decompressed .= $raw . "\n";
+                    $sources[] = $raw;
                 }
             }
-            if ($decompressed !== '') {
-                $binary = $decompressed;
+            // deflate raw (FlateDecode without header — common in many generators)
+            if (function_exists('gzinflate')) {
+                $raw = @gzinflate($stream);
+                if ($raw !== false) {
+                    $sources[] = $raw;
+                }
             }
         }
 
-        // Extract text from BT...ET blocks
-        preg_match_all('/BT\s+(.*?)\s*ET/s', $binary, $btMatches);
         $parts = [];
-        foreach ($btMatches[1] as $block) {
-            // Match all text-showing operators: Tj, ' (single quote), " (double quote), TJ
-            preg_match_all(
-                '/\(([^)\\\\]*(?:\\\\.[^)\\\\]*)*)\)\s*(?:Tj|\'|")|(\[.*?\])\s*TJ/s',
-                $block,
-                $textMatches
-            );
-
-            foreach ($textMatches[1] as $t) {
-                if ($t !== '') {
-                    $parts[] = $this->decodePdfString($t);
-                }
-            }
-
-            // Handle TJ arrays
-            foreach ($textMatches[2] as $arr) {
-                preg_match_all('/\(([^)\\\\]*(?:\\\\.[^)\\\\]*)*)\)/', $arr, $arrMatches);
-                foreach ($arrMatches[1] as $t) {
-                    if ($t !== '') {
-                        $parts[] = $this->decodePdfString($t);
-                    }
-                }
+        foreach ($sources as $src) {
+            foreach ($this->extractPartsFromContent($src) as $p) {
+                $parts[] = $p;
             }
         }
 
-        // Also try to extract raw text strings outside BT/ET (some PDFs)
+        // Last-resort fallback: printable ASCII runs ≥ 4 chars from the raw binary
         if (empty($parts)) {
-            preg_match_all('/\(([A-Za-z0-9 ,.\-!?:;\'"]{4,})\)\s*Tj/', $binary, $rawMatches);
-            foreach ($rawMatches[1] as $t) {
-                $parts[] = $t;
+            preg_match_all('/[ -~]{4,}/', $binary, $m);
+            foreach ($m[0] as $run) {
+                $run = trim($run);
+                // Skip obvious PDF structure keywords
+                if ($run && ! preg_match('/^(stream|endstream|obj|endobj|xref|trailer|startxref|PDF|BT|ET|Tj|TJ)$/', $run)) {
+                    $parts[] = $run;
+                }
             }
         }
 
         $text = implode(' ', array_filter(array_map('trim', $parts)));
-        // Collapse excessive whitespace
         $text = preg_replace('/\s{2,}/', ' ', $text);
 
         return $text;
     }
 
-    private function decodePdfString(string $s): string
+    /**
+     * Extract text parts from a single content buffer (raw or decompressed stream).
+     *
+     * @return string[]
+     */
+    private function extractPartsFromContent(string $content): array
     {
-        // Decode common PDF escape sequences
-        $s = str_replace(['\\n', '\\r', '\\t', '\\(', '\\)', '\\\\'], ["\n", "\r", "\t", '(', ')', '\\'], $s);
-        return $s;
+        $parts = [];
+
+        // ── BT ... ET blocks ─────────────────────────────────────────────────
+        preg_match_all('/BT\s+(.*?)\s*ET/s', $content, $btMatches);
+        foreach ($btMatches[1] as $block) {
+
+            // Literal strings: (text) Tj  |  (text) '  |  (text) "
+            preg_match_all('/\(([^)\\\\]*(?:\\\\.[^)\\\\]*)*)\)\s*(?:Tj|\'|")/', $block, $m);
+            foreach ($m[1] as $t) {
+                $decoded = $this->decodeLiteralString($t);
+                if (trim($decoded) !== '') {
+                    $parts[] = $decoded;
+                }
+            }
+
+            // Hex strings: <ABCDEF> Tj
+            preg_match_all('/<([0-9a-fA-F\s]+)>\s*(?:Tj|\'|")/', $block, $m);
+            foreach ($m[1] as $hex) {
+                $decoded = $this->decodeHexString($hex);
+                if (trim($decoded) !== '') {
+                    $parts[] = $decoded;
+                }
+            }
+
+            // TJ arrays: [(text) -200 (more)] TJ
+            preg_match_all('/\[(.*?)\]\s*TJ/s', $block, $m);
+            foreach ($m[1] as $arr) {
+                // Literal elements
+                preg_match_all('/\(([^)\\\\]*(?:\\\\.[^)\\\\]*)*)\)/', $arr, $sm);
+                foreach ($sm[1] as $t) {
+                    $decoded = $this->decodeLiteralString($t);
+                    if (trim($decoded) !== '') {
+                        $parts[] = $decoded;
+                    }
+                }
+                // Hex elements
+                preg_match_all('/<([0-9a-fA-F\s]+)>/', $arr, $sm);
+                foreach ($sm[1] as $hex) {
+                    $decoded = $this->decodeHexString($hex);
+                    if (trim($decoded) !== '') {
+                        $parts[] = $decoded;
+                    }
+                }
+            }
+        }
+
+        // ── Outside BT/ET: scan for any Tj/TJ strings ────────────────────────
+        if (empty($parts)) {
+            preg_match_all('/\(([A-Za-z0-9 ,.\-!?:;\'"]{3,})\)\s*(?:Tj|TJ|\')/', $content, $m);
+            foreach ($m[1] as $t) {
+                if (trim($t) !== '') {
+                    $parts[] = $t;
+                }
+            }
+        }
+
+        return $parts;
+    }
+
+    /**
+     * Decode a PDF literal string — escape sequences + UTF-16BE.
+     */
+    private function decodeLiteralString(string $s): string
+    {
+        // Standard PDF escape sequences
+        $s = str_replace(
+            ['\\n', '\\r', '\\t', '\\(', '\\)', '\\\\'],
+            ["\n",  "\r",  "\t",  '(',   ')',   '\\'],
+            $s
+        );
+        return $this->decodeUtf16IfNeeded($s);
+    }
+
+    /**
+     * Decode a hex-encoded PDF string (e.g. <00410042> → "AB").
+     * Handles both plain PDFDocEncoding and UTF-16BE.
+     */
+    private function decodeHexString(string $hex): string
+    {
+        $hex = preg_replace('/\s+/', '', $hex);
+        if ($hex === '') {
+            return '';
+        }
+        if (strlen($hex) % 2 !== 0) {
+            $hex .= '0'; // Pad to even length per spec
+        }
+
+        $bytes = pack('H*', $hex);
+        return $this->decodeUtf16IfNeeded($bytes);
+    }
+
+    /**
+     * If the byte string looks like UTF-16BE (BOM or null-byte pattern), convert it.
+     * Otherwise return as-is (treated as PDFDocEncoding / Latin-1).
+     */
+    private function decodeUtf16IfNeeded(string $s): string
+    {
+        if (strlen($s) < 2) {
+            return $s;
+        }
+
+        // Explicit UTF-16BE BOM: FE FF
+        if ($s[0] === "\xFE" && $s[1] === "\xFF") {
+            $decoded = @mb_convert_encoding(substr($s, 2), 'UTF-8', 'UTF-16BE');
+            return ($decoded !== false && $decoded !== '') ? $decoded : $s;
+        }
+
+        // Heuristic: if many even-indexed bytes are 0x00 it is likely UTF-16BE
+        if (strlen($s) >= 4 && strlen($s) % 2 === 0) {
+            $sample   = min(16, strlen($s));
+            $nullsAt0 = 0;
+            for ($i = 0; $i < $sample; $i += 2) {
+                if (ord($s[$i]) === 0) {
+                    $nullsAt0++;
+                }
+            }
+            if ($nullsAt0 >= ($sample / 4)) {
+                $decoded = @mb_convert_encoding($s, 'UTF-8', 'UTF-16BE');
+                if ($decoded !== false && preg_match('/[\x20-\x7E]{2,}/u', $decoded)) {
+                    return $decoded;
+                }
+            }
+        }
+
+        // Strip non-printable bytes and return as Latin-1
+        return preg_replace('/[\x00-\x08\x0E-\x1F\x7F]/', '', $s);
     }
 
     /**

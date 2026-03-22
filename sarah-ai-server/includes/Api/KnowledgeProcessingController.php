@@ -59,12 +59,11 @@ class KnowledgeProcessingController
         $service = new KnowledgeProcessingService();
         $result  = $service->process((int) $resource['id']);
 
-        $code = $result['success'] ? 200 : 422;
         return new \WP_REST_Response([
             'success' => $result['success'],
             'chunks'  => $result['chunks'],
             'message' => $result['message'],
-        ], $code);
+        ], 200);
     }
 
     /**

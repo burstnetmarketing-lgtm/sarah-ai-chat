@@ -9,7 +9,7 @@ import {
   listAgents, assignAgent, unassignAgent,
   getAgentIdentity, updateAgentIdentity,
   listKnowledge, createKnowledge, deleteKnowledge,
-  processKnowledge,
+  processKnowledge, uploadKnowledgeFile, getKnowledgeResourceTypes,
   markTenantSetupComplete,
 } from '../api/provisioning.js';
 
@@ -851,13 +851,20 @@ function AgentIdentitySection({ sites = [] }) {
 const PROCESSING_COLORS = { none: 'secondary', queued: 'info', done: 'success', failed: 'danger' };
 
 function KnowledgeSection({ siteUuid, onItemsChange }) {
+  const EMPTY_FORM = { title: '', resource_type: 'text', source_content: '', file: null };
+
   const [items, setItems]           = useState([]);
   const [loading, setLoading]       = useState(true);
-  const [form, setForm]             = useState({ title: '', resource_type: 'text', source_content: '' });
+  const [form, setForm]             = useState(EMPTY_FORM);
   const [saving, setSaving]         = useState(false);
   const [msg, setMsg]               = useState(null);
   const [expanded, setExpanded]     = useState(false);
   const [processing, setProcessing] = useState({});  // uuid → true while in-flight
+  const [resourceTypes, setResourceTypes] = useState([]);
+
+  useEffect(() => {
+    getKnowledgeResourceTypes().then(res => { if (res.success) setResourceTypes(res.types); });
+  }, []);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -868,18 +875,26 @@ function KnowledgeSection({ siteUuid, onItemsChange }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const isFileType = form.resource_type === 'pdf' || form.resource_type === 'docx';
+
   async function handleAdd(e) {
     e.preventDefault();
-    if (!form.title.trim()) return;
+    if (!form.title.trim() && !isFileType) return;
     setSaving(true); setMsg(null);
     try {
-      const res = await createKnowledge({
-        site_uuid:      siteUuid,
-        title:          form.title.trim(),
-        resource_type:  form.resource_type,
-        source_content: form.source_content,
-      });
-      if (res.success) { setForm({ title: '', resource_type: 'text', source_content: '' }); setExpanded(false); load(); }
+      let res;
+      if (isFileType) {
+        if (!form.file) { setMsg({ type: 'danger', text: 'Please select a file.' }); setSaving(false); return; }
+        res = await uploadKnowledgeFile(siteUuid, form.file, form.title.trim());
+      } else {
+        res = await createKnowledge({
+          site_uuid:      siteUuid,
+          title:          form.title.trim(),
+          resource_type:  form.resource_type,
+          source_content: form.source_content,
+        });
+      }
+      if (res.success) { setForm(EMPTY_FORM); setExpanded(false); load(); }
       else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
     } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
     finally { setSaving(false); }
@@ -895,10 +910,20 @@ function KnowledgeSection({ siteUuid, onItemsChange }) {
     setProcessing(p => ({ ...p, [uuid]: true }));
     try {
       const res = await processKnowledge(uuid);
-      if (!res.success) alert('Processing failed: ' + (res.message ?? 'Unknown error'));
+      if (!res.success) setMsg({ type: 'danger', text: 'Processing failed: ' + (res.message ?? 'Unknown error') });
       load();
-    } catch { alert('Processing request failed.'); }
+    } catch (err) { setMsg({ type: 'danger', text: 'Processing request failed: ' + err.message }); }
     finally { setProcessing(p => ({ ...p, [uuid]: false })); }
+  }
+
+  function getDisplayTitle(item) {
+    if (item.meta) {
+      try {
+        const meta = typeof item.meta === 'string' ? JSON.parse(item.meta) : item.meta;
+        if (meta?.original_filename) return `${item.title} (${meta.original_filename})`;
+      } catch {}
+    }
+    return item.title;
   }
 
   return (
@@ -924,23 +949,54 @@ function KnowledgeSection({ siteUuid, onItemsChange }) {
         {expanded && (
           <form onSubmit={handleAdd} className="mb-3 p-3 bg-light rounded">
             <div className="row g-2">
-              <div className="col-md-6">
-                <input className="form-control form-control-sm" placeholder="Title *"
-                  value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
+              <div className="col-md-5">
+                <input className="form-control form-control-sm" placeholder={isFileType ? 'Title (optional — uses filename if blank)' : 'Title *'}
+                  value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  required={!isFileType} />
               </div>
-              <div className="col-md-3">
-                <input className="form-control form-control-sm" placeholder="Type (e.g. text)"
-                  value={form.resource_type} onChange={e => setForm(f => ({ ...f, resource_type: e.target.value }))} />
+              <div className="col-md-4">
+                <select className="form-select form-select-sm"
+                  value={form.resource_type}
+                  onChange={e => setForm(f => ({ ...f, resource_type: e.target.value, source_content: '', file: null }))}>
+                  {resourceTypes.map(t => (
+                    <option key={t.type_key} value={t.type_key}>{t.type_key} — {t.label}</option>
+                  ))}
+                </select>
               </div>
               <div className="col-md-3">
                 <button className="btn btn-primary btn-sm w-100" type="submit" disabled={saving}>
                   {saving ? '…' : 'Add'}
                 </button>
               </div>
-              <div className="col-12">
-                <textarea className="form-control form-control-sm" rows={3} placeholder="Source content (optional)"
-                  value={form.source_content} onChange={e => setForm(f => ({ ...f, source_content: e.target.value }))} />
-              </div>
+
+              {form.resource_type === 'text' && (
+                <div className="col-12">
+                  <textarea className="form-control form-control-sm" rows={3} placeholder="Paste your content here *"
+                    value={form.source_content} onChange={e => setForm(f => ({ ...f, source_content: e.target.value }))}
+                    required />
+                </div>
+              )}
+
+              {form.resource_type === 'link' && (
+                <div className="col-12">
+                  <input className="form-control form-control-sm" type="url" placeholder="https://example.com/page *"
+                    value={form.source_content} onChange={e => setForm(f => ({ ...f, source_content: e.target.value }))}
+                    required />
+                </div>
+              )}
+
+              {isFileType && (
+                <div className="col-12">
+                  <input className="form-control form-control-sm" type="file"
+                    accept={form.resource_type === 'pdf' ? '.pdf' : '.docx'}
+                    onChange={e => setForm(f => ({ ...f, file: e.target.files[0] ?? null }))} />
+                  {form.file && (
+                    <div className="text-muted small mt-1">
+                      {form.file.name} &nbsp;·&nbsp; {(form.file.size / 1024).toFixed(0)} KB
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             {msg && <Alert type={msg.type} msg={msg.text} />}
           </form>
@@ -956,7 +1012,7 @@ function KnowledgeSection({ siteUuid, onItemsChange }) {
             <tbody>
               {items.map(item => (
                 <tr key={item.uuid ?? item.id}>
-                  <td>{item.title}</td>
+                  <td>{getDisplayTitle(item)}</td>
                   <td className="text-muted small">{item.resource_type}</td>
                   <td><StatusBadge status={item.status} /></td>
                   <td>

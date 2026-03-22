@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import TypingIndicator from './TypingIndicator.jsx';
+import ContactCard from './ContactCard.jsx';
 
 const quickQuestions  = (window.SarahAiWidget?.quickQuestions || []).map(q => q.question);
 const welcomeMessage  = window.SarahAiWidget?.settings?.welcomeMessage || 'How can I help you today?';
@@ -39,6 +40,7 @@ export default function MessageArea({ messages, isTyping, onQuickQuestion, onRet
       {messages.map(msg => (
         <div key={msg.id} className={`sac-bubble sac-bubble-${msg.type}${msg.isError ? ' sac-bubble-error' : ''}`}>
           {msg.text}
+          {msg.cardData?.fields && <ContactCard fields={msg.cardData.fields} />}
           {msg.isError && msg.retryText && onRetry && (
             <button
               className="sac-retry-btn"
