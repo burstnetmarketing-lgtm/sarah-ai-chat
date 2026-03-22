@@ -54,3 +54,5 @@ export const listKnowledge         = (siteUuid)       => apiFetch(`knowledge-res
 export const createKnowledge       = (data)           => apiFetch('knowledge-resources', 'POST', data);
 export const deleteKnowledge       = (uuid)           => apiFetch(`knowledge-resources/${uuid}`, 'DELETE');
 export const updateKnowledgeStatus = (uuid, status)   => apiFetch(`knowledge-resources/${uuid}/status`, 'POST', { status });
+export const processKnowledge      = (uuid)           => apiFetch(`knowledge-resources/${uuid}/process`, 'POST');
+export const getKnowledgeChunks    = (uuid)           => apiFetch(`knowledge-resources/${uuid}/chunks`);

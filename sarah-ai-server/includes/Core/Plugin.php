@@ -20,6 +20,7 @@ use SarahAiServer\DB\SubscriptionTable;
 use SarahAiServer\DB\TenantTable;
 use SarahAiServer\DB\AccountKeyTable;
 use SarahAiServer\DB\KnowledgeResourceTable;
+use SarahAiServer\DB\KnowledgeChunksTable;
 use SarahAiServer\DB\PlanAgentTable;
 use SarahAiServer\DB\UsageLogTable;
 use SarahAiServer\DB\ChatSessionTable;
@@ -37,6 +38,7 @@ use SarahAiServer\Api\TenantController;
 use SarahAiServer\Api\UserTenantController;
 use SarahAiServer\Api\UsageController;
 use SarahAiServer\Api\PlatformSettingsController;
+use SarahAiServer\Api\KnowledgeProcessingController;
 use SarahAiServer\Infrastructure\MenuRepository;
 use SarahAiServer\Infrastructure\SettingsRepository;
 
@@ -58,6 +60,7 @@ class Plugin
         EmailTemplateTable::create();
         UsageLogTable::create();
         KnowledgeResourceTable::create();
+        KnowledgeChunksTable::create();
         AccountKeyTable::create();
         PlanAgentTable::create();
         ChatSessionTable::create();
@@ -82,6 +85,7 @@ class Plugin
         add_action('rest_api_init', [$controller, 'registerRoutes']);
         add_action('rest_api_init', [(new LogController()), 'registerRoutes']);
         add_action('rest_api_init', [(new KnowledgeController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new KnowledgeProcessingController()), 'registerRoutes']);
         add_action('rest_api_init', [(new TenantController()), 'registerRoutes']);
         add_action('rest_api_init', [(new UserTenantController()), 'registerRoutes']);
         add_action('rest_api_init', [(new SiteController()), 'registerRoutes']);

@@ -9,6 +9,7 @@ import {
   listAgents, assignAgent, unassignAgent,
   getAgentIdentity, updateAgentIdentity,
   listKnowledge, createKnowledge, deleteKnowledge,
+  processKnowledge,
   markTenantSetupComplete,
 } from '../api/provisioning.js';
 
@@ -847,13 +848,16 @@ function AgentIdentitySection({ sites = [] }) {
 
 // ─── Step 8: Knowledge ────────────────────────────────────────────────────────
 
+const PROCESSING_COLORS = { none: 'secondary', queued: 'info', done: 'success', failed: 'danger' };
+
 function KnowledgeSection({ siteUuid, onItemsChange }) {
-  const [items, setItems]       = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [form, setForm]         = useState({ title: '', resource_type: 'text', source_content: '' });
-  const [saving, setSaving]     = useState(false);
-  const [msg, setMsg]           = useState(null);
-  const [expanded, setExpanded] = useState(false);
+  const [items, setItems]           = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [form, setForm]             = useState({ title: '', resource_type: 'text', source_content: '' });
+  const [saving, setSaving]         = useState(false);
+  const [msg, setMsg]               = useState(null);
+  const [expanded, setExpanded]     = useState(false);
+  const [processing, setProcessing] = useState({});  // uuid → true while in-flight
 
   const load = useCallback(() => {
     setLoading(true);
@@ -885,6 +889,16 @@ function KnowledgeSection({ siteUuid, onItemsChange }) {
     if (!confirm('Delete this knowledge resource?')) return;
     try { await deleteKnowledge(uuid); load(); }
     catch { alert('Failed.'); }
+  }
+
+  async function handleProcess(uuid) {
+    setProcessing(p => ({ ...p, [uuid]: true }));
+    try {
+      const res = await processKnowledge(uuid);
+      if (!res.success) alert('Processing failed: ' + (res.message ?? 'Unknown error'));
+      load();
+    } catch { alert('Processing request failed.'); }
+    finally { setProcessing(p => ({ ...p, [uuid]: false })); }
   }
 
   return (
@@ -937,7 +951,7 @@ function KnowledgeSection({ siteUuid, onItemsChange }) {
         ) : (
           <table className="table table-sm mb-0">
             <thead className="table-light">
-              <tr><th>Title</th><th>Type</th><th>Status</th><th></th></tr>
+              <tr><th>Title</th><th>Type</th><th>Status</th><th>Processing</th><th></th></tr>
             </thead>
             <tbody>
               {items.map(item => (
@@ -946,6 +960,17 @@ function KnowledgeSection({ siteUuid, onItemsChange }) {
                   <td className="text-muted small">{item.resource_type}</td>
                   <td><StatusBadge status={item.status} /></td>
                   <td>
+                    <StatusBadge status={item.processing_status ?? 'none'} map={PROCESSING_COLORS} />
+                  </td>
+                  <td className="text-end" style={{ whiteSpace: 'nowrap' }}>
+                    <button
+                      className="btn btn-sm btn-outline-primary py-0 me-1"
+                      onClick={() => handleProcess(item.uuid)}
+                      disabled={!!processing[item.uuid]}
+                      title="Process / reprocess this resource"
+                    >
+                      {processing[item.uuid] ? '…' : '⚙ Process'}
+                    </button>
                     <button className="btn btn-sm btn-outline-danger py-0"
                       onClick={() => handleDelete(item.uuid)}>×</button>
                   </td>
