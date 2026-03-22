@@ -28,10 +28,11 @@ export const createSiteKey = (siteUuid, data)         => apiFetch(`sites/${siteU
 export const deleteSiteKey = (uuid)                   => apiFetch(`site-keys/${uuid}`, 'DELETE');
 
 // Agents
-export const listAgents           = ()                => apiFetch('agents');
-export const assignAgent          = (siteUuid, agentId) => apiFetch(`sites/${siteUuid}/agent`, 'POST', { agent_id: agentId });
-export const unassignAgent        = (siteUuid)        => apiFetch(`sites/${siteUuid}/agent`, 'DELETE');
-export const listAvailableAgents  = (tenantUuid)      => apiFetch(`tenants/${tenantUuid}/available-agents`);
+export const listAgents           = ()                      => apiFetch('agents');
+export const assignAgent          = (siteUuid, agentId)     => apiFetch(`sites/${siteUuid}/agent`, 'POST', { agent_id: agentId });
+export const unassignAgent        = (siteUuid)              => apiFetch(`sites/${siteUuid}/agent`, 'DELETE');
+export const updateAgentBehavior  = (agentId, data)         => apiFetch(`agents/${agentId}/behavior`, 'PUT', data);
+export const listAvailableAgents  = (tenantUuid)            => apiFetch(`tenants/${tenantUuid}/available-agents`);
 
 // Plans
 export const listPlans        = ()                    => apiFetch('plans');

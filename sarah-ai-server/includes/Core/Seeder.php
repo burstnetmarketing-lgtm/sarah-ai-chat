@@ -39,7 +39,7 @@ class Seeder
             'gpt-4o-mini',
             'openai',
             'Fast and affordable. Best for simple Q&A and cost-sensitive deployments.',
-            ['model' => 'gpt-4o-mini', 'max_tokens' => 1024, 'temperature' => 0.7]
+            ['model' => 'gpt-4o-mini', 'max_tokens' => 1024, 'temperature' => 0.7, 'role' => 'customer support assistant', 'tone' => 'friendly', 'system_prompt' => '']
         );
 
         $repo->upsertBySlug(
@@ -47,7 +47,7 @@ class Seeder
             'gpt-4o',
             'openai',
             'Balanced and powerful. Recommended for most production sites.',
-            ['model' => 'gpt-4o', 'max_tokens' => 2048, 'temperature' => 0.7]
+            ['model' => 'gpt-4o', 'max_tokens' => 2048, 'temperature' => 0.7, 'role' => 'customer support assistant', 'tone' => 'professional', 'system_prompt' => '']
         );
 
         $repo->upsertBySlug(
@@ -55,7 +55,7 @@ class Seeder
             'o1',
             'openai',
             'Most capable reasoning model. Best for complex tasks and high-demand scenarios.',
-            ['model' => 'o1', 'max_tokens' => 4096, 'temperature' => 1.0]
+            ['model' => 'o1', 'max_tokens' => 4096, 'temperature' => 1.0, 'role' => 'customer support assistant', 'tone' => 'professional', 'system_prompt' => '']
         );
     }
 

@@ -103,4 +103,29 @@ class AgentRepository
             ['%d']
         );
     }
+
+    /**
+     * Merges behavior fields (role, tone, system_prompt) into the agent's config JSON.
+     * Existing config keys (model, max_tokens, temperature) are preserved.
+     */
+    public function updateBehavior(int $id, string $role, string $tone, string $systemPrompt): void
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . AgentTable::TABLE;
+
+        $existing = $wpdb->get_var($wpdb->prepare("SELECT config FROM {$table} WHERE id = %d", $id));
+        $config   = $existing ? (json_decode($existing, true) ?? []) : [];
+
+        $config['role']          = $role;
+        $config['tone']          = $tone;
+        $config['system_prompt'] = $systemPrompt;
+
+        $wpdb->update(
+            $table,
+            ['config' => wp_json_encode($config), 'updated_at' => current_time('mysql')],
+            ['id'     => $id],
+            ['%s', '%s'],
+            ['%d']
+        );
+    }
 }

@@ -34,6 +34,12 @@ class AgentController
             'permission_callback' => [$this, 'isAdmin'],
         ]);
 
+        register_rest_route('sarah-ai-server/v1', '/agents/(?P<id>\d+)/behavior', [
+            'methods'             => 'PUT',
+            'callback'            => [$this, 'updateBehavior'],
+            'permission_callback' => [$this, 'isAdmin'],
+        ]);
+
         register_rest_route('sarah-ai-server/v1', '/sites/(?P<uuid>[0-9a-f-]{36})/agent', [
             'methods'             => 'POST',
             'callback'            => [$this, 'assign'],
@@ -91,6 +97,31 @@ class AgentController
                 'site'  => $this->sites->findById($siteId),
                 'agent' => $agent,
             ],
+        ], 200);
+    }
+
+    /**
+     * PUT /agents/{id}/behavior
+     * Body: { role, tone, system_prompt }
+     */
+    public function updateBehavior(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $id = (int) $request->get_param('id');
+
+        $agent = $this->agents->findById($id);
+        if (! $agent) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Agent not found.'], 404);
+        }
+
+        $role         = trim((string) ($request->get_param('role')          ?? ''));
+        $tone         = trim((string) ($request->get_param('tone')          ?? ''));
+        $systemPrompt = trim((string) ($request->get_param('system_prompt') ?? ''));
+
+        $this->agents->updateBehavior($id, $role, $tone, $systemPrompt);
+
+        return new \WP_REST_Response([
+            'success' => true,
+            'data'    => $this->agents->findById($id),
         ], 200);
     }
 
