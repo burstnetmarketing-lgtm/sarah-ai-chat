@@ -487,6 +487,8 @@ export default function AppearanceSettings() {
       .then(res => {
         if (!res.success) return;
         const pub = { ...DEFAULTS, ...res.data.published };
+        setForm(pub);
+        setSavedDraft(pub);
         setPublished(pub);
         setCanPublish(false);
       })

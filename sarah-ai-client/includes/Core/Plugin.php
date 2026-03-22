@@ -13,6 +13,7 @@ use SarahAiClient\Api\QuickQuestionsController;
 use SarahAiClient\Api\SettingsController;
 use SarahAiClient\DB\MenuTable;
 use SarahAiClient\DB\QuickQuestionsTable;
+use SarahAiClient\DB\SettingsTable;
 use SarahAiClient\Infrastructure\MenuRepository;
 use SarahAiClient\Infrastructure\QuickQuestionsRepository;
 use SarahAiClient\Infrastructure\SettingsRepository;
@@ -21,6 +22,7 @@ class Plugin
 {
     public static function boot(): void
     {
+        SettingsTable::create();
         MenuTable::create();
         QuickQuestionsTable::create();
 
