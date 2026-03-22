@@ -6,7 +6,7 @@ import {
   listAccountKeys, createAccountKey, deleteAccountKey,
   createSite,
   listSiteKeys, createSiteKey, deleteSiteKey,
-  listAgents, assignAgent, unassignAgent,
+  listAvailableAgents, assignAgent, unassignAgent,
   getAgentIdentity, updateAgentIdentity,
   listKnowledge, createKnowledge, deleteKnowledge,
   processKnowledge, uploadKnowledgeFile, getKnowledgeResourceTypes,
@@ -1117,7 +1117,7 @@ export default function TenantDetail({ param, onNavigate }) {
       const [tenantRes, keysRes, agentsRes] = await Promise.all([
         getTenant(tenantUuid),
         listAccountKeys(tenantUuid),
-        listAgents(),
+        listAvailableAgents(tenantUuid),
       ]);
 
       if (!tenantRes.success) { setError('Tenant not found.'); return; }
