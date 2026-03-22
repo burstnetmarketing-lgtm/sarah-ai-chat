@@ -11,6 +11,7 @@ class MenuRepository
     public function ensureCoreItems(): void
     {
         $this->insertIfMissing('dashboard', 'Dashboard', 'dashboard', null, false, false);
+        $this->insertIfMissing('tenants',   'Tenants',   'tenants',   null, false, false);
         $this->removeIfExists('menu-manager');
         $this->removeIfExists('settings');
     }

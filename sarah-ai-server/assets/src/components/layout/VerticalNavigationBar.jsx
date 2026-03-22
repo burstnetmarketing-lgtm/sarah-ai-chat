@@ -7,10 +7,12 @@ import clsx from 'clsx';
 import { apiFetch } from '../../api/client.js';
 
 const ICONS = {
-  dashboard:      'mdi:view-dashboard-outline',
-  'menu-manager': 'mdi:format-list-bulleted',
-  'log':          'mdi:text-box-outline',
-  settings:       'mdi:cog-outline',
+  dashboard:       'mdi:view-dashboard-outline',
+  'menu-manager':  'mdi:format-list-bulleted',
+  'log':           'mdi:text-box-outline',
+  settings:        'mdi:cog-outline',
+  tenants:         'mdi:office-building-outline',
+  'tenant-detail': 'mdi:office-building-outline',
 };
 
 function LogoBox() {

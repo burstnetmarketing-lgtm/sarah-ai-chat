@@ -83,3 +83,4 @@
 0026 Phase 4.2 — Knowledge base foundation with extensibility patches (open resource_type, processed_content bridge, content_group, lifecycle vs processing state separation).
 0027 Phase 4.3 — Admin provisioning, dual-credential model (AccountKey + SiteKey), CredentialValidator, and full tenant setup REST API.
 0028 Added Phase 4.3 system design summary.
+0029 Phase 4.3.2 — Admin provisioning UI: Tenants list, TenantDetail setup hub with users, account keys, sites, site keys, agent assignment, knowledge resources, and readiness check.
