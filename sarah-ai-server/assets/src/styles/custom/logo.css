@@ -1,0 +1,21 @@
+/* ─── Logo ──────────────────────────────────────────────────────────────────
+   Custom logo styles for the Sarah AI admin panel sidebar.
+   Location: VerticalNavigationBar → LogoBox
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.logo-lg-text {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.logo-lg-text .logo-ai {
+  color: #f5c518;
+}
+
+.logo-sm-text {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #f5c518;
+}

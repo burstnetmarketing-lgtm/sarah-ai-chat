@@ -91,3 +91,4 @@
 0034 Users step now creates WP accounts (subscriber role) from username+email+password; role dropdown and WP User ID field removed.
 0035 Plan-Agent access control: PlanAgentTable, PlanAgentRepository, PlanController (list/sync/available-agents), Plans admin page with per-plan agent checkboxes, AgentSection filtered by tenant plan.
 0036 Added Subscriptions page: table with status filter tabs, search, date columns, inline status change dropdown; SubscriptionController with list+update endpoints.
+0037 Created docs/ui-standards.md: comprehensive Techmin template reference for tables, badges, buttons, forms, modals, icons, and custom CSS rules.

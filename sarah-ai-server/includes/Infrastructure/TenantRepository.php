@@ -70,6 +70,18 @@ class TenantRepository
         return is_array($rows) ? $rows : [];
     }
 
+    public function markSetupComplete(int $id): void
+    {
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->prefix . TenantTable::TABLE,
+            ['setup_complete' => 1, 'updated_at' => current_time('mysql')],
+            ['id'             => $id],
+            ['%d', '%s'],
+            ['%d']
+        );
+    }
+
     public function updateStatus(int $id, string $status): void
     {
         global $wpdb;

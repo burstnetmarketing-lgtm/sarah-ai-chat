@@ -57,6 +57,12 @@ class TenantController
             'callback'            => [$this, 'updateStatus'],
             'permission_callback' => [$this, 'isAdmin'],
         ]);
+
+        register_rest_route('sarah-ai-server/v1', '/tenants/(?P<uuid>[0-9a-f-]{36})/setup-complete', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'markSetupComplete'],
+            'permission_callback' => [$this, 'isAdmin'],
+        ]);
     }
 
     public function store(\WP_REST_Request $request): \WP_REST_Response
@@ -136,6 +142,16 @@ class TenantController
 
         $this->tenants->updateStatus((int) $tenant['id'], $status);
         return new \WP_REST_Response(['success' => true, 'data' => $this->tenants->findById((int) $tenant['id'])], 200);
+    }
+
+    public function markSetupComplete(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $tenant = $this->tenants->findByUuid((string) $request->get_param('uuid'));
+        if (! $tenant) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Tenant not found'], 404);
+        }
+        $this->tenants->markSetupComplete((int) $tenant['id']);
+        return new \WP_REST_Response(['success' => true], 200);
     }
 
     private function slugify(string $name): string

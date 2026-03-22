@@ -1,0 +1,18 @@
+/* ─── Page Background ───────────────────────────────────────────────────────
+   Applies a warm off-white background (#faf4f0) to the topbar and the main
+   content area. The template's topbar-bg (light mode) inherits from body-bg,
+   so overriding --bs-body-bg here covers both in one place.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --sarah-page-bg: #faf4f0;
+}
+
+html[data-topbar-color="light"] {
+  --bs-topbar-bg: var(--sarah-page-bg);
+}
+
+body,
+.content-page {
+  background-color: var(--sarah-page-bg) !important;
+}

@@ -4,7 +4,8 @@ import { apiFetch } from './client.js';
 export const listTenants        = ()                   => apiFetch('tenants');
 export const createTenant       = (data)               => apiFetch('tenants', 'POST', data);
 export const getTenant          = (uuid)               => apiFetch(`tenants/${uuid}`);
-export const updateTenantStatus = (uuid, status)       => apiFetch(`tenants/${uuid}/status`, 'POST', { status });
+export const updateTenantStatus      = (uuid, status)  => apiFetch(`tenants/${uuid}/status`, 'POST', { status });
+export const markTenantSetupComplete = (uuid)          => apiFetch(`tenants/${uuid}/setup-complete`, 'POST');
 
 // Users
 export const listTenantUsers  = (tenantUuid)              => apiFetch(`tenants/${tenantUuid}/users`);

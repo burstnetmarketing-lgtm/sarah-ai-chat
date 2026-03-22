@@ -8,6 +8,7 @@ import {
   listSiteKeys, createSiteKey, deleteSiteKey,
   listAgents, assignAgent, listAvailableAgents,
   listKnowledge, createKnowledge, deleteKnowledge,
+  markTenantSetupComplete,
 } from '../api/provisioning.js';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -50,89 +51,84 @@ function ReadinessCheck({ steps, activeStep, onStepClick }) {
   const nextIdx    = steps.findIndex(s => !s.ok);
 
   return (
-    <div className="card border-0 shadow-sm mb-4" style={{ overflow: 'hidden' }}>
-
+    <div className="card shadow-sm mb-4">
       {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #1B2A4A 0%, #243560 100%)',
-        padding: '16px 20px 14px',
-      }}>
+      <div className="card-header bg-dark text-white py-3">
         <div className="d-flex justify-content-between align-items-center">
           <div>
-            <div style={{ color: '#fff', fontWeight: 700, fontSize: '15px' }}>Setup Progress</div>
-            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '12px', marginTop: '3px' }}>
+            <div className="fw-bold">Setup Progress</div>
+            <div className="text-white-50 small mt-1">
               {allOk
                 ? 'All steps complete — ready to launch'
                 : `${10 - completed} step${10 - completed !== 1 ? 's' : ''} remaining`}
             </div>
           </div>
-          <div style={{ textAlign: 'center', lineHeight: 1 }}>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: allOk ? '#4ade80' : '#fbbf24' }}>
+          <div className="text-end">
+            <div className={`fw-bold fs-3 ${allOk ? 'text-success' : 'text-warning'}`}>
               {percentage}%
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px', marginTop: '2px' }}>
-              {completed} / 10 steps
-            </div>
+            <div className="text-white-50 small">{completed} / 10 steps</div>
           </div>
         </div>
-        {/* Progress bar */}
-        <div style={{ marginTop: '12px', height: '5px', background: 'rgba(255,255,255,0.15)', borderRadius: '3px', overflow: 'hidden' }}>
-          <div style={{ width: `${percentage}%`, height: '100%', background: allOk ? '#4ade80' : '#fbbf24', borderRadius: '3px', transition: 'width 0.6s ease' }} />
+        <div className="progress mt-3" style={{ height: '5px' }}>
+          <div
+            className={`progress-bar ${allOk ? 'bg-success' : 'bg-warning'}`}
+            style={{ width: `${percentage}%`, transition: 'width 0.6s ease' }}
+          />
         </div>
       </div>
 
       {/* Step nodes */}
-      <div style={{ padding: '14px 10px 10px', background: '#fff' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+      <div className="card-body py-3 px-2">
+        <div className="d-flex align-items-start">
           {steps.map((step, i) => {
-            const done    = step.ok;
-            const isNext  = i === nextIdx;
+            const done     = step.ok;
             const isActive = i === activeStep;
-            const isLast  = i === 9;
+            const isNext   = i === nextIdx;
+            const isLast   = i === 9;
+            const canClick = done || i === 0 || steps[i - 1]?.ok;
 
-            const nodeBg     = done ? '#198754' : '#fff';
-            const nodeBorder = done ? '#198754' : isNext ? '#0d6efd' : '#dee2e6';
-            const nodeColor  = done ? '#fff'    : isNext ? '#0d6efd' : '#adb5bd';
-            const labelColor = done ? '#198754' : isNext ? '#0d6efd' : '#adb5bd';
-            const lineColor  = done ? '#198754' : '#dee2e6';
+            const nodeClass = done     ? 'bg-success border-success text-white'
+                            : isActive ? 'bg-body border-warning text-warning'
+                            : isNext   ? 'bg-body border-primary text-primary'
+                            :            'bg-body border-secondary text-secondary';
 
-            // Active step gets a yellow/amber outer ring
-            const ringStyle = isActive
-              ? '0 0 0 3px rgba(251,191,36,0.5)'
-              : isNext && !done
-              ? '0 0 0 3px rgba(13,110,253,0.12)'
-              : 'none';
+            const labelClass = isActive ? 'text-warning fw-bold'
+                             : done     ? 'text-success fw-bold'
+                             : isNext   ? 'text-primary fw-semibold'
+                             :            'text-muted';
+
+            const lineClass  = done ? 'border-success' : 'border-secondary';
 
             return (
               <React.Fragment key={i}>
                 <div
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, cursor: done || i === 0 || steps[i - 1]?.ok ? 'pointer' : 'not-allowed', opacity: !done && i > 0 && !steps[i - 1]?.ok ? 0.5 : 1 }}
-                  onClick={() => { if (done || i === 0 || steps[i - 1]?.ok) onStepClick(i); }}
+                  className={`d-flex flex-column align-items-center flex-shrink-0 ${!canClick ? 'opacity-50' : ''}`}
+                  style={{ cursor: canClick ? 'pointer' : 'not-allowed' }}
+                  onClick={() => { if (canClick) onStepClick(i); }}
                   title={`${step.label}: ${step.sub}`}
                 >
-                  <div style={{
-                    width: '32px', height: '32px', borderRadius: '50%',
-                    background: nodeBg, border: `2px solid ${nodeBorder}`, color: nodeColor,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: done ? '14px' : '11px', fontWeight: 700,
-                    boxShadow: ringStyle,
-                    transition: 'all 0.25s',
-                    position: 'relative', zIndex: 1,
-                  }}>
+                  <div
+                    className={`rounded-circle border border-2 d-flex align-items-center justify-content-center fw-bold ${nodeClass}`}
+                    style={{ width: '32px', height: '32px', fontSize: done ? '14px' : '11px', transition: 'all 0.25s' }}
+                  >
                     {done ? '✓' : i + 1}
                   </div>
-                  <div style={{ width: '52px', textAlign: 'center', marginTop: '5px', lineHeight: 1.25 }}>
-                    <div style={{ fontSize: '10px', fontWeight: done || isNext || isActive ? 700 : 400, color: isActive ? '#fbbf24' : labelColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div className="text-center mt-1" style={{ width: '52px' }}>
+                    <div className={`${labelClass}`} style={{ fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {step.label}
                     </div>
-                    <div style={{ fontSize: '9px', color: 'rgba(0,0,0,0.3)', whiteSpace: 'nowrap' }}>
+                    <div className="text-muted" style={{ fontSize: '9px', whiteSpace: 'nowrap' }}>
                       {step.sub}
                     </div>
                   </div>
                 </div>
 
                 {!isLast && (
-                  <div style={{ flex: 1, height: '2px', background: lineColor, marginTop: '15px', transition: 'background 0.4s', minWidth: '4px' }} />
+                  <div
+                    className={`flex-fill border-top border-2 ${lineClass}`}
+                    style={{ marginTop: '15px', minWidth: '4px', transition: 'border-color 0.4s' }}
+                  />
                 )}
               </React.Fragment>
             );
@@ -149,7 +145,7 @@ function TenantInfoPanel({ tenant }) {
   if (!tenant) return null;
   return (
     <div className="card border-0 shadow-sm">
-      <div className="card-header bg-white border-bottom">
+      <div className="card-header">
         <h6 className="fw-semibold mb-0">Tenant</h6>
         <p className="text-muted small mb-0">The top-level account that owns all sites, keys, and users.</p>
       </div>
@@ -180,7 +176,7 @@ function SubscriptionPanel({ subscription }) {
   );
   return (
     <div className="card border-0 shadow-sm">
-      <div className="card-header bg-white border-bottom">
+      <div className="card-header">
         <h6 className="fw-semibold mb-0">Subscription</h6>
         <p className="text-muted small mb-0">Controls plan features, limits, and trial duration.</p>
       </div>
@@ -248,7 +244,7 @@ function UsersSection({ tenantUuid, onReload }) {
 
   return (
     <div className="card border-0 shadow-sm">
-      <div className="card-header bg-white border-bottom">
+      <div className="card-header">
         <SectionHeader title="Users" onRefresh={load} refreshing={loading} />
         <p className="text-muted small mb-0">Create a new WordPress user and attach them to this tenant.</p>
       </div>
@@ -333,7 +329,7 @@ function SiteCreateSection({ tenantUuid, sites, onReload }) {
 
   return (
     <div className="card border-0 shadow-sm">
-      <div className="card-header bg-white border-bottom">
+      <div className="card-header">
         <h6 className="fw-semibold mb-0">Register Site</h6>
         <p className="text-muted small mb-0">A site is a client WordPress installation that Sarah AI will serve.</p>
       </div>
@@ -400,7 +396,7 @@ function SiteStatusPanel({ site, onReload }) {
 
   return (
     <div className="card border-0 shadow-sm">
-      <div className="card-header bg-white border-bottom">
+      <div className="card-header">
         <h6 className="fw-semibold mb-0">Site Status — <span className="fw-normal text-muted">{site.name}</span></h6>
         <p className="text-muted small mb-0">Activate the site to make it operational for API access.</p>
       </div>
@@ -429,7 +425,7 @@ function SiteStatusPanel({ site, onReload }) {
 
 // ─── Step 5: Account Keys ─────────────────────────────────────────────────────
 
-function AccountKeysSection({ tenantUuid }) {
+function AccountKeysSection({ tenantUuid, onReload }) {
   const [keys, setKeys]       = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm]       = useState({ label: '' });
@@ -451,7 +447,7 @@ function AccountKeysSection({ tenantUuid }) {
     setSaving(true); setMsg(null); setRawKey(null);
     try {
       const res = await createAccountKey(tenantUuid, { label: form.label.trim() || 'default' });
-      if (res.success) { setRawKey(res.data.raw_key); setForm({ label: '' }); load(); }
+      if (res.success) { setRawKey(res.data.raw_key); setForm({ label: '' }); load(); onReload?.(); }
       else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
     } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
     finally { setSaving(false); }
@@ -465,7 +461,7 @@ function AccountKeysSection({ tenantUuid }) {
 
   return (
     <div className="card border-0 shadow-sm">
-      <div className="card-header bg-white border-bottom">
+      <div className="card-header">
         <SectionHeader title="Account Keys" onRefresh={load} refreshing={loading} />
         <p className="text-muted small mb-0">Account keys identify the tenant. Raw key shown only once.</p>
       </div>
@@ -487,7 +483,7 @@ function AccountKeysSection({ tenantUuid }) {
         {rawKey && (
           <div className="alert alert-warning py-2 px-3 mb-3">
             <strong>Copy this key now — it will not be shown again.</strong>
-            <div className="font-monospace mt-1 user-select-all small bg-white border rounded px-2 py-1">{rawKey}</div>
+            <div className="font-monospace mt-1 user-select-all small bg-body border rounded px-2 py-1">{rawKey}</div>
           </div>
         )}
         {msg && <Alert type={msg.type} msg={msg.text} />}
@@ -556,7 +552,7 @@ function SiteKeysSection({ siteUuid, onKeysChange }) {
 
   return (
     <div className="card border-0 shadow-sm">
-      <div className="card-header bg-white border-bottom">
+      <div className="card-header">
         <SectionHeader title="Site Keys" onRefresh={load} refreshing={loading} />
         <p className="text-muted small mb-0">Site keys are the site-level credential for API authentication.</p>
       </div>
@@ -578,7 +574,7 @@ function SiteKeysSection({ siteUuid, onKeysChange }) {
         {rawKey && (
           <div className="alert alert-warning py-2 px-3 mb-3">
             <strong>Copy now — shown once.</strong>
-            <div className="font-monospace mt-1 user-select-all small bg-white border rounded px-2 py-1">{rawKey}</div>
+            <div className="font-monospace mt-1 user-select-all small bg-body border rounded px-2 py-1">{rawKey}</div>
           </div>
         )}
         {loading ? <p className="text-muted small mb-0">Loading…</p> : keys.length === 0 ? (
@@ -644,7 +640,7 @@ function AgentSection({ siteUuid, tenantUuid, currentAgentId, onAgentChange }) {
 
   return (
     <div className="card border-0 shadow-sm">
-      <div className="card-header bg-white border-bottom">
+      <div className="card-header">
         <h6 className="fw-semibold mb-0">
           Agent Assignment
           {currentAgent && <span className="badge bg-success ms-2">{currentAgent.name}</span>}
@@ -721,7 +717,7 @@ function KnowledgeSection({ siteUuid, onItemsChange }) {
 
   return (
     <div className="card border-0 shadow-sm">
-      <div className="card-header bg-white border-bottom">
+      <div className="card-header">
         <div className="d-flex justify-content-between align-items-center">
           <div>
             <h6 className="fw-semibold mb-0">
@@ -835,7 +831,8 @@ export default function TenantDetail({ param, onNavigate }) {
   const [firstSiteAgentId, setFirstSiteAgentId]         = useState(null);
   const [firstSiteKnowledgeCount, setFirstSiteKnowledgeCount] = useState(0);
 
-  const stepInitialized = useRef(false);
+  const stepInitialized   = useRef(false);
+  const setupMarkedRef    = useRef(false);
   const firstSite     = sites[0] ?? null;
   const firstSiteUuid = firstSite?.uuid ?? null;
 
@@ -896,14 +893,29 @@ export default function TenantDetail({ param, onNavigate }) {
 
   useEffect(() => { load(); }, [load]);
 
-  // Auto-navigate to first incomplete step on initial load
+  // Auto-mark setup complete when all steps ok (fire-and-forget)
+  const allOk = steps[9].ok;
   useEffect(() => {
-    if (!loading && !stepInitialized.current) {
+    if (allOk && tenant && !tenant.setup_complete && !setupMarkedRef.current) {
+      setupMarkedRef.current = true;
+      markTenantSetupComplete(tenantUuid).catch(() => {});
+    }
+  }, [allOk, tenant]);
+
+  // In setup mode: auto-navigate to first incomplete step on initial load
+  const isEditMode = !!(tenant?.setup_complete || allOk);
+
+  useEffect(() => {
+    if (!loading && !stepInitialized.current && !isEditMode) {
       stepInitialized.current = true;
       const firstIncomplete = steps.findIndex(s => !s.ok);
       setActiveStep(firstIncomplete >= 0 ? firstIncomplete : 9);
     }
-  }, [loading]);
+    if (!loading && !stepInitialized.current && isEditMode) {
+      stepInitialized.current = true;
+      setActiveStep(0);
+    }
+  }, [loading, isEditMode]);
 
   if (!tenantUuid) return <p className="text-danger">Invalid tenant.</p>;
 
@@ -922,7 +934,7 @@ export default function TenantDetail({ param, onNavigate }) {
       case 4: return firstSite
         ? <SiteStatusPanel site={firstSite} onReload={load} />
         : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
-      case 5: return <AccountKeysSection tenantUuid={tenantUuid} />;
+      case 5: return <AccountKeysSection tenantUuid={tenantUuid} onReload={load} />;
       case 6: return firstSiteUuid
         ? <SiteKeysSection siteUuid={firstSiteUuid} onKeysChange={keys => setFirstSiteKeys(keys)} />
         : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
@@ -946,80 +958,109 @@ export default function TenantDetail({ param, onNavigate }) {
   }
 
   return (
-    <>
-      {/* Header */}
-      <div className="mb-3 d-flex align-items-start justify-content-between">
-        <div>
-          {loading ? (
-            <span className="text-muted small">Loading…</span>
-          ) : error ? (
-            <span className="text-danger">{error}</span>
-          ) : (
-            <>
-              <h1 className="h5 fw-semibold text-dark mb-0">{tenant?.name}</h1>
-              <div className="mt-1">
-                <span className="text-muted small me-2">{tenant?.slug}</span>
-                <StatusBadge status={tenant?.status} />
-                {subscription && (
-                  <span className={`badge ms-2 bg-${subscription.status === 'trialing' ? 'info' : subscription.status === 'active' ? 'success' : 'secondary'}`}>
-                    {subscription.status}
+    <div className="row">
+      <div className="col-12">
+
+        {/* Page header */}
+        <div className="mb-3 d-flex align-items-start justify-content-between">
+          <div>
+            {loading ? (
+              <span className="text-muted small">Loading…</span>
+            ) : error ? (
+              <span className="text-danger">{error}</span>
+            ) : (
+              <>
+                <h4 className="fw-semibold mb-0">{tenant?.name}</h4>
+                <div className="mt-1 d-flex align-items-center gap-2 flex-wrap">
+                  <span className="text-muted small">{tenant?.slug}</span>
+                  <span className={`badge bg-${tenant?.status === 'active' ? 'success-subtle text-success' : 'secondary-subtle text-secondary'}`}>
+                    {tenant?.status}
                   </span>
-                )}
+                  {subscription && (
+                    <span className={`badge ${
+                      subscription.status === 'trialing'  ? 'bg-primary-subtle text-primary' :
+                      subscription.status === 'active'    ? 'bg-success-subtle text-success' :
+                      subscription.status === 'cancelled' ? 'bg-danger-subtle text-danger' :
+                                                            'bg-secondary-subtle text-secondary'
+                    }`}>{subscription.status}</span>
+                  )}
+                  {isEditMode && (
+                    <span className="badge bg-success-subtle text-success">
+                      ✓ Setup Complete
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+          <button className="btn btn-sm btn-outline-secondary"
+            onClick={() => onNavigate('tenants')}>← Tenants</button>
+        </div>
+
+        {!loading && !error && (
+          isEditMode ? (
+            /* ── Edit Mode: Tabbed card ─────────────────────────── */
+            <div className="card">
+              <div className="card-header p-0 border-bottom-0">
+                <ul className="nav nav-tabs card-header-tabs px-3 pt-2" style={{ flexWrap: 'nowrap', overflowX: 'auto' }}>
+                  {STEP_TITLES.map((title, i) => (
+                    <li key={i} className="nav-item" style={{ whiteSpace: 'nowrap' }}>
+                      <button
+                        className={`nav-link ${activeStep === i ? 'active' : ''}`}
+                        onClick={() => setActiveStep(i)}
+                      >
+                        {title}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="card-body">
+                {renderStepContent()}
+              </div>
+            </div>
+          ) : (
+            /* ── Setup Mode: Stepper + Prev/Next ────────────────── */
+            <>
+              <ReadinessCheck steps={steps} activeStep={activeStep} onStepClick={setActiveStep} />
+
+              {activeStep !== null && (
+                <div className="d-flex align-items-center gap-2 mb-3">
+                  <span className="badge bg-primary">Step {activeStep + 1}</span>
+                  <span className="fw-semibold">{STEP_TITLES[activeStep]}</span>
+                </div>
+              )}
+
+              {renderStepContent()}
+
+              <div className="d-flex justify-content-between align-items-center mt-3 mb-4">
+                <button
+                  className="btn btn-outline-secondary btn-sm"
+                  onClick={() => setActiveStep(s => Math.max(0, (s ?? 0) - 1))}
+                  disabled={activeStep === 0}
+                >
+                  ← Previous
+                </button>
+                <div className="d-flex align-items-center gap-2">
+                  {activeStep !== null && !steps[activeStep]?.ok && activeStep !== 9 && (
+                    <span className="text-warning small fw-semibold">
+                      Complete this step to continue
+                    </span>
+                  )}
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setActiveStep(s => Math.min(9, (s ?? 0) + 1))}
+                    disabled={activeStep === 9 || (activeStep !== null && !steps[activeStep]?.ok)}
+                  >
+                    Next →
+                  </button>
+                </div>
               </div>
             </>
-          )}
-        </div>
-        <button className="btn btn-sm btn-outline-secondary"
-          onClick={() => onNavigate('tenants')}>← Tenants</button>
+          )
+        )}
+
       </div>
-
-      {!loading && !error && (
-        <>
-          {/* Wizard stepper */}
-          <ReadinessCheck steps={steps} activeStep={activeStep} onStepClick={setActiveStep} />
-
-          {/* Active step label */}
-          {activeStep !== null && (
-            <div className="d-flex align-items-center gap-2 mb-3">
-              <span className="badge bg-primary px-2 py-1" style={{ fontSize: '11px' }}>
-                Step {activeStep + 1}
-              </span>
-              <span className="fw-semibold text-dark" style={{ fontSize: '14px' }}>
-                {STEP_TITLES[activeStep]}
-              </span>
-            </div>
-          )}
-
-          {/* Step content */}
-          {renderStepContent()}
-
-          {/* Prev / Next navigation */}
-          <div className="d-flex justify-content-between align-items-center mt-3 mb-4">
-            <button
-              className="btn btn-outline-secondary btn-sm"
-              onClick={() => setActiveStep(s => Math.max(0, (s ?? 0) - 1))}
-              disabled={activeStep === 0}
-            >
-              ← Previous
-            </button>
-            <div className="d-flex align-items-center gap-2">
-              {activeStep !== null && !steps[activeStep]?.ok && activeStep !== 9 && (
-                <span className="text-warning small fw-semibold">
-                  Complete this step to continue
-                </span>
-              )}
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => setActiveStep(s => Math.min(9, (s ?? 0) + 1))}
-                disabled={activeStep === 9 || (activeStep !== null && !steps[activeStep]?.ok)}
-                title={activeStep !== null && !steps[activeStep]?.ok ? 'Complete this step first' : ''}
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-    </>
+    </div>
   );
 }

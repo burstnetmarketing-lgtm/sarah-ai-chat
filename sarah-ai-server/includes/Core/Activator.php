@@ -16,6 +16,8 @@ use SarahAiServer\DB\AccountKeyTable;
 use SarahAiServer\DB\KnowledgeResourceTable;
 use SarahAiServer\DB\PlanAgentTable;
 use SarahAiServer\DB\UsageLogTable;
+use SarahAiServer\DB\ChatSessionTable;
+use SarahAiServer\DB\ChatMessageTable;
 use SarahAiServer\DB\UserTenantTable;
 use SarahAiServer\Infrastructure\MenuRepository;
 
@@ -41,6 +43,8 @@ class Activator
         KnowledgeResourceTable::create();
         AccountKeyTable::create();
         PlanAgentTable::create();
+        ChatSessionTable::create();
+        ChatMessageTable::create();
 
         // Seed core menu items and baseline data
         (new MenuRepository())->ensureCoreItems();

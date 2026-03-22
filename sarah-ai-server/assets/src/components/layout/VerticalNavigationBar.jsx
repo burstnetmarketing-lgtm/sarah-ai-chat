@@ -13,18 +13,20 @@ const ICONS = {
   settings:        'mdi:cog-outline',
   tenants:         'mdi:office-building-outline',
   'tenant-detail': 'mdi:office-building-outline',
+  plans:           'mdi:tag-outline',
+  subscriptions:   'mdi:credit-card-outline',
 };
 
 function LogoBox() {
   return (
-    <a className="logo logo-light" href="#/dashboard" style={{ textDecoration: 'none' }}>
+    <a className="logo" href="#/dashboard">
       <span className="logo-lg">
-        <span style={{ fontWeight: 700, fontSize: '1.25rem', color: '#fff', letterSpacing: '-0.01em' }}>
-          Sarah <span style={{ color: '#f5c518' }}>AI</span>
+        <span className="logo-lg-text">
+          Sarah <span className="logo-ai">AI</span>
         </span>
       </span>
       <span className="logo-sm">
-        <span style={{ fontWeight: 700, fontSize: '1.1rem', color: '#f5c518' }}>S</span>
+        <span className="logo-sm-text">S</span>
       </span>
     </a>
   );

@@ -37,6 +37,8 @@ require_once SARAH_AI_SERVER_PATH . 'includes/DB/UsageLogTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/KnowledgeResourceTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/AccountKeyTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/PlanAgentTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/ChatSessionTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/ChatMessageTable.php';
 
 // Infrastructure
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/MenuRepository.php';
@@ -54,6 +56,15 @@ require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/AccountKeyRepositor
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/SiteAgentRepository.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/CredentialValidator.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/PlanAgentRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/ChatSessionRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/ChatMessageRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/UsageLogRepository.php';
+
+// Runtime
+require_once SARAH_AI_SERVER_PATH . 'includes/Runtime/AgentExecutorInterface.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Runtime/OpenAiAgentExecutor.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Runtime/RuntimeEligibilityChecker.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Runtime/ChatRuntime.php';
 
 // Admin
 require_once SARAH_AI_SERVER_PATH . 'includes/Admin/DashboardPage.php';
@@ -71,6 +82,8 @@ require_once SARAH_AI_SERVER_PATH . 'includes/Api/SiteTokenController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/AgentController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/PlanController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/SubscriptionController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/ChatController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/SessionController.php';
 
 // Core
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Logger.php';

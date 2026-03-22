@@ -71,7 +71,7 @@ export default function Plans() {
             return (
               <div key={plan.id} className="col-md-6 col-lg-4">
                 <div className="card border-0 shadow-sm h-100">
-                  <div className="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                  <div className="card-header d-flex justify-content-between align-items-center">
                     <div>
                       <h6 className="fw-bold mb-0">{plan.name}</h6>
                       <span className="text-muted small">{plan.slug}</span>

@@ -21,7 +21,7 @@ export default function MenuManager() {
       </div>
 
       <div className="card border-0 shadow-sm mb-4">
-        <div className="card-header bg-white border-bottom">
+        <div className="card-header">
           <h6 className="mb-0 fw-semibold">Add Parent Menu Item</h6>
         </div>
         <div className="card-body">

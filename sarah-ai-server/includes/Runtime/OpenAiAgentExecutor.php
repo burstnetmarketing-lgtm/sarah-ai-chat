@@ -1,0 +1,141 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SarahAiServer\Runtime;
+
+use SarahAiServer\Infrastructure\SettingsRepository;
+
+/**
+ * OpenAI-backed agent executor.
+ *
+ * Uses wp_remote_post to call the OpenAI Chat Completions API.
+ * The API key is read from SettingsRepository (key: openai_api_key, namespace: platform).
+ *
+ * Agent config fields (from agents.config JSON column):
+ *   model       — OpenAI model ID (e.g. gpt-4o-mini, gpt-4o, o1)
+ *   max_tokens  — Maximum completion tokens
+ *   temperature — Sampling temperature (0.0–2.0)
+ *
+ * This class must not be referenced directly by controllers or other non-runtime code.
+ * All calls go through ChatRuntime which resolves the correct executor per agent type.
+ */
+class OpenAiAgentExecutor implements AgentExecutorInterface
+{
+    private const API_URL = 'https://api.openai.com/v1/chat/completions';
+
+    private SettingsRepository $settings;
+
+    public function __construct()
+    {
+        $this->settings = new SettingsRepository();
+    }
+
+    public function execute(array $context): array
+    {
+        $agent     = $context['agent'];
+        $message   = $context['message'];
+        $history   = $context['history'] ?? [];
+        $knowledge = $context['knowledge'] ?? [];
+
+        $config     = is_array($agent['config']) ? $agent['config'] : (json_decode($agent['config'] ?? '{}', true) ?? []);
+        $model      = $config['model']       ?? $agent['slug'];
+        $maxTokens  = (int) ($config['max_tokens']  ?? 1024);
+        $temperature = (float) ($config['temperature'] ?? 0.7);
+
+        $apiKey = $this->settings->get('openai_api_key', '', 'platform');
+        if (! $apiKey) {
+            return [
+                'content'    => 'Service is not configured. Please contact the site administrator.',
+                'tokens_in'  => null,
+                'tokens_out' => null,
+                'provider'   => 'openai',
+                'model'      => $model,
+            ];
+        }
+
+        $messages = [];
+
+        // System prompt with knowledge injection
+        $systemPrompt = $this->buildSystemPrompt($knowledge);
+        if ($systemPrompt) {
+            $messages[] = ['role' => 'system', 'content' => $systemPrompt];
+        }
+
+        // Prior conversation history (customer = user, assistant = assistant)
+        foreach ($history as $msg) {
+            $role = ($msg['role'] === 'customer') ? 'user' : 'assistant';
+            $messages[] = ['role' => $role, 'content' => (string) $msg['content']];
+        }
+
+        // Incoming customer message
+        $messages[] = ['role' => 'user', 'content' => $message];
+
+        $body = [
+            'model'    => $model,
+            'messages' => $messages,
+        ];
+
+        // o1 models do not support temperature or max_tokens in the same way
+        if (strpos($model, 'o1') === false) {
+            $body['temperature'] = $temperature;
+            $body['max_tokens']  = $maxTokens;
+        } else {
+            $body['max_completion_tokens'] = $maxTokens;
+        }
+
+        $response = wp_remote_post(self::API_URL, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type'  => 'application/json',
+            ],
+            'body'    => wp_json_encode($body),
+            'timeout' => 30,
+        ]);
+
+        if (is_wp_error($response)) {
+            return [
+                'content'    => 'Unable to reach the AI service. Please try again.',
+                'tokens_in'  => null,
+                'tokens_out' => null,
+                'provider'   => 'openai',
+                'model'      => $model,
+            ];
+        }
+
+        $data = json_decode(wp_remote_retrieve_body($response), true);
+
+        $content    = $data['choices'][0]['message']['content'] ?? 'No response received.';
+        $tokensIn   = (int) ($data['usage']['prompt_tokens']     ?? 0) ?: null;
+        $tokensOut  = (int) ($data['usage']['completion_tokens'] ?? 0) ?: null;
+
+        return [
+            'content'    => $content,
+            'tokens_in'  => $tokensIn,
+            'tokens_out' => $tokensOut,
+            'provider'   => 'openai',
+            'model'      => $model,
+        ];
+    }
+
+    private function buildSystemPrompt(array $knowledge): string
+    {
+        $parts = [];
+        foreach ($knowledge as $resource) {
+            $content = trim((string) ($resource['source_content'] ?? ''));
+            if (! $content) {
+                continue;
+            }
+            $title = trim((string) ($resource['title'] ?? ''));
+            $parts[] = $title ? "### {$title}\n{$content}" : $content;
+        }
+
+        if (empty($parts)) {
+            return 'You are a helpful assistant. Answer questions accurately and concisely.';
+        }
+
+        return "You are a helpful assistant. Use the following information to answer questions. "
+             . "Only use the provided information — do not make up facts.\n\n"
+             . implode("\n\n", $parts);
+    }
+}

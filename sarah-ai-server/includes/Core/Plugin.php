@@ -22,6 +22,9 @@ use SarahAiServer\DB\AccountKeyTable;
 use SarahAiServer\DB\KnowledgeResourceTable;
 use SarahAiServer\DB\PlanAgentTable;
 use SarahAiServer\DB\UsageLogTable;
+use SarahAiServer\DB\ChatSessionTable;
+use SarahAiServer\DB\ChatMessageTable;
+use SarahAiServer\Api\ChatController;
 use SarahAiServer\DB\UserTenantTable;
 use SarahAiServer\Api\AccountKeyController;
 use SarahAiServer\Api\AgentController;
@@ -55,6 +58,8 @@ class Plugin
         KnowledgeResourceTable::create();
         AccountKeyTable::create();
         PlanAgentTable::create();
+        ChatSessionTable::create();
+        ChatMessageTable::create();
 
         // Seed baseline data (idempotent)
         Seeder::run();
@@ -83,6 +88,8 @@ class Plugin
         add_action('rest_api_init', [(new AgentController()), 'registerRoutes']);
         add_action('rest_api_init', [(new PlanController()), 'registerRoutes']);
         add_action('rest_api_init', [(new SubscriptionController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new ChatController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new \SarahAiServer\Api\SessionController()), 'registerRoutes']);
 
         if (! is_admin()) {
             return;

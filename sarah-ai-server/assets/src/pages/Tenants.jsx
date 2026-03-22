@@ -1,29 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { listTenants, createTenant } from '../api/provisioning.js';
 
-function StatusBadge({ status }) {
-  const map = { active: 'success', inactive: 'secondary', suspended: 'warning', archived: 'dark' };
-  return <span className={`badge bg-${map[status] ?? 'secondary'}`}>{status ?? '—'}</span>;
-}
+const TENANT_STATUS_BADGE = {
+  active:    'bg-success-subtle text-success',
+  inactive:  'bg-secondary-subtle text-secondary',
+  suspended: 'bg-warning-subtle text-warning',
+  archived:  'bg-dark-subtle text-dark',
+};
 
-function SubscriptionBadge({ status }) {
-  const map = { trialing: 'info', active: 'success', expired: 'danger', cancelled: 'secondary' };
-  return <span className={`badge bg-${map[status] ?? 'secondary'}`}>{status ?? 'none'}</span>;
-}
+const SUB_STATUS_BADGE = {
+  trialing:  'bg-primary-subtle text-primary',
+  active:    'bg-success-subtle text-success',
+  expired:   'bg-secondary-subtle text-secondary',
+  cancelled: 'bg-danger-subtle text-danger',
+};
 
 export default function Tenants({ onNavigate }) {
-  const [tenants, setTenants]   = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
-  const [saving, setSaving]     = useState(false);
-  const [form, setForm]         = useState({ name: '', slug: '' });
+  const [tenants, setTenants]     = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [saving, setSaving]       = useState(false);
+  const [form, setForm]           = useState({ name: '', slug: '' });
   const [formError, setFormError] = useState(null);
+  const [search, setSearch]       = useState('');
 
   function load() {
     setLoading(true);
     listTenants()
       .then(res => { if (res.success) setTenants(res.data); })
-      .catch(() => setError('Failed to load tenants.'))
       .finally(() => setLoading(false));
   }
 
@@ -36,12 +39,8 @@ export default function Tenants({ onNavigate }) {
     setFormError(null);
     try {
       const res = await createTenant({ name: form.name.trim(), slug: form.slug.trim() || undefined });
-      if (res.success) {
-        setForm({ name: '', slug: '' });
-        load();
-      } else {
-        setFormError(res.message ?? 'Failed to create tenant.');
-      }
+      if (res.success) { setForm({ name: '', slug: '' }); load(); }
+      else setFormError(res.message ?? 'Failed to create tenant.');
     } catch {
       setFormError('Request failed.');
     } finally {
@@ -49,89 +48,140 @@ export default function Tenants({ onNavigate }) {
     }
   }
 
+  const visible = tenants.filter(row => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (row.tenant.name ?? '').toLowerCase().includes(q) ||
+           (row.tenant.slug ?? '').toLowerCase().includes(q);
+  });
+
   return (
-    <>
-      <div className="mb-3">
-        <h1 className="h5 fw-semibold text-dark mb-1">Tenants</h1>
-        <p className="text-muted small mb-0">Create and manage tenants. Click Setup to configure a tenant environment.</p>
-      </div>
+    <div className="row">
+      <div className="col-12">
 
-      {/* Create Form */}
-      <div className="card border-0 shadow-sm mb-4">
-        <div className="card-header bg-white border-bottom">
-          <h6 className="mb-0 fw-semibold">Create New Tenant</h6>
+        {/* Create New Tenant */}
+        <div className="card mb-4">
+          <div className="card-header">
+            <h4 className="card-title">Create New Tenant</h4>
+            <p className="text-muted fw-semibold mb-0">A trial subscription will be created automatically.</p>
+          </div>
+          <div className="card-body">
+            <form onSubmit={handleCreate}>
+              <div className="row g-2 align-items-end">
+                <div className="col-md-5 form-group">
+                  <label className="form-label">Name *</label>
+                  <input className="form-control" placeholder="Acme Corp"
+                    value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+                </div>
+                <div className="col-md-4 form-group">
+                  <label className="form-label">Slug <span className="text-muted">(optional)</span></label>
+                  <input className="form-control" placeholder="acme-corp"
+                    value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} />
+                </div>
+                <div className="col-md-3">
+                  <button className="btn btn-primary w-100" type="submit" disabled={saving}>
+                    {saving ? 'Creating…' : '+ Create Tenant'}
+                  </button>
+                </div>
+              </div>
+              {formError && <div className="alert alert-danger py-2 mt-2 mb-0">{formError}</div>}
+            </form>
+          </div>
         </div>
-        <div className="card-body">
-          <form onSubmit={handleCreate}>
-            <div className="row g-3 align-items-end">
-              <div className="col-md-5">
-                <label className="form-label fw-semibold small">Name *</label>
-                <input className="form-control form-control-sm" placeholder="Acme Corp"
-                  value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
-              </div>
-              <div className="col-md-4">
-                <label className="form-label fw-semibold small">Slug (optional)</label>
-                <input className="form-control form-control-sm" placeholder="acme-corp"
-                  value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} />
-              </div>
-              <div className="col-md-3">
-                <button className="btn btn-primary btn-sm w-100" type="submit" disabled={saving}>
-                  {saving ? 'Creating…' : '+ Create Tenant'}
-                </button>
-              </div>
+
+        {/* Tenant List */}
+        <div className="card">
+          <div className="d-flex justify-content-between flex-wrap align-items-center card-header">
+            <div>
+              <h4 className="card-title">Tenants</h4>
+              <p className="text-muted fw-semibold mb-0">All registered tenants.</p>
             </div>
-            {formError && <div className="alert alert-danger py-1 mt-2 small">{formError}</div>}
-            <p className="text-muted small mt-2 mb-0">A trial subscription will be created automatically.</p>
-          </form>
-        </div>
-      </div>
+            <div className="d-flex align-items-center gap-2">
+              <input
+                type="text"
+                className="form-control form-control-sm"
+                style={{ width: '180px' }}
+                placeholder="Search name or slug…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={load} disabled={loading}>
+                ↺
+              </button>
+            </div>
+          </div>
 
-      {/* Tenant List */}
-      <div className="card border-0 shadow-sm">
-        <div className="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
-          <h6 className="mb-0 fw-semibold">All Tenants</h6>
-          <button className="btn btn-outline-secondary btn-sm" onClick={load} disabled={loading}>Refresh</button>
-        </div>
-        <div className="card-body p-0">
-          {loading ? (
-            <p className="p-3 text-muted small mb-0">Loading…</p>
-          ) : error ? (
-            <p className="p-3 text-danger small mb-0">{error}</p>
-          ) : tenants.length === 0 ? (
-            <p className="p-3 text-muted small mb-0">No tenants yet.</p>
-          ) : (
-            <table className="table table-sm table-hover mb-0">
-              <thead className="table-light">
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Slug</th>
-                  <th>Status</th>
-                  <th>Subscription</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {tenants.map(row => (
-                  <tr key={row.tenant.id}>
-                    <td className="text-muted small">{row.tenant.id}</td>
-                    <td className="fw-semibold">{row.tenant.name}</td>
-                    <td className="text-muted small">{row.tenant.slug}</td>
-                    <td><StatusBadge status={row.tenant.status} /></td>
-                    <td><SubscriptionBadge status={row.subscription_status} /></td>
-                    <td>
-                      <button className="btn btn-sm btn-outline-primary"
-                        onClick={() => onNavigate('tenant-detail', row.tenant.uuid)}>
-                        Setup →
-                      </button>
-                    </td>
+          <div className="p-0 card-body">
+            <div className="table-responsive">
+              <table className="table align-middle mb-0">
+                <thead>
+                  <tr className="table-light text-capitalize">
+                    <th>Name</th>
+                    <th>Slug</th>
+                    <th>Status</th>
+                    <th>Subscription</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={5} className="text-muted py-4 text-center">Loading…</td></tr>
+                  ) : visible.length === 0 ? (
+                    <tr><td colSpan={5} className="text-muted py-4 text-center">No tenants found.</td></tr>
+                  ) : visible.map(row => (
+                    <tr key={row.tenant.id}>
+                      <td>
+                        <button
+                          className="btn btn-link p-0 text-start fw-semibold"
+                          onClick={() => onNavigate('tenant-detail', row.tenant.uuid)}
+                        >
+                          {row.tenant.name}
+                        </button>
+                      </td>
+                      <td className="text-muted">{row.tenant.slug}</td>
+                      <td>
+                        <span className={`badge ${TENANT_STATUS_BADGE[row.tenant.status] ?? 'bg-secondary-subtle text-secondary'}`}>
+                          {row.tenant.status ?? '—'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${SUB_STATUS_BADGE[row.subscription_status] ?? 'bg-secondary-subtle text-secondary'}`}>
+                          {row.subscription_status ?? 'none'}
+                        </span>
+                      </td>
+                      <td>
+                        {row.tenant.setup_complete == 1 ? (
+                          <button
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={() => onNavigate('tenant-detail', row.tenant.uuid)}
+                          >
+                            Edit →
+                          </button>
+                        ) : (
+                          <button
+                            className="btn btn-outline-primary btn-sm"
+                            onClick={() => onNavigate('tenant-detail', row.tenant.uuid)}
+                          >
+                            Setup →
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {!loading && (
+            <div className="card-footer text-muted small">
+              {visible.length} tenant{visible.length !== 1 ? 's' : ''}
+              {search && ` matching "${search}"`}
+            </div>
           )}
         </div>
+
       </div>
-    </>
+    </div>
   );
 }

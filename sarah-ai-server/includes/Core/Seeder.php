@@ -113,6 +113,7 @@ class Seeder
             'trial_duration_days' => '14',
             'default_agent_slug'  => 'gpt-4o-mini',
             'logging_enabled'     => '1',
+            'openai_api_key'      => '',
         ];
 
         foreach ($defaults as $key => $value) {

@@ -8,7 +8,7 @@ export function LayoutProvider({ children }) {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-sidenav-size', menuSize);
-    document.documentElement.setAttribute('data-menu-color',   'brand');
+    document.documentElement.setAttribute('data-menu-color',   'dark');
     document.documentElement.setAttribute('data-topbar-color', 'light');
   }, [menuSize]);
 

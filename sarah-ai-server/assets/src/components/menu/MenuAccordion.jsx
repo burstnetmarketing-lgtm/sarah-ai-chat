@@ -78,7 +78,7 @@ function AccordionItem({ parent, isOpen, onToggleOpen, onChildCreate, onToggle, 
 function ChildRow({ child, isFirst, isLast, onToggle, onRemove, onMoveUp, onMoveDown, saving }) {
   const isEnabled = child.is_enabled == 1;
   return (
-    <div className="d-flex align-items-center gap-2 bg-white rounded border px-3 py-2 mb-2">
+    <div className="d-flex align-items-center gap-2 bg-body rounded border px-3 py-2 mb-2">
       <i className="bi bi-chevron-right text-muted small"></i>
       <span className="fw-semibold small flex-grow-1">{child.label}</span>
       <code className="small text-muted">{child.view_key}</code>

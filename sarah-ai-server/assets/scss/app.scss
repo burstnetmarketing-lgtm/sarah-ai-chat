@@ -22,12 +22,3 @@
 @import 'techmin/topbar';
 @import 'techmin/footer';
 
-// ── Brand overrides (navy + yellow) ───────────────────────
-html[data-menu-color="brand"] {
-  --bs-menu-bg:                  #1a3460;
-  --bs-menu-item-color:          rgba(255, 255, 255, 0.55);
-  --bs-menu-item-hover-color:    rgba(255, 255, 255, 0.9);
-  --bs-menu-item-active-color:   #f5c518;
-  --bs-menu-item-active-bg:      rgba(245, 197, 24, 0.12);
-  --bs-menu-condensed-link-bg:   #122448;
-}

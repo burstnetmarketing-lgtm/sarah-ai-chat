@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace SarahAiServer\DB;
 
-class TenantTable
+class ChatMessageTable
 {
-    public const TABLE = 'sarah_ai_server_tenants';
+    public const TABLE = 'sarah_ai_server_chat_messages';
+
+    public const ROLE_CUSTOMER  = 'customer';
+    public const ROLE_ASSISTANT = 'assistant';
+    public const ROLE_SYSTEM    = 'system';
 
     public static function create(): void
     {
@@ -16,18 +20,16 @@ class TenantTable
         $sql     = "CREATE TABLE {$table} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             uuid VARCHAR(36) NULL DEFAULT NULL,
-            name VARCHAR(190) NOT NULL,
-            slug VARCHAR(120) NOT NULL,
-            status VARCHAR(30) NOT NULL DEFAULT 'trialing',
-            setup_complete TINYINT(1) NOT NULL DEFAULT 0,
+            session_id BIGINT UNSIGNED NOT NULL,
+            role VARCHAR(30) NOT NULL,
+            content LONGTEXT NOT NULL,
             meta LONGTEXT NULL DEFAULT NULL,
-            deleted_at DATETIME NULL DEFAULT NULL,
             created_at DATETIME NOT NULL,
-            updated_at DATETIME NOT NULL,
             PRIMARY KEY (id),
             UNIQUE KEY uniq_uuid (uuid),
-            UNIQUE KEY uniq_slug (slug),
-            KEY idx_status (status)
+            KEY idx_session_id (session_id),
+            KEY idx_role (role),
+            KEY idx_created_at (created_at)
         ) {$charset};";
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta($sql);
