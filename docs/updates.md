@@ -77,3 +77,4 @@
 0020 Expanded appearance settings to 6 tabs with per-element color/size controls and full-height sticky live preview.
 0021 Fixed Publish and Discard buttons by adding SettingsTable::create() to Plugin::boot() so draft columns exist.
 0022 Added Reset to Default button with navy+yellow brand theme; added /appearance/reset endpoint.
+0023 Rebuilt sarah-ai-server admin UI with Techmin-inspired layout: fixed sidebar (navy+yellow), topbar, content area, footer.

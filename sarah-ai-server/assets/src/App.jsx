@@ -6,9 +6,15 @@ import MenuManager from './pages/MenuManager.jsx';
 import Log from './pages/Log.jsx';
 
 const VIEWS = {
-  dashboard: Dashboard,
+  dashboard:      Dashboard,
   'menu-manager': MenuManager,
-  'log': Log,
+  'log':          Log,
+};
+
+const LABELS = {
+  dashboard:      'Dashboard',
+  'menu-manager': 'Menu Manager',
+  'log':          'System Log',
 };
 
 export default function App() {
@@ -22,15 +28,19 @@ export default function App() {
   }
 
   const PageComponent = VIEWS[view] ?? Dashboard;
+  const pageTitle     = LABELS[view] ?? view.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
   return (
-    <div className="d-flex" style={{ minHeight: '100vh' }}>
+    <div className="wrapper">
       <Sidebar activeView={view} onNavigate={navigate} />
-      <div className="main-wrap">
-        <Topbar view={view} onNavigate={navigate} />
-        <main className="main-content">
+      <Topbar title={pageTitle} onNavigate={navigate} />
+      <div className="content-page">
+        <div className="content">
           <PageComponent />
-        </main>
+        </div>
+        <footer className="admin-footer">
+          &copy; {new Date().getFullYear()} Sarah AI Server
+        </footer>
       </div>
     </div>
   );
