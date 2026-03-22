@@ -129,6 +129,12 @@ class ChatRuntime
         // ── Step 5: Load site knowledge ───────────────────────────────────────
         $knowledge = $this->knowledge->findActiveBySite((int) $site['id']);
 
+        // ── Step 5b: Extract site agent identity ─────────────────────────────
+        $siteIdentity = [
+            'agent_display_name' => $site['agent_display_name'] ?? null,
+            'intro_message'      => $site['intro_message']      ?? null,
+        ];
+
         // ── Step 6: Load prior history (last 20 messages for context window) ──
         $allHistory = $this->messages->findBySession((int) $session['id']);
         // Exclude the message we just inserted (last item); pass the rest as history
@@ -144,13 +150,14 @@ class ChatRuntime
         $executor = $this->resolveExecutor($agent);
 
         $result = $executor->execute([
-            'agent'     => $agent,
-            'tenant'    => $tenant,
-            'site'      => $site,
-            'session'   => $session,
-            'message'   => $message,
-            'history'   => $history,
-            'knowledge' => $knowledge,
+            'agent'         => $agent,
+            'tenant'        => $tenant,
+            'site'          => $site,
+            'site_identity' => $siteIdentity,
+            'session'       => $session,
+            'message'       => $message,
+            'history'       => $history,
+            'knowledge'     => $knowledge,
         ]);
 
         // ── Step 8: Persist assistant response ───────────────────────────────

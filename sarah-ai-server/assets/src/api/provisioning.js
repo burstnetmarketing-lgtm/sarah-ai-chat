@@ -32,6 +32,8 @@ export const listAgents           = ()                      => apiFetch('agents'
 export const assignAgent          = (siteUuid, agentId)     => apiFetch(`sites/${siteUuid}/agent`, 'POST', { agent_id: agentId });
 export const unassignAgent        = (siteUuid)              => apiFetch(`sites/${siteUuid}/agent`, 'DELETE');
 export const updateAgentBehavior  = (agentId, data)         => apiFetch(`agents/${agentId}/behavior`, 'PUT', data);
+export const getAgentIdentity     = (siteUuid)              => apiFetch(`sites/${siteUuid}/agent-identity`);
+export const updateAgentIdentity  = (siteUuid, data)        => apiFetch(`sites/${siteUuid}/agent-identity`, 'POST', data);
 export const listAvailableAgents  = (tenantUuid)            => apiFetch(`tenants/${tenantUuid}/available-agents`);
 
 // Plans

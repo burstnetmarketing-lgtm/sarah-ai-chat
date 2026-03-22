@@ -35,10 +35,11 @@ class SettingsController
         return new WP_REST_Response([
             'success' => true,
             'data'    => [
-                'widget_enabled' => $this->repo->get('widget_enabled', '1') === '1',
-                'server_url'     => $this->repo->get('server_url', ''),
-                'account_key'    => $this->repo->get('account_key', ''),
-                'site_key'       => $this->repo->get('site_key', ''),
+                'widget_enabled'  => $this->repo->get('widget_enabled', '1') === '1',
+                'server_url'      => $this->repo->get('server_url', ''),
+                'account_key'     => $this->repo->get('account_key', ''),
+                'site_key'        => $this->repo->get('site_key', ''),
+                'greeting_message'=> $this->repo->get('greeting_message', ''),
             ],
         ], 200);
     }
@@ -57,6 +58,9 @@ class SettingsController
         }
         if (isset($request['site_key'])) {
             $this->repo->set('site_key', trim((string) $request['site_key']));
+        }
+        if (isset($request['greeting_message'])) {
+            $this->repo->set('greeting_message', trim((string) $request['greeting_message']));
         }
         return new WP_REST_Response(['success' => true], 200);
     }

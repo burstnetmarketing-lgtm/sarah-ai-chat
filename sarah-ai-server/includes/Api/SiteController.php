@@ -60,6 +60,11 @@ class SiteController
             'callback'            => [$this, 'updateStatus'],
             'permission_callback' => [$this, 'isAdmin'],
         ]);
+
+        register_rest_route('sarah-ai-server/v1', '/sites/(?P<uuid>[0-9a-f-]{36})/agent-identity', [
+            ['methods' => 'GET',  'callback' => [$this, 'getAgentIdentity'],    'permission_callback' => [$this, 'isAdmin']],
+            ['methods' => 'POST', 'callback' => [$this, 'updateAgentIdentity'], 'permission_callback' => [$this, 'isAdmin']],
+        ]);
     }
 
     public function store(\WP_REST_Request $request): \WP_REST_Response
@@ -118,6 +123,43 @@ class SiteController
                 'site_keys'    => $this->siteTokens->findBySite($siteId),
                 'knowledge'    => $this->knowledge->findBySite($siteId),
             ],
+        ], 200);
+    }
+
+    /** GET /sites/{uuid}/agent-identity */
+    public function getAgentIdentity(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $site = $this->sites->findByUuid((string) $request->get_param('uuid'));
+        if (! $site) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Site not found.'], 404);
+        }
+
+        return new \WP_REST_Response([
+            'success' => true,
+            'data'    => $this->sites->getAgentIdentity((int) $site['id']),
+        ], 200);
+    }
+
+    /**
+     * POST /sites/{uuid}/agent-identity
+     * Body: agent_display_name, greeting_message, intro_message (all optional)
+     */
+    public function updateAgentIdentity(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $site = $this->sites->findByUuid((string) $request->get_param('uuid'));
+        if (! $site) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Site not found.'], 404);
+        }
+
+        $this->sites->updateAgentIdentity((int) $site['id'], [
+            'agent_display_name' => $request->has_param('agent_display_name') ? trim((string) $request->get_param('agent_display_name')) : null,
+            'greeting_message'   => $request->has_param('greeting_message')   ? trim((string) $request->get_param('greeting_message'))   : null,
+            'intro_message'      => $request->has_param('intro_message')      ? trim((string) $request->get_param('intro_message'))      : null,
+        ]);
+
+        return new \WP_REST_Response([
+            'success' => true,
+            'data'    => $this->sites->getAgentIdentity((int) $site['id']),
         ], 200);
     }
 

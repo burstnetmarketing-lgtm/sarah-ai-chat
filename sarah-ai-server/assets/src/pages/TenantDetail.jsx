@@ -7,6 +7,7 @@ import {
   createSite,
   listSiteKeys, createSiteKey, deleteSiteKey,
   listAgents, assignAgent, unassignAgent,
+  getAgentIdentity, updateAgentIdentity,
   listKnowledge, createKnowledge, deleteKnowledge,
   markTenantSetupComplete,
 } from '../api/provisioning.js';
@@ -739,6 +740,111 @@ function AgentSection({ sites = [], agents = [], onAgentChange }) {
   );
 }
 
+// ─── Step 7b: Agent Identity (per-site) ──────────────────────────────────────
+
+function AgentIdentitySection({ sites = [] }) {
+  const [selectedUuid, setSelectedUuid] = useState(sites.length === 1 ? sites[0].uuid : '');
+  const [form, setForm]   = useState({ agent_display_name: '', greeting_message: '', intro_message: '' });
+  const [loading, setLoading] = useState(false);
+  const [saving,  setSaving]  = useState(false);
+  const [saved,   setSaved]   = useState(false);
+  const [error,   setError]   = useState(null);
+
+  useEffect(() => {
+    if (!selectedUuid) return;
+    setLoading(true);
+    setSaved(false);
+    getAgentIdentity(selectedUuid)
+      .then(res => {
+        if (res.success) setForm({
+          agent_display_name: res.data.agent_display_name ?? '',
+          greeting_message:   res.data.greeting_message   ?? '',
+          intro_message:      res.data.intro_message      ?? '',
+        });
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [selectedUuid]);
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  }
+
+  function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    setSaved(false);
+    setError(null);
+    updateAgentIdentity(selectedUuid, form)
+      .then(res => { if (!res.success) throw new Error('Save failed.'); setSaved(true); })
+      .catch(err => setError(err.message))
+      .finally(() => setSaving(false));
+  }
+
+  return (
+    <div className="card border-0 shadow-sm mt-3">
+      <div className="card-header bg-white border-bottom">
+        <h6 className="mb-0 fw-semibold">Agent Identity</h6>
+        <p className="text-muted small mb-0 mt-1">
+          How the agent presents itself on this site — name, greeting, introduction.
+        </p>
+      </div>
+      <div className="card-body">
+        {sites.length > 1 && (
+          <div className="mb-3">
+            <label className="form-label small fw-semibold">Site</label>
+            <select className="form-select form-select-sm" value={selectedUuid}
+              onChange={e => { setSelectedUuid(e.target.value); setSaved(false); }}>
+              <option value="">— select site —</option>
+              {sites.map(s => <option key={s.uuid} value={s.uuid}>{s.name}</option>)}
+            </select>
+          </div>
+        )}
+
+        {!selectedUuid && (
+          <p className="text-muted small">Select a site to configure identity.</p>
+        )}
+
+        {selectedUuid && loading && <p className="text-muted small">Loading…</p>}
+
+        {selectedUuid && !loading && (
+          <form onSubmit={handleSave}>
+            <div className="mb-3">
+              <label className="form-label small fw-semibold">Agent Display Name</label>
+              <input type="text" name="agent_display_name" className="form-control form-control-sm"
+                value={form.agent_display_name} onChange={handleChange}
+                placeholder="e.g. Sarah" disabled={saving} />
+              <div className="form-text">Name injected into the system prompt: "Your name is {'{name}'}."</div>
+            </div>
+            <div className="mb-3">
+              <label className="form-label small fw-semibold">Intro Message</label>
+              <input type="text" name="intro_message" className="form-control form-control-sm"
+                value={form.intro_message} onChange={handleChange}
+                placeholder='e.g. I am Sarah, your assistant.' disabled={saving} />
+              <div className="form-text">Injected into the system prompt as the agent's self-introduction.</div>
+            </div>
+            <div className="mb-3">
+              <label className="form-label small fw-semibold">Greeting Message</label>
+              <input type="text" name="greeting_message" className="form-control form-control-sm"
+                value={form.greeting_message} onChange={handleChange}
+                placeholder='e.g. Hi 👋 How can I help you today?' disabled={saving} />
+              <div className="form-text">Shown instantly when the widget opens. Not injected into the prompt.</div>
+            </div>
+            <div className="d-flex align-items-center gap-2">
+              <button type="submit" className="btn btn-sm btn-primary" disabled={saving || !selectedUuid}>
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+              {saved  && <span className="text-success small">Saved.</span>}
+              {error  && <span className="text-danger small">{error}</span>}
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Step 8: Knowledge ────────────────────────────────────────────────────────
 
 function KnowledgeSection({ siteUuid, onItemsChange }) {
@@ -1008,14 +1114,17 @@ export default function TenantDetail({ param, onNavigate }) {
         ? <SiteKeysSection sites={sites} onKeysChange={keys => setFirstSiteKeys(keys)} />
         : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
       case 7: return sites.length > 0
-        ? <AgentSection
-            sites={sites}
-            agents={agentsList}
-            onAgentChange={(siteUuid, agentId) => {
-              setSites(prev => prev.map(s => s.uuid === siteUuid ? { ...s, active_agent_id: agentId } : s));
-              if (siteUuid === firstSiteUuid) setFirstSiteAgentId(agentId);
-            }}
-          />
+        ? <>
+            <AgentSection
+              sites={sites}
+              agents={agentsList}
+              onAgentChange={(siteUuid, agentId) => {
+                setSites(prev => prev.map(s => s.uuid === siteUuid ? { ...s, active_agent_id: agentId } : s));
+                if (siteUuid === firstSiteUuid) setFirstSiteAgentId(agentId);
+              }}
+            />
+            <AgentIdentitySection sites={sites} />
+          </>
         : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
       case 8: return firstSiteUuid
         ? <KnowledgeSection

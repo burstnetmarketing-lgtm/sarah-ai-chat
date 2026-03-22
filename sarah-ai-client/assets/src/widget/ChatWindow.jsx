@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Header from './Header.jsx';
 import MessageArea from './MessageArea.jsx';
 import InputBox from './InputBox.jsx';
@@ -7,10 +7,22 @@ import { sendChatMessage } from './chatApi.js';
 let _id = 0;
 function nextId() { return ++_id; }
 
+function getGreeting() {
+  return (window.SarahAiWidget?.connection?.greeting_message || '').trim();
+}
+
 export default function ChatWindow({ onClose }) {
-  const [messages, setMessages]     = useState([]);
-  const [isTyping, setIsTyping]     = useState(false);
+  const [messages, setMessages]       = useState([]);
+  const [isTyping, setIsTyping]       = useState(false);
   const [sessionUuid, setSessionUuid] = useState(null);
+
+  // Show greeting instantly on open — no server call needed
+  useEffect(() => {
+    const greeting = getGreeting();
+    if (greeting) {
+      setMessages([{ id: nextId(), type: 'ai', text: greeting }]);
+    }
+  }, []);
 
   const sendMessage = useCallback((text) => {
     const trimmed = text.trim();

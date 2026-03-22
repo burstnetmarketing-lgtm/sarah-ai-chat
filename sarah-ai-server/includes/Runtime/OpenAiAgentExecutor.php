@@ -57,7 +57,8 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         $messages = [];
 
         // System prompt with knowledge injection
-        $systemPrompt = $this->buildSystemPrompt($agent, $knowledge);
+        $siteIdentity = $context['site_identity'] ?? [];
+        $systemPrompt = $this->buildSystemPrompt($agent, $knowledge, $siteIdentity);
         if ($systemPrompt) {
             $messages[] = ['role' => 'system', 'content' => $systemPrompt];
         }
@@ -119,27 +120,29 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
     }
 
     /**
-     * Builds the system prompt from agent config + optional knowledge resources.
+     * Builds the system prompt from agent config + site identity + knowledge resources.
      *
      * Priority:
-     *   1. If config.system_prompt is set — use it as the full prompt, append knowledge below.
+     *   1. If config.system_prompt is set — use it as the full prompt, append identity + knowledge below.
      *   2. Otherwise — compose from role, tone, description, and standard guardrails.
      *
-     * Agent config fields used here:
-     *   role          — agent purpose (e.g. "customer support", "sales assistant")
-     *   tone          — communication style (e.g. "friendly", "professional", "concise")
-     *   system_prompt — full custom override (optional)
+     * Site identity fields (site-level, override agent defaults):
+     *   agent_display_name — name the agent uses when introducing itself
+     *   intro_message      — how the agent introduces itself
      *
-     * @param array  $agent    Agent row (including parsed config array)
-     * @param array  $knowledge Active knowledge resources for the site
+     * @param array  $agent        Agent row (including parsed config array)
+     * @param array  $knowledge    Active knowledge resources for the site
+     * @param array  $siteIdentity Site-level identity fields
      */
-    private function buildSystemPrompt(array $agent, array $knowledge): string
+    private function buildSystemPrompt(array $agent, array $knowledge, array $siteIdentity = []): string
     {
         $config      = is_array($agent['config']) ? $agent['config'] : [];
-        $customPrompt = trim((string) ($config['system_prompt'] ?? ''));
-        $role         = trim((string) ($config['role']          ?? ''));
-        $tone         = trim((string) ($config['tone']          ?? ''));
-        $description  = trim((string) ($agent['description']    ?? ''));
+        $customPrompt      = trim((string) ($config['system_prompt'] ?? ''));
+        $role              = trim((string) ($config['role']          ?? ''));
+        $tone              = trim((string) ($config['tone']          ?? ''));
+        $description       = trim((string) ($agent['description']   ?? ''));
+        $agentDisplayName  = trim((string) ($siteIdentity['agent_display_name'] ?? ''));
+        $introMessage      = trim((string) ($siteIdentity['intro_message']      ?? ''));
 
         // ── Knowledge sections ─────────────────────────────────────────────
         $knowledgeParts = [];
@@ -155,9 +158,18 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
             ? "\n\n## Knowledge Base\n\nUse the following information to answer questions. Rely only on what is provided below — do not invent facts.\n\n" . implode("\n\n", $knowledgeParts)
             : '';
 
+        // ── Identity section (appended to both modes) ─────────────────────
+        $identitySection = '';
+        if ($agentDisplayName) {
+            $identitySection .= "\nYour name is {$agentDisplayName}.";
+        }
+        if ($introMessage) {
+            $identitySection .= "\n{$introMessage}";
+        }
+
         // ── Custom override ────────────────────────────────────────────────
         if ($customPrompt) {
-            return $customPrompt . $knowledgeSection;
+            return $customPrompt . $identitySection . $knowledgeSection;
         }
 
         // ── Composed prompt ────────────────────────────────────────────────
@@ -186,6 +198,6 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         $lines[] = '- If a question is outside your scope, politely say you cannot help with that.';
         $lines[] = '- Do not generate harmful, misleading, or offensive content.';
 
-        return implode("\n", $lines) . $knowledgeSection;
+        return implode("\n", $lines) . $identitySection . $knowledgeSection;
     }
 }

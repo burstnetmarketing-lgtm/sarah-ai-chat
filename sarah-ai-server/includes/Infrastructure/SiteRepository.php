@@ -88,6 +88,48 @@ class SiteRepository
         );
     }
 
+    /**
+     * Saves agent identity fields for a site.
+     * Only non-null values in $data are written.
+     */
+    public function updateAgentIdentity(int $siteId, array $data): void
+    {
+        global $wpdb;
+        $allowed = ['agent_display_name', 'greeting_message', 'intro_message'];
+        $update  = ['updated_at' => current_time('mysql')];
+
+        foreach ($allowed as $field) {
+            if (array_key_exists($field, $data)) {
+                $update[$field] = $data[$field] !== '' ? (string) $data[$field] : null;
+            }
+        }
+
+        $wpdb->update($wpdb->prefix . SiteTable::TABLE, $update, ['id' => $siteId]);
+    }
+
+    /**
+     * Returns agent identity fields for a site.
+     *
+     * @return array{agent_display_name: string|null, greeting_message: string|null, intro_message: string|null}
+     */
+    public function getAgentIdentity(int $siteId): array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . SiteTable::TABLE;
+        $row   = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT agent_display_name, greeting_message, intro_message FROM {$table} WHERE id = %d",
+                $siteId
+            ),
+            ARRAY_A
+        );
+        return [
+            'agent_display_name' => $row['agent_display_name'] ?? null,
+            'greeting_message'   => $row['greeting_message']   ?? null,
+            'intro_message'      => $row['intro_message']      ?? null,
+        ];
+    }
+
     /** Soft-deletes a site. Records remain in the database. */
     public function softDelete(int $id): void
     {
