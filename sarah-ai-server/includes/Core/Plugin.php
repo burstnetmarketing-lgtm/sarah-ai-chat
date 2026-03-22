@@ -20,11 +20,14 @@ use SarahAiServer\DB\SubscriptionTable;
 use SarahAiServer\DB\TenantTable;
 use SarahAiServer\DB\AccountKeyTable;
 use SarahAiServer\DB\KnowledgeResourceTable;
+use SarahAiServer\DB\PlanAgentTable;
 use SarahAiServer\DB\UsageLogTable;
 use SarahAiServer\DB\UserTenantTable;
 use SarahAiServer\Api\AccountKeyController;
 use SarahAiServer\Api\AgentController;
 use SarahAiServer\Api\KnowledgeController;
+use SarahAiServer\Api\PlanController;
+use SarahAiServer\Api\SubscriptionController;
 use SarahAiServer\Api\SiteController;
 use SarahAiServer\Api\SiteTokenController;
 use SarahAiServer\Api\TenantController;
@@ -51,9 +54,13 @@ class Plugin
         UsageLogTable::create();
         KnowledgeResourceTable::create();
         AccountKeyTable::create();
+        PlanAgentTable::create();
 
         // Seed baseline data (idempotent)
         Seeder::run();
+
+        // Fill UUIDs for any existing rows that predate the uuid column
+        self::migrateUuids();
 
         // Wire logger on/off from DB setting and register PHP error hooks
         $settingsRepo   = new SettingsRepository();
@@ -74,10 +81,42 @@ class Plugin
         add_action('rest_api_init', [(new AccountKeyController()), 'registerRoutes']);
         add_action('rest_api_init', [(new SiteTokenController()), 'registerRoutes']);
         add_action('rest_api_init', [(new AgentController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new PlanController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new SubscriptionController()), 'registerRoutes']);
 
         if (! is_admin()) {
             return;
         }
         (new AdminMenu(new DashboardPage()))->register();
+    }
+
+    /**
+     * Backfill UUID for any rows created before the uuid column was added.
+     * Safe to call on every boot — only touches rows where uuid IS NULL.
+     */
+    private static function migrateUuids(): void
+    {
+        global $wpdb;
+
+        $tables = [
+            'sarah_ai_server_tenants',
+            'sarah_ai_server_sites',
+            'sarah_ai_server_account_keys',
+            'sarah_ai_server_site_tokens',
+            'sarah_ai_server_knowledge_resources',
+        ];
+
+        foreach ($tables as $tableName) {
+            $table = $wpdb->prefix . $tableName;
+            // Check column exists first (safe for fresh installs)
+            $col = $wpdb->get_var("SHOW COLUMNS FROM {$table} LIKE 'uuid'");
+            if (! $col) {
+                continue;
+            }
+            $ids = $wpdb->get_col("SELECT id FROM {$table} WHERE uuid IS NULL OR uuid = '' LIMIT 100");
+            foreach ($ids as $id) {
+                $wpdb->update($table, ['uuid' => sarah_ai_uuid()], ['id' => (int) $id]);
+            }
+        }
     }
 }

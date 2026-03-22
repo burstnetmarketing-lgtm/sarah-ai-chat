@@ -9,12 +9,13 @@ use SarahAiServer\DB\TenantTable;
 class TenantRepository
 {
     /** Creates a new tenant and returns its ID. */
-    public function create(string $name, string $slug, string $status = 'trialing', array $meta = []): int
+    public function create(string $name, string $slug, string $status = 'active', array $meta = []): int
     {
         global $wpdb;
         $table = $wpdb->prefix . TenantTable::TABLE;
         $now   = current_time('mysql');
         $wpdb->insert($table, [
+            'uuid'       => sarah_ai_uuid(),
             'name'       => $name,
             'slug'       => $slug,
             'status'     => $status,
@@ -23,6 +24,17 @@ class TenantRepository
             'updated_at' => $now,
         ]);
         return (int) $wpdb->insert_id;
+    }
+
+    public function findByUuid(string $uuid): ?array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . TenantTable::TABLE;
+        $row   = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$table} WHERE uuid = %s AND deleted_at IS NULL", $uuid),
+            ARRAY_A
+        );
+        return $row ?: null;
     }
 
     public function findById(int $id): ?array

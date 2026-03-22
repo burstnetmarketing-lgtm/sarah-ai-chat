@@ -76,6 +76,7 @@ class KnowledgeResourceTable
         $charset = $wpdb->get_charset_collate();
         $sql     = "CREATE TABLE {$table} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            uuid VARCHAR(36) NULL DEFAULT NULL,
             site_id BIGINT UNSIGNED NOT NULL,
             title VARCHAR(190) NULL DEFAULT NULL,
             resource_type VARCHAR(80) NOT NULL,
@@ -90,6 +91,7 @@ class KnowledgeResourceTable
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,
             PRIMARY KEY (id),
+            UNIQUE KEY uniq_uuid (uuid),
             KEY idx_site_id (site_id),
             KEY idx_status (status),
             KEY idx_resource_type (resource_type),

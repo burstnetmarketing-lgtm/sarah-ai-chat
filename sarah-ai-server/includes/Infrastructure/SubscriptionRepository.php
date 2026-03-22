@@ -8,6 +8,31 @@ use SarahAiServer\DB\SubscriptionTable;
 
 class SubscriptionRepository
 {
+    /**
+     * List all subscriptions with joined tenant and plan names.
+     * Optional $status filter: 'trialing'|'active'|'expired'|'cancelled'|'' for all.
+     */
+    public function all(string $status = ''): array
+    {
+        global $wpdb;
+        $sub    = $wpdb->prefix . SubscriptionTable::TABLE;
+        $tenant = $wpdb->prefix . 'sarah_ai_server_tenants';
+        $plan   = $wpdb->prefix . 'sarah_ai_server_plans';
+
+        $where = $status ? $wpdb->prepare('WHERE s.status = %s', $status) : '';
+
+        $rows = $wpdb->get_results(
+            "SELECT s.*, t.name AS tenant_name, t.slug AS tenant_slug, t.uuid AS tenant_uuid, p.name AS plan_name, p.slug AS plan_slug
+             FROM {$sub} s
+             LEFT JOIN {$tenant} t ON t.id = s.tenant_id
+             LEFT JOIN {$plan}   p ON p.id = s.plan_id
+             {$where}
+             ORDER BY s.created_at DESC",
+            ARRAY_A
+        );
+        return is_array($rows) ? $rows : [];
+    }
+
     /** Creates a subscription and returns its ID. */
     public function create(int $tenantId, int $planId, string $status, string $startsAt, ?string $endsAt = null, array $meta = []): int
     {

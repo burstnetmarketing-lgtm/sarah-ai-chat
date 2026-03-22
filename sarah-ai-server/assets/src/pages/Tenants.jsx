@@ -121,7 +121,7 @@ export default function Tenants({ onNavigate }) {
                     <td><SubscriptionBadge status={row.subscription_status} /></td>
                     <td>
                       <button className="btn btn-sm btn-outline-primary"
-                        onClick={() => onNavigate('tenant-detail', String(row.tenant.id))}>
+                        onClick={() => onNavigate('tenant-detail', row.tenant.uuid)}>
                         Setup →
                       </button>
                     </td>

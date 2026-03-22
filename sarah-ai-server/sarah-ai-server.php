@@ -19,6 +19,7 @@ define('SARAH_AI_SERVER_PATH', plugin_dir_path(__FILE__));
 define('SARAH_AI_SERVER_URL', plugin_dir_url(__FILE__));
 
 require_once SARAH_AI_SERVER_PATH . 'update.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Core/Helpers.php';
 
 // DB Tables
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/MenuTable.php';
@@ -35,6 +36,7 @@ require_once SARAH_AI_SERVER_PATH . 'includes/DB/EmailTemplateTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/UsageLogTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/KnowledgeResourceTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/AccountKeyTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/PlanAgentTable.php';
 
 // Infrastructure
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/MenuRepository.php';
@@ -51,6 +53,7 @@ require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/KnowledgeResourceRe
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/AccountKeyRepository.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/SiteAgentRepository.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/CredentialValidator.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/PlanAgentRepository.php';
 
 // Admin
 require_once SARAH_AI_SERVER_PATH . 'includes/Admin/DashboardPage.php';
@@ -66,6 +69,8 @@ require_once SARAH_AI_SERVER_PATH . 'includes/Api/SiteController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/AccountKeyController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/SiteTokenController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/AgentController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/PlanController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/SubscriptionController.php';
 
 // Core
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Logger.php';

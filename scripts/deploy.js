@@ -32,7 +32,7 @@ const C = {
 const frames = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
 
 // ── Column widths (dynamic based on terminal) ────
-const DELAY   = 5; // ms between files
+const DELAY   = 1; // ms between files
 const W_TYPE  = 8;
 const PADDING = 12; // borders + spaces overhead
 const TERM_W  = process.stdout.columns || 120;

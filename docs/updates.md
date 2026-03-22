@@ -85,3 +85,9 @@
 0028 Added Phase 4.3 system design summary.
 0029 Phase 4.3.2 — Admin provisioning UI: Tenants list, TenantDetail setup hub with users, account keys, sites, site keys, agent assignment, knowledge resources, and readiness check.
 0030 Improved logger: enabled/disabled DB setting, PHP fatal/exception capture, JS all-level API send, apiFetch auto-log on error.
+0031 UUID v4 on all major objects (tenants, sites, account keys, site keys, knowledge resources); manage_options permission on all REST endpoints; TenantDetail UI migrated to UUID routing throughout.
+0032 Replaced flat readiness badges with 10-step graphical progress stepper (navy header + progress bar + horizontal stepper with connecting lines and color-coded nodes); fixed isAdmin() private→public in all 7 REST controllers.
+0033 Converted TenantDetail into a 10-step wizard: one section shown per active step, clickable stepper nodes, Prev/Next navigation, amber active ring, auto-init to first incomplete step.
+0034 Users step now creates WP accounts (subscriber role) from username+email+password; role dropdown and WP User ID field removed.
+0035 Plan-Agent access control: PlanAgentTable, PlanAgentRepository, PlanController (list/sync/available-agents), Plans admin page with per-plan agent checkboxes, AgentSection filtered by tenant plan.
+0036 Added Subscriptions page: table with status filter tabs, search, date columns, inline status change dropdown; SubscriptionController with list+update endpoints.

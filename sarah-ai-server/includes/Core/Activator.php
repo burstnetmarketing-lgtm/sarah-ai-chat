@@ -14,6 +14,7 @@ use SarahAiServer\DB\SubscriptionTable;
 use SarahAiServer\DB\TenantTable;
 use SarahAiServer\DB\AccountKeyTable;
 use SarahAiServer\DB\KnowledgeResourceTable;
+use SarahAiServer\DB\PlanAgentTable;
 use SarahAiServer\DB\UsageLogTable;
 use SarahAiServer\DB\UserTenantTable;
 use SarahAiServer\Infrastructure\MenuRepository;
@@ -39,6 +40,7 @@ class Activator
         UsageLogTable::create();
         KnowledgeResourceTable::create();
         AccountKeyTable::create();
+        PlanAgentTable::create();
 
         // Seed core menu items and baseline data
         (new MenuRepository())->ensureCoreItems();

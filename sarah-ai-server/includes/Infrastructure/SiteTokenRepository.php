@@ -19,6 +19,7 @@ class SiteTokenRepository
         $table = $wpdb->prefix . SiteTokenTable::TABLE;
         $now   = current_time('mysql');
         $wpdb->insert($table, [
+            'uuid'       => sarah_ai_uuid(),
             'site_id'    => $siteId,
             'token_hash' => hash('sha256', $rawToken),
             'label'      => $label !== '' ? $label : null,
@@ -28,6 +29,28 @@ class SiteTokenRepository
             'updated_at' => $now,
         ]);
         return (int) $wpdb->insert_id;
+    }
+
+    public function findById(int $id): ?array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . SiteTokenTable::TABLE;
+        $row   = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id),
+            ARRAY_A
+        );
+        return $row ?: null;
+    }
+
+    public function findByUuid(string $uuid): ?array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . SiteTokenTable::TABLE;
+        $row   = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$table} WHERE uuid = %s", $uuid),
+            ARRAY_A
+        );
+        return $row ?: null;
     }
 
     /**

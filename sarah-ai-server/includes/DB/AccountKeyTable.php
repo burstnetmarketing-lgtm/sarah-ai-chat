@@ -34,6 +34,7 @@ class AccountKeyTable
         $charset = $wpdb->get_charset_collate();
         $sql     = "CREATE TABLE {$table} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            uuid VARCHAR(36) NULL DEFAULT NULL,
             tenant_id BIGINT UNSIGNED NOT NULL,
             key_hash VARCHAR(64) NOT NULL,
             label VARCHAR(190) NULL DEFAULT NULL,
@@ -42,6 +43,7 @@ class AccountKeyTable
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,
             PRIMARY KEY (id),
+            UNIQUE KEY uniq_uuid (uuid),
             UNIQUE KEY uniq_key_hash (key_hash),
             KEY idx_tenant_id (tenant_id),
             KEY idx_status (status)

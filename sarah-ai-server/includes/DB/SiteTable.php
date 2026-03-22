@@ -15,6 +15,7 @@ class SiteTable
         $charset = $wpdb->get_charset_collate();
         $sql     = "CREATE TABLE {$table} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            uuid VARCHAR(36) NULL DEFAULT NULL,
             tenant_id BIGINT UNSIGNED NOT NULL,
             name VARCHAR(190) NOT NULL,
             url VARCHAR(500) NOT NULL,
@@ -25,6 +26,7 @@ class SiteTable
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,
             PRIMARY KEY (id),
+            UNIQUE KEY uniq_uuid (uuid),
             KEY idx_tenant_id (tenant_id),
             KEY idx_status (status),
             KEY idx_active_agent_id (active_agent_id)

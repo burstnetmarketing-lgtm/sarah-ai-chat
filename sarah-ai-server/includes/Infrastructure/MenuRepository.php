@@ -12,6 +12,8 @@ class MenuRepository
     {
         $this->insertIfMissing('dashboard', 'Dashboard', 'dashboard', null, false, false);
         $this->insertIfMissing('tenants',   'Tenants',   'tenants',   null, false, false);
+        $this->insertIfMissing('plans',         'Plans',         'plans',         null, false, false);
+        $this->insertIfMissing('subscriptions', 'Subscriptions', 'subscriptions', null, false, false);
         $this->removeIfExists('menu-manager');
         $this->removeIfExists('settings');
     }

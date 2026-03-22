@@ -59,6 +59,7 @@ class KnowledgeResourceRepository
         $table = $wpdb->prefix . KnowledgeResourceTable::TABLE;
         $now   = current_time('mysql');
         $wpdb->insert($table, [
+            'uuid'              => sarah_ai_uuid(),
             'site_id'           => $siteId,
             'title'             => $title ?: null,
             'resource_type'     => $resourceType,
@@ -73,6 +74,20 @@ class KnowledgeResourceRepository
         ]);
 
         return (int) $wpdb->insert_id;
+    }
+
+    public function findByUuid(string $uuid): ?array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . KnowledgeResourceTable::TABLE;
+        $row   = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$table} WHERE uuid = %s AND deleted_at IS NULL",
+                $uuid
+            ),
+            ARRAY_A
+        );
+        return $row ?: null;
     }
 
     /** Returns a single resource by ID, or null if not found or soft-deleted. */

@@ -15,6 +15,7 @@ class SiteRepository
         $table = $wpdb->prefix . SiteTable::TABLE;
         $now   = current_time('mysql');
         $wpdb->insert($table, [
+            'uuid'       => sarah_ai_uuid(),
             'tenant_id'  => $tenantId,
             'name'       => $name,
             'url'        => $url,
@@ -24,6 +25,17 @@ class SiteRepository
             'updated_at' => $now,
         ]);
         return (int) $wpdb->insert_id;
+    }
+
+    public function findByUuid(string $uuid): ?array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . SiteTable::TABLE;
+        $row   = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$table} WHERE uuid = %s AND deleted_at IS NULL", $uuid),
+            ARRAY_A
+        );
+        return $row ?: null;
     }
 
     public function findById(int $id): ?array

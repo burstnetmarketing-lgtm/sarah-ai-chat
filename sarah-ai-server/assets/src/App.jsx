@@ -6,6 +6,8 @@ import MenuManager from './pages/MenuManager.jsx';
 import Log from './pages/Log.jsx';
 import Tenants from './pages/Tenants.jsx';
 import TenantDetail from './pages/TenantDetail.jsx';
+import Plans from './pages/Plans.jsx';
+import Subscriptions from './pages/Subscriptions.jsx';
 
 const VIEWS = {
   dashboard:       Dashboard,
@@ -13,6 +15,8 @@ const VIEWS = {
   'log':           Log,
   'tenants':       Tenants,
   'tenant-detail': TenantDetail,
+  'plans':         Plans,
+  'subscriptions': Subscriptions,
 };
 
 const LABELS = {
@@ -21,6 +25,8 @@ const LABELS = {
   'log':           'System Log',
   'tenants':       'Tenants',
   'tenant-detail': 'Tenant Setup',
+  'plans':         'Plans',
+  'subscriptions': 'Subscriptions',
 };
 
 function parseHash() {

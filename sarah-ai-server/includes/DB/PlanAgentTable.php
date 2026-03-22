@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace SarahAiServer\DB;
 
-class TenantTable
+class PlanAgentTable
 {
-    public const TABLE = 'sarah_ai_server_tenants';
+    public const TABLE = 'sarah_ai_server_plan_agents';
 
     public static function create(): void
     {
@@ -15,18 +15,13 @@ class TenantTable
         $charset = $wpdb->get_charset_collate();
         $sql     = "CREATE TABLE {$table} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            uuid VARCHAR(36) NULL DEFAULT NULL,
-            name VARCHAR(190) NOT NULL,
-            slug VARCHAR(120) NOT NULL,
-            status VARCHAR(30) NOT NULL DEFAULT 'trialing',
-            meta LONGTEXT NULL DEFAULT NULL,
-            deleted_at DATETIME NULL DEFAULT NULL,
+            plan_id BIGINT UNSIGNED NOT NULL,
+            agent_id BIGINT UNSIGNED NOT NULL,
             created_at DATETIME NOT NULL,
-            updated_at DATETIME NOT NULL,
             PRIMARY KEY (id),
-            UNIQUE KEY uniq_uuid (uuid),
-            UNIQUE KEY uniq_slug (slug),
-            KEY idx_status (status)
+            UNIQUE KEY uniq_plan_agent (plan_id, agent_id),
+            KEY idx_plan_id (plan_id),
+            KEY idx_agent_id (agent_id)
         ) {$charset};";
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta($sql);

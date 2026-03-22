@@ -6,6 +6,7 @@ namespace SarahAiServer\Core;
 
 use SarahAiServer\Infrastructure\AgentRepository;
 use SarahAiServer\Infrastructure\EmailTemplateRepository;
+use SarahAiServer\Infrastructure\PlanAgentRepository;
 use SarahAiServer\Infrastructure\PlanRepository;
 use SarahAiServer\Infrastructure\SettingsRepository;
 
@@ -19,6 +20,7 @@ class Seeder
     {
         self::seedAgents();
         self::seedPlans();
+        self::seedPlanAgents();
         self::seedEmailTemplates();
         self::seedSettings();
     }
@@ -27,20 +29,33 @@ class Seeder
     {
         $repo = new AgentRepository();
 
-        $repo->insertIfMissing(
-            'Sarah Basic',
-            'sarah-basic',
-            'dummy',
-            'A basic dummy agent that echoes responses. Used for development and testing.',
-            ['response_mode' => 'echo', 'max_tokens' => 256]
+        // Archive legacy placeholder agents
+        $repo->upsertBySlug('Sarah Basic (Legacy)', 'sarah-basic', 'dummy', 'Legacy placeholder — replaced by OpenAI agents.', [], 'inactive');
+        $repo->upsertBySlug('Sarah Pro (Legacy)',   'sarah-pro',   'dummy', 'Legacy placeholder — replaced by OpenAI agents.', [], 'inactive');
+
+        // OpenAI agents — ordered cheapest to most powerful
+        $repo->upsertBySlug(
+            'GPT-4o Mini',
+            'gpt-4o-mini',
+            'openai',
+            'Fast and affordable. Best for simple Q&A and cost-sensitive deployments.',
+            ['model' => 'gpt-4o-mini', 'max_tokens' => 1024, 'temperature' => 0.7]
         );
 
-        $repo->insertIfMissing(
-            'Sarah Pro',
-            'sarah-pro',
-            'dummy',
-            'A pro dummy agent with simulated multi-turn context. Used for staging and integration tests.',
-            ['response_mode' => 'simulate', 'max_tokens' => 1024, 'context_window' => 4]
+        $repo->upsertBySlug(
+            'GPT-4o',
+            'gpt-4o',
+            'openai',
+            'Balanced and powerful. Recommended for most production sites.',
+            ['model' => 'gpt-4o', 'max_tokens' => 2048, 'temperature' => 0.7]
+        );
+
+        $repo->upsertBySlug(
+            'OpenAI o1',
+            'o1',
+            'openai',
+            'Most capable reasoning model. Best for complex tasks and high-demand scenarios.',
+            ['model' => 'o1', 'max_tokens' => 4096, 'temperature' => 1.0]
         );
     }
 
@@ -55,10 +70,24 @@ class Seeder
             [
                 'max_sites'     => 1,
                 'max_messages'  => 500,
-                'agents'        => ['sarah-basic'],
+                'agents'        => ['gpt-4o-mini'],
                 'support_level' => 'community',
             ]
         );
+    }
+
+    private static function seedPlanAgents(): void
+    {
+        $planRepo  = new PlanRepository();
+        $agentRepo = new AgentRepository();
+        $repo      = new PlanAgentRepository();
+
+        $trial   = $planRepo->findBySlug('trial');
+        $mini    = $agentRepo->findBySlug('gpt-4o-mini');
+
+        if ($trial && $mini) {
+            $repo->insertIfMissing((int) $trial['id'], (int) $mini['id']);
+        }
     }
 
     private static function seedEmailTemplates(): void
@@ -82,7 +111,7 @@ class Seeder
         $defaults = [
             'platform_name'       => 'Sarah',
             'trial_duration_days' => '14',
-            'default_agent_slug'  => 'sarah-basic',
+            'default_agent_slug'  => 'gpt-4o-mini',
             'logging_enabled'     => '1',
         ];
 

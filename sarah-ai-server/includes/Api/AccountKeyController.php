@@ -18,87 +18,77 @@ class AccountKeyController
         $this->tenants     = new TenantRepository();
     }
 
+    public function isAdmin(): bool
+    {
+        return current_user_can('manage_options');
+    }
+
     public function registerRoutes(): void
     {
-        // POST /tenants/{id}/account-keys
-        register_rest_route('sarah-ai-server/v1', '/tenants/(?P<id>\d+)/account-keys', [
+        register_rest_route('sarah-ai-server/v1', '/tenants/(?P<uuid>[0-9a-f-]{36})/account-keys', [
             'methods'             => 'POST',
             'callback'            => [$this, 'issue'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [$this, 'isAdmin'],
         ]);
 
-        // GET /tenants/{id}/account-keys
-        register_rest_route('sarah-ai-server/v1', '/tenants/(?P<id>\d+)/account-keys', [
+        register_rest_route('sarah-ai-server/v1', '/tenants/(?P<uuid>[0-9a-f-]{36})/account-keys', [
             'methods'             => 'GET',
             'callback'            => [$this, 'index'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [$this, 'isAdmin'],
         ]);
 
-        // DELETE /account-keys/{id}
-        register_rest_route('sarah-ai-server/v1', '/account-keys/(?P<id>\d+)', [
+        register_rest_route('sarah-ai-server/v1', '/account-keys/(?P<uuid>[0-9a-f-]{36})', [
             'methods'             => 'DELETE',
             'callback'            => [$this, 'revoke'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [$this, 'isAdmin'],
         ]);
     }
 
-    /**
-     * Issue a new account key for a tenant.
-     * The raw key is returned ONCE in this response and is never recoverable after this point.
-     *
-     * Body: label (optional), expires_at (optional)
-     */
     public function issue(\WP_REST_Request $request): \WP_REST_Response
     {
-        $tenantId  = (int) $request->get_param('id');
-        $label     = trim((string) ($request->get_param('label') ?? ''));
-        $expiresAt = $request->get_param('expires_at');
-
-        if (! $this->tenants->findById($tenantId)) {
+        $tenant = $this->tenants->findByUuid((string) $request->get_param('uuid'));
+        if (! $tenant) {
             return new \WP_REST_Response(['success' => false, 'message' => 'Tenant not found'], 404);
         }
 
-        $rawKey   = bin2hex(random_bytes(32));
-        $recordId = $this->accountKeys->issue($tenantId, $rawKey, $label, $expiresAt ?: null);
+        $label     = trim((string) ($request->get_param('label') ?? ''));
+        $expiresAt = $request->get_param('expires_at');
+        $rawKey    = bin2hex(random_bytes(32));
+        $recordId  = $this->accountKeys->issue((int) $tenant['id'], $rawKey, $label, $expiresAt ?: null);
+
+        $record = $this->accountKeys->findById($recordId);
+        $safe   = $record ? array_diff_key($record, ['key_hash' => '']) : [];
 
         return new \WP_REST_Response([
             'success' => true,
-            'data'    => [
-                'id'         => $recordId,
-                'tenant_id'  => $tenantId,
-                'label'      => $label ?: null,
-                'expires_at' => $expiresAt ?: null,
-                'raw_key'    => $rawKey,
-                '_note'      => 'Store this key now. It will not be shown again.',
-            ],
+            'data'    => array_merge($safe, [
+                'raw_key' => $rawKey,
+                '_note'   => 'Store this key now. It will not be shown again.',
+            ]),
         ], 201);
     }
 
-    /** List all account keys for a tenant. Raw keys are never included in list responses. */
     public function index(\WP_REST_Request $request): \WP_REST_Response
     {
-        $tenantId = (int) $request->get_param('id');
-
-        if (! $this->tenants->findById($tenantId)) {
+        $tenant = $this->tenants->findByUuid((string) $request->get_param('uuid'));
+        if (! $tenant) {
             return new \WP_REST_Response(['success' => false, 'message' => 'Tenant not found'], 404);
         }
 
-        $keys = $this->accountKeys->findByTenant($tenantId);
+        $keys = $this->accountKeys->findByTenant((int) $tenant['id']);
+        $safe = array_map(fn($k) => array_diff_key($k, ['key_hash' => '']), $keys);
 
-        // Strip key_hash from all records — never expose hashes via API
-        $keys = array_map(function (array $key) {
-            unset($key['key_hash']);
-            return $key;
-        }, $keys);
-
-        return new \WP_REST_Response(['success' => true, 'data' => $keys], 200);
+        return new \WP_REST_Response(['success' => true, 'data' => array_values($safe)], 200);
     }
 
-    /** Revoke an account key. This is permanent and cannot be undone. */
     public function revoke(\WP_REST_Request $request): \WP_REST_Response
     {
-        $id = (int) $request->get_param('id');
-        $this->accountKeys->revoke($id);
+        $record = $this->accountKeys->findByUuid((string) $request->get_param('uuid'));
+        if (! $record) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Account key not found'], 404);
+        }
+
+        $this->accountKeys->revoke((int) $record['id']);
         return new \WP_REST_Response(['success' => true, 'message' => 'Account key revoked'], 200);
     }
 }

@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  getTenant, updateTenantStatus,
+  getTenant,
+  updateSiteStatus,
   listTenantUsers, addTenantUser, removeTenantUser,
   listAccountKeys, createAccountKey, deleteAccountKey,
-  createSite, getSite, updateSiteStatus,
+  createSite,
   listSiteKeys, createSiteKey, deleteSiteKey,
-  listAgents, assignAgent,
+  listAgents, assignAgent, listAvailableAgents,
   listKnowledge, createKnowledge, deleteKnowledge,
 } from '../api/provisioning.js';
 
@@ -21,9 +22,7 @@ function SectionHeader({ title, onRefresh, refreshing }) {
     <div className="d-flex justify-content-between align-items-center mb-2">
       <h6 className="fw-semibold mb-0">{title}</h6>
       {onRefresh && (
-        <button className="btn btn-outline-secondary btn-sm" onClick={onRefresh} disabled={refreshing}>
-          ↺
-        </button>
+        <button className="btn btn-outline-secondary btn-sm" onClick={onRefresh} disabled={refreshing}>↺</button>
       )}
     </div>
   );
@@ -34,125 +33,252 @@ function Alert({ type, msg }) {
   return <div className={`alert alert-${type} py-1 px-2 small mt-2 mb-0`}>{msg}</div>;
 }
 
-// ─── Readiness Check ─────────────────────────────────────────────────────────
+function PrereqCard({ msg }) {
+  return (
+    <div className="card border-0 shadow-sm">
+      <div className="card-body text-center py-5 text-muted small">{msg}</div>
+    </div>
+  );
+}
 
-function ReadinessCheck({ tenant, subscription, users, accountKeys, sites, siteDetails }) {
-  const hasTenant      = !!tenant;
-  const hasUser        = users.length > 0;
-  const hasSite        = sites.length > 0;
-  const hasAccountKey  = accountKeys.length > 0;
+// ─── Readiness Stepper (clickable wizard nav) ─────────────────────────────────
 
-  const firstSiteId   = sites[0]?.id;
-  const firstDetail   = firstSiteId ? siteDetails[firstSiteId] : null;
-  const hasSiteKey    = (firstDetail?.site_keys?.length ?? 0) > 0;
-  const hasAgent      = !!(firstDetail?.site?.active_agent_id);
-  const hasKnowledge  = (firstDetail?.knowledge?.length ?? 0) > 0;
-  const hasSub        = !!subscription;
-
-  const checks = [
-    { label: 'Tenant',      ok: hasTenant },
-    { label: 'Subscription', ok: hasSub },
-    { label: 'User',        ok: hasUser },
-    { label: 'Site',        ok: hasSite },
-    { label: 'Account Key', ok: hasAccountKey },
-    { label: 'Site Key',    ok: hasSiteKey },
-    { label: 'Agent',       ok: hasAgent },
-    { label: 'Knowledge',   ok: hasKnowledge },
-  ];
-
-  const allOk = checks.every(c => c.ok);
+function ReadinessCheck({ steps, activeStep, onStepClick }) {
+  const completed  = steps.filter(s => s.ok).length;
+  const percentage = completed * 10;
+  const allOk      = percentage === 100;
+  const nextIdx    = steps.findIndex(s => !s.ok);
 
   return (
-    <div className={`card border-0 shadow-sm mb-4 border-start border-4 border-${allOk ? 'success' : 'warning'}`}>
-      <div className="card-body py-2 px-3">
-        <div className="d-flex flex-wrap gap-2 align-items-center">
-          <span className="small fw-semibold text-muted me-1">Readiness:</span>
-          {checks.map(c => (
-            <span key={c.label}
-              className={`badge ${c.ok ? 'bg-success' : 'bg-light text-secondary border'} px-2 py-1`}>
-              {c.ok ? '✓' : '○'} {c.label}
-            </span>
-          ))}
-          {allOk && <span className="badge bg-success ms-2">Ready for Phase 4.4</span>}
+    <div className="card border-0 shadow-sm mb-4" style={{ overflow: 'hidden' }}>
+
+      {/* Header */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1B2A4A 0%, #243560 100%)',
+        padding: '16px 20px 14px',
+      }}>
+        <div className="d-flex justify-content-between align-items-center">
+          <div>
+            <div style={{ color: '#fff', fontWeight: 700, fontSize: '15px' }}>Setup Progress</div>
+            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '12px', marginTop: '3px' }}>
+              {allOk
+                ? 'All steps complete — ready to launch'
+                : `${10 - completed} step${10 - completed !== 1 ? 's' : ''} remaining`}
+            </div>
+          </div>
+          <div style={{ textAlign: 'center', lineHeight: 1 }}>
+            <div style={{ fontSize: '32px', fontWeight: 800, color: allOk ? '#4ade80' : '#fbbf24' }}>
+              {percentage}%
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px', marginTop: '2px' }}>
+              {completed} / 10 steps
+            </div>
+          </div>
+        </div>
+        {/* Progress bar */}
+        <div style={{ marginTop: '12px', height: '5px', background: 'rgba(255,255,255,0.15)', borderRadius: '3px', overflow: 'hidden' }}>
+          <div style={{ width: `${percentage}%`, height: '100%', background: allOk ? '#4ade80' : '#fbbf24', borderRadius: '3px', transition: 'width 0.6s ease' }} />
+        </div>
+      </div>
+
+      {/* Step nodes */}
+      <div style={{ padding: '14px 10px 10px', background: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+          {steps.map((step, i) => {
+            const done    = step.ok;
+            const isNext  = i === nextIdx;
+            const isActive = i === activeStep;
+            const isLast  = i === 9;
+
+            const nodeBg     = done ? '#198754' : '#fff';
+            const nodeBorder = done ? '#198754' : isNext ? '#0d6efd' : '#dee2e6';
+            const nodeColor  = done ? '#fff'    : isNext ? '#0d6efd' : '#adb5bd';
+            const labelColor = done ? '#198754' : isNext ? '#0d6efd' : '#adb5bd';
+            const lineColor  = done ? '#198754' : '#dee2e6';
+
+            // Active step gets a yellow/amber outer ring
+            const ringStyle = isActive
+              ? '0 0 0 3px rgba(251,191,36,0.5)'
+              : isNext && !done
+              ? '0 0 0 3px rgba(13,110,253,0.12)'
+              : 'none';
+
+            return (
+              <React.Fragment key={i}>
+                <div
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, cursor: done || i === 0 || steps[i - 1]?.ok ? 'pointer' : 'not-allowed', opacity: !done && i > 0 && !steps[i - 1]?.ok ? 0.5 : 1 }}
+                  onClick={() => { if (done || i === 0 || steps[i - 1]?.ok) onStepClick(i); }}
+                  title={`${step.label}: ${step.sub}`}
+                >
+                  <div style={{
+                    width: '32px', height: '32px', borderRadius: '50%',
+                    background: nodeBg, border: `2px solid ${nodeBorder}`, color: nodeColor,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: done ? '14px' : '11px', fontWeight: 700,
+                    boxShadow: ringStyle,
+                    transition: 'all 0.25s',
+                    position: 'relative', zIndex: 1,
+                  }}>
+                    {done ? '✓' : i + 1}
+                  </div>
+                  <div style={{ width: '52px', textAlign: 'center', marginTop: '5px', lineHeight: 1.25 }}>
+                    <div style={{ fontSize: '10px', fontWeight: done || isNext || isActive ? 700 : 400, color: isActive ? '#fbbf24' : labelColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {step.label}
+                    </div>
+                    <div style={{ fontSize: '9px', color: 'rgba(0,0,0,0.3)', whiteSpace: 'nowrap' }}>
+                      {step.sub}
+                    </div>
+                  </div>
+                </div>
+
+                {!isLast && (
+                  <div style={{ flex: 1, height: '2px', background: lineColor, marginTop: '15px', transition: 'background 0.4s', minWidth: '4px' }} />
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Users Section ───────────────────────────────────────────────────────────
+// ─── Step 0: Tenant Info ──────────────────────────────────────────────────────
 
-function UsersSection({ tenantId }) {
-  const [users, setUsers]       = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [form, setForm]         = useState({ wp_user_id: '', role: 'admin', send_welcome: false });
-  const [saving, setSaving]     = useState(false);
-  const [msg, setMsg]           = useState(null);
+function TenantInfoPanel({ tenant }) {
+  if (!tenant) return null;
+  return (
+    <div className="card border-0 shadow-sm">
+      <div className="card-header bg-white border-bottom">
+        <h6 className="fw-semibold mb-0">Tenant</h6>
+        <p className="text-muted small mb-0">The top-level account that owns all sites, keys, and users.</p>
+      </div>
+      <div className="card-body p-0">
+        <table className="table table-sm mb-0">
+          <tbody>
+            <tr><td className="text-muted small ps-3 w-25">Name</td><td className="fw-semibold">{tenant.name}</td></tr>
+            <tr><td className="text-muted small ps-3">Slug</td><td>{tenant.slug}</td></tr>
+            <tr><td className="text-muted small ps-3">UUID</td><td className="text-muted small font-monospace">{tenant.uuid}</td></tr>
+            <tr><td className="text-muted small ps-3">Status</td><td><StatusBadge status={tenant.status} /></td></tr>
+            <tr><td className="text-muted small ps-3">Created</td><td className="text-muted small">{tenant.created_at}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 1: Subscription Info ────────────────────────────────────────────────
+
+function SubscriptionPanel({ subscription }) {
+  if (!subscription) return (
+    <div className="card border-0 shadow-sm">
+      <div className="card-body text-center py-4">
+        <p className="text-muted small mb-0">No subscription found. A trial is created automatically with the tenant.</p>
+      </div>
+    </div>
+  );
+  return (
+    <div className="card border-0 shadow-sm">
+      <div className="card-header bg-white border-bottom">
+        <h6 className="fw-semibold mb-0">Subscription</h6>
+        <p className="text-muted small mb-0">Controls plan features, limits, and trial duration.</p>
+      </div>
+      <div className="card-body p-0">
+        <table className="table table-sm mb-0">
+          <tbody>
+            <tr>
+              <td className="text-muted small ps-3 w-25">Status</td>
+              <td><StatusBadge status={subscription.status} map={{ trialing: 'info', active: 'success', expired: 'danger', cancelled: 'secondary' }} /></td>
+            </tr>
+            <tr><td className="text-muted small ps-3">Starts</td><td className="text-muted small">{subscription.starts_at ?? '—'}</td></tr>
+            <tr><td className="text-muted small ps-3">Ends</td><td className="text-muted small">{subscription.ends_at ?? 'No expiry'}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 2: Users ────────────────────────────────────────────────────────────
+
+function UsersSection({ tenantUuid, onReload }) {
+  const [users, setUsers]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm]       = useState({ username: '', email: '', password: '', send_welcome: false });
+  const [saving, setSaving]   = useState(false);
+  const [msg, setMsg]         = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
-    listTenantUsers(tenantId)
+    listTenantUsers(tenantUuid)
       .then(res => { if (res.success) setUsers(res.data); })
       .finally(() => setLoading(false));
-  }, [tenantId]);
+  }, [tenantUuid]);
 
   useEffect(() => { load(); }, [load]);
 
   async function handleAdd(e) {
     e.preventDefault();
-    if (!form.wp_user_id) return;
+    if (!form.username || !form.email || !form.password) return;
     setSaving(true); setMsg(null);
     try {
-      const res = await addTenantUser(tenantId, {
-        wp_user_id:   parseInt(form.wp_user_id, 10),
-        role:         form.role,
+      const res = await addTenantUser(tenantUuid, {
+        username:     form.username,
+        email:        form.email,
+        password:     form.password,
         send_welcome: form.send_welcome,
       });
-      if (res.success) { setForm({ wp_user_id: '', role: 'admin', send_welcome: false }); load(); }
-      else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
+      if (res.success) {
+        setForm({ username: '', email: '', password: '', send_welcome: false });
+        load();
+        onReload?.();
+      } else {
+        setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
+      }
     } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
     finally { setSaving(false); }
   }
 
   async function handleRemove(wpUserId) {
-    if (!confirm('Remove this user association?')) return;
-    try {
-      await removeTenantUser(tenantId, wpUserId);
-      load();
-    } catch { alert('Failed to remove user.'); }
+    if (!confirm('Remove this user from the tenant?')) return;
+    try { await removeTenantUser(tenantUuid, wpUserId); load(); }
+    catch { alert('Failed to remove user.'); }
   }
 
   return (
-    <div className="card border-0 shadow-sm mb-3">
+    <div className="card border-0 shadow-sm">
       <div className="card-header bg-white border-bottom">
         <SectionHeader title="Users" onRefresh={load} refreshing={loading} />
+        <p className="text-muted small mb-0">Create a new WordPress user and attach them to this tenant.</p>
       </div>
       <div className="card-body">
         <form onSubmit={handleAdd} className="mb-3">
           <div className="row g-2 align-items-end">
-            <div className="col-md-4">
-              <label className="form-label small fw-semibold">WP User ID *</label>
-              <input type="number" className="form-control form-control-sm" placeholder="1"
-                value={form.wp_user_id} onChange={e => setForm(f => ({ ...f, wp_user_id: e.target.value }))} required />
+            <div className="col-md-3">
+              <label className="form-label small fw-semibold">Username *</label>
+              <input type="text" className="form-control form-control-sm" placeholder="john_doe"
+                value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} required />
             </div>
             <div className="col-md-3">
-              <label className="form-label small fw-semibold">Role</label>
-              <select className="form-select form-select-sm"
-                value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
-                <option value="admin">admin</option>
-                <option value="member">member</option>
-                <option value="viewer">viewer</option>
-              </select>
+              <label className="form-label small fw-semibold">Email *</label>
+              <input type="email" className="form-control form-control-sm" placeholder="john@example.com"
+                value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
             </div>
-            <div className="col-md-3 d-flex align-items-center pt-3">
+            <div className="col-md-3">
+              <label className="form-label small fw-semibold">Password *</label>
+              <input type="password" className="form-control form-control-sm" placeholder="••••••••"
+                value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
+            </div>
+            <div className="col-md-2 d-flex align-items-center pt-3">
               <div className="form-check">
                 <input type="checkbox" className="form-check-input" id="send_welcome"
                   checked={form.send_welcome}
                   onChange={e => setForm(f => ({ ...f, send_welcome: e.target.checked }))} />
-                <label className="form-check-label small" htmlFor="send_welcome">Send welcome email</label>
+                <label className="form-check-label small" htmlFor="send_welcome">Welcome email</label>
               </div>
             </div>
-            <div className="col-md-2">
+            <div className="col-md-1">
               <button className="btn btn-primary btn-sm w-100" type="submit" disabled={saving}>
                 {saving ? '…' : 'Add'}
               </button>
@@ -160,21 +286,18 @@ function UsersSection({ tenantId }) {
           </div>
           {msg && <Alert type={msg.type} msg={msg.text} />}
         </form>
-
         {loading ? <p className="text-muted small mb-0">Loading…</p> : users.length === 0 ? (
-          <p className="text-muted small mb-0">No users associated.</p>
+          <p className="text-muted small mb-0">No users yet.</p>
         ) : (
           <table className="table table-sm mb-0">
             <thead className="table-light">
-              <tr><th>WP User ID</th><th>Login</th><th>Email</th><th>Role</th><th></th></tr>
+              <tr><th>Username</th><th>Email</th><th></th></tr>
             </thead>
             <tbody>
               {users.map(u => (
                 <tr key={u.wp_user_id}>
-                  <td>{u.wp_user_id}</td>
                   <td>{u.user_login ?? '—'}</td>
                   <td className="text-muted small">{u.user_email ?? '—'}</td>
-                  <td><span className="badge bg-light text-dark border">{u.role}</span></td>
                   <td>
                     <button className="btn btn-sm btn-outline-danger py-0"
                       onClick={() => handleRemove(u.wp_user_id)}>Remove</button>
@@ -189,410 +312,9 @@ function UsersSection({ tenantId }) {
   );
 }
 
-// ─── Account Keys Section ────────────────────────────────────────────────────
+// ─── Step 3: Register Site ────────────────────────────────────────────────────
 
-function AccountKeysSection({ tenantId }) {
-  const [keys, setKeys]       = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [form, setForm]       = useState({ label: '' });
-  const [saving, setSaving]   = useState(false);
-  const [rawKey, setRawKey]   = useState(null);
-  const [msg, setMsg]         = useState(null);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    listAccountKeys(tenantId)
-      .then(res => { if (res.success) setKeys(res.data); })
-      .finally(() => setLoading(false));
-  }, [tenantId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  async function handleIssue(e) {
-    e.preventDefault();
-    setSaving(true); setMsg(null); setRawKey(null);
-    try {
-      const res = await createAccountKey(tenantId, { label: form.label.trim() || 'default' });
-      if (res.success) {
-        setRawKey(res.data.raw_key);
-        setForm({ label: '' });
-        load();
-      } else {
-        setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
-      }
-    } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
-    finally { setSaving(false); }
-  }
-
-  async function handleRevoke(id) {
-    if (!confirm('Revoke this account key?')) return;
-    try { await deleteAccountKey(id); load(); }
-    catch { alert('Failed to revoke.'); }
-  }
-
-  return (
-    <div className="card border-0 shadow-sm mb-3">
-      <div className="card-header bg-white border-bottom">
-        <SectionHeader title="Account Keys (tenant-level)" onRefresh={load} refreshing={loading} />
-        <p className="text-muted small mb-0">Account keys identify the tenant. Raw key shown only once at issuance.</p>
-      </div>
-      <div className="card-body">
-        <form onSubmit={handleIssue} className="mb-3">
-          <div className="row g-2 align-items-end">
-            <div className="col-md-8">
-              <label className="form-label small fw-semibold">Label</label>
-              <input className="form-control form-control-sm" placeholder="production"
-                value={form.label} onChange={e => setForm({ label: e.target.value })} />
-            </div>
-            <div className="col-md-4">
-              <button className="btn btn-primary btn-sm w-100" type="submit" disabled={saving}>
-                {saving ? '…' : 'Issue Key'}
-              </button>
-            </div>
-          </div>
-        </form>
-
-        {rawKey && (
-          <div className="alert alert-warning py-2 px-3 mb-3">
-            <strong>Copy this key now — it will not be shown again.</strong>
-            <div className="font-monospace mt-1 user-select-all small bg-white border rounded px-2 py-1">{rawKey}</div>
-          </div>
-        )}
-        {msg && <Alert type={msg.type} msg={msg.text} />}
-
-        {loading ? <p className="text-muted small mb-0">Loading…</p> : keys.length === 0 ? (
-          <p className="text-muted small mb-0">No account keys issued.</p>
-        ) : (
-          <table className="table table-sm mb-0">
-            <thead className="table-light">
-              <tr><th>ID</th><th>Label</th><th>Status</th><th>Expires</th><th></th></tr>
-            </thead>
-            <tbody>
-              {keys.map(k => (
-                <tr key={k.id}>
-                  <td className="text-muted small">{k.id}</td>
-                  <td>{k.label}</td>
-                  <td><StatusBadge status={k.status} map={{ active: 'success', revoked: 'danger' }} /></td>
-                  <td className="text-muted small">{k.expires_at ?? 'never'}</td>
-                  <td>
-                    {k.status === 'active' && (
-                      <button className="btn btn-sm btn-outline-danger py-0"
-                        onClick={() => handleRevoke(k.id)}>Revoke</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Site Keys Sub-Section ───────────────────────────────────────────────────
-
-function SiteKeysSection({ siteId, onKeysChange }) {
-  const [keys, setKeys]       = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [form, setForm]       = useState({ label: '' });
-  const [saving, setSaving]   = useState(false);
-  const [rawKey, setRawKey]   = useState(null);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    listSiteKeys(siteId)
-      .then(res => { if (res.success) { setKeys(res.data); onKeysChange?.(res.data); } })
-      .finally(() => setLoading(false));
-  }, [siteId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  async function handleIssue(e) {
-    e.preventDefault();
-    setSaving(true); setRawKey(null);
-    try {
-      const res = await createSiteKey(siteId, { label: form.label.trim() || 'default' });
-      if (res.success) { setRawKey(res.data.raw_key); setForm({ label: '' }); load(); }
-    } catch { alert('Request failed.'); }
-    finally { setSaving(false); }
-  }
-
-  async function handleRevoke(id) {
-    if (!confirm('Revoke this site key?')) return;
-    try { await deleteSiteKey(id); load(); }
-    catch { alert('Failed.'); }
-  }
-
-  return (
-    <div className="border-top pt-3 mt-3">
-      <p className="small fw-semibold text-muted mb-2">Site Keys <span className="fw-normal text-secondary">(site credential)</span></p>
-      <form onSubmit={handleIssue} className="mb-2">
-        <div className="row g-2 align-items-end">
-          <div className="col-8">
-            <input className="form-control form-control-sm" placeholder="Label"
-              value={form.label} onChange={e => setForm({ label: e.target.value })} />
-          </div>
-          <div className="col-4">
-            <button className="btn btn-outline-primary btn-sm w-100" type="submit" disabled={saving}>
-              {saving ? '…' : 'Issue'}
-            </button>
-          </div>
-        </div>
-      </form>
-      {rawKey && (
-        <div className="alert alert-warning py-1 px-2 small mb-2">
-          <strong>Copy now — shown once:</strong>
-          <div className="font-monospace user-select-all">{rawKey}</div>
-        </div>
-      )}
-      {loading ? <p className="text-muted small">Loading…</p> : keys.length === 0 ? (
-        <p className="text-muted small mb-0">No site keys.</p>
-      ) : (
-        <table className="table table-sm mb-0">
-          <thead className="table-light">
-            <tr><th>ID</th><th>Label</th><th>Status</th><th></th></tr>
-          </thead>
-          <tbody>
-            {keys.map(k => (
-              <tr key={k.id}>
-                <td className="text-muted small">{k.id}</td>
-                <td>{k.label}</td>
-                <td><StatusBadge status={k.status} map={{ active: 'success', revoked: 'danger' }} /></td>
-                <td>
-                  {k.status === 'active' && (
-                    <button className="btn btn-sm btn-outline-danger py-0"
-                      onClick={() => handleRevoke(k.id)}>Revoke</button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
-// ─── Agent Assignment Sub-Section ────────────────────────────────────────────
-
-function AgentSection({ siteId, currentAgentId, onAgentChange }) {
-  const [agents, setAgents]     = useState([]);
-  const [selected, setSelected] = useState(currentAgentId ?? '');
-  const [saving, setSaving]     = useState(false);
-  const [msg, setMsg]           = useState(null);
-
-  useEffect(() => {
-    listAgents()
-      .then(res => { if (res.success) setAgents(res.data); })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => { setSelected(currentAgentId ?? ''); }, [currentAgentId]);
-
-  async function handleAssign(e) {
-    e.preventDefault();
-    if (!selected) return;
-    setSaving(true); setMsg(null);
-    try {
-      const res = await assignAgent(siteId, parseInt(selected, 10));
-      if (res.success) { setMsg({ type: 'success', text: 'Agent assigned.' }); onAgentChange?.(parseInt(selected, 10)); }
-      else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
-    } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
-    finally { setSaving(false); }
-  }
-
-  const currentAgent = agents.find(a => a.id == currentAgentId);
-
-  return (
-    <div className="border-top pt-3 mt-3">
-      <p className="small fw-semibold text-muted mb-2">
-        Agent {currentAgent && <span className="badge bg-success ms-1">{currentAgent.name}</span>}
-      </p>
-      <form onSubmit={handleAssign}>
-        <div className="row g-2 align-items-end">
-          <div className="col-8">
-            <select className="form-select form-select-sm"
-              value={selected} onChange={e => setSelected(e.target.value)}>
-              <option value="">— select agent —</option>
-              {agents.map(a => (
-                <option key={a.id} value={a.id}>{a.name} ({a.slug})</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-4">
-            <button className="btn btn-outline-primary btn-sm w-100" type="submit" disabled={saving || !selected}>
-              {saving ? '…' : 'Assign'}
-            </button>
-          </div>
-        </div>
-        {msg && <Alert type={msg.type} msg={msg.text} />}
-      </form>
-    </div>
-  );
-}
-
-// ─── Knowledge Sub-Section ───────────────────────────────────────────────────
-
-function KnowledgeSection({ siteId }) {
-  const [items, setItems]     = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [form, setForm]       = useState({ title: '', resource_type: 'text', source_content: '' });
-  const [saving, setSaving]   = useState(false);
-  const [msg, setMsg]         = useState(null);
-  const [expanded, setExpanded] = useState(false);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    listKnowledge(siteId)
-      .then(res => { if (res.success) setItems(res.data); })
-      .finally(() => setLoading(false));
-  }, [siteId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  async function handleAdd(e) {
-    e.preventDefault();
-    if (!form.title.trim()) return;
-    setSaving(true); setMsg(null);
-    try {
-      const res = await createKnowledge({
-        site_id:        parseInt(siteId, 10),
-        title:          form.title.trim(),
-        resource_type:  form.resource_type,
-        source_content: form.source_content,
-      });
-      if (res.success) { setForm({ title: '', resource_type: 'text', source_content: '' }); setExpanded(false); load(); }
-      else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
-    } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
-    finally { setSaving(false); }
-  }
-
-  async function handleDelete(id) {
-    if (!confirm('Delete this knowledge resource?')) return;
-    try { await deleteKnowledge(id); load(); }
-    catch { alert('Failed.'); }
-  }
-
-  return (
-    <div className="border-top pt-3 mt-3">
-      <div className="d-flex justify-content-between align-items-center mb-2">
-        <p className="small fw-semibold text-muted mb-0">
-          Knowledge Resources <span className="badge bg-light text-dark border">{items.length}</span>
-        </p>
-        <button className="btn btn-sm btn-outline-secondary py-0"
-          onClick={() => setExpanded(e => !e)}>
-          {expanded ? '− Cancel' : '+ Add'}
-        </button>
-      </div>
-
-      {expanded && (
-        <form onSubmit={handleAdd} className="mb-2 p-2 bg-light rounded">
-          <div className="row g-2">
-            <div className="col-md-6">
-              <input className="form-control form-control-sm" placeholder="Title *"
-                value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
-            </div>
-            <div className="col-md-3">
-              <input className="form-control form-control-sm" placeholder="Type (e.g. text)"
-                value={form.resource_type} onChange={e => setForm(f => ({ ...f, resource_type: e.target.value }))} />
-            </div>
-            <div className="col-md-3">
-              <button className="btn btn-primary btn-sm w-100" type="submit" disabled={saving}>
-                {saving ? '…' : 'Add'}
-              </button>
-            </div>
-            <div className="col-12">
-              <textarea className="form-control form-control-sm" rows={3} placeholder="Source content (optional)"
-                value={form.source_content} onChange={e => setForm(f => ({ ...f, source_content: e.target.value }))} />
-            </div>
-          </div>
-          {msg && <Alert type={msg.type} msg={msg.text} />}
-        </form>
-      )}
-
-      {loading ? <p className="text-muted small">Loading…</p> : items.length === 0 ? (
-        <p className="text-muted small mb-0">No knowledge resources.</p>
-      ) : (
-        <table className="table table-sm mb-0">
-          <thead className="table-light">
-            <tr><th>Title</th><th>Type</th><th>Status</th><th></th></tr>
-          </thead>
-          <tbody>
-            {items.map(item => (
-              <tr key={item.id}>
-                <td>{item.title}</td>
-                <td className="text-muted small">{item.resource_type}</td>
-                <td><StatusBadge status={item.status} /></td>
-                <td>
-                  <button className="btn btn-sm btn-outline-danger py-0"
-                    onClick={() => handleDelete(item.id)}>×</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
-// ─── Site Row ────────────────────────────────────────────────────────────────
-
-function SiteRow({ site, onSiteDetailChange }) {
-  const [open, setOpen]             = useState(false);
-  const [agentId, setAgentId]       = useState(site.active_agent_id ?? null);
-  const [siteKeys, setSiteKeys]     = useState([]);
-
-  // Propagate detail changes up for readiness check
-  useEffect(() => {
-    onSiteDetailChange?.(site.id, { site, site_keys: siteKeys });
-  }, [siteKeys, site]);
-
-  return (
-    <>
-      <tr>
-        <td className="text-muted small">{site.id}</td>
-        <td className="fw-semibold">{site.name}</td>
-        <td className="text-muted small">{site.url}</td>
-        <td>
-          <StatusBadge status={site.status} map={{ active: 'success', inactive: 'secondary', suspended: 'warning' }} />
-        </td>
-        <td>
-          {agentId
-            ? <span className="badge bg-success">agent #{agentId}</span>
-            : <span className="badge bg-light text-secondary border">no agent</span>}
-        </td>
-        <td>
-          <button className="btn btn-sm btn-outline-secondary py-0"
-            onClick={() => setOpen(o => !o)}>
-            {open ? '▲ Close' : '▼ Configure'}
-          </button>
-        </td>
-      </tr>
-      {open && (
-        <tr>
-          <td colSpan={6} className="bg-light">
-            <div className="p-3">
-              <SiteKeysSection
-                siteId={site.id}
-                onKeysChange={keys => setSiteKeys(keys)} />
-              <AgentSection
-                siteId={site.id}
-                currentAgentId={agentId}
-                onAgentChange={id => setAgentId(id)} />
-              <KnowledgeSection siteId={site.id} />
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
-  );
-}
-
-// ─── Sites Section ───────────────────────────────────────────────────────────
-
-function SitesSection({ tenantId, sites, onReload, siteDetails, onSiteDetailChange }) {
+function SiteCreateSection({ tenantUuid, sites, onReload }) {
   const [form, setForm]     = useState({ name: '', url: '' });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg]       = useState(null);
@@ -602,7 +324,7 @@ function SitesSection({ tenantId, sites, onReload, siteDetails, onSiteDetailChan
     if (!form.name.trim() || !form.url.trim()) return;
     setSaving(true); setMsg(null);
     try {
-      const res = await createSite({ tenant_id: parseInt(tenantId, 10), name: form.name.trim(), url: form.url.trim() });
+      const res = await createSite({ tenant_uuid: tenantUuid, name: form.name.trim(), url: form.url.trim() });
       if (res.success) { setForm({ name: '', url: '' }); onReload(); }
       else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
     } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
@@ -610,10 +332,10 @@ function SitesSection({ tenantId, sites, onReload, siteDetails, onSiteDetailChan
   }
 
   return (
-    <div className="card border-0 shadow-sm mb-3">
+    <div className="card border-0 shadow-sm">
       <div className="card-header bg-white border-bottom">
-        <SectionHeader title="Sites" />
-        <p className="text-muted small mb-0">Sites belong to this tenant. Each site has its own keys, agent, and knowledge.</p>
+        <h6 className="fw-semibold mb-0">Register Site</h6>
+        <p className="text-muted small mb-0">A site is a client WordPress installation that Sarah AI will serve.</p>
       </div>
       <div className="card-body">
         <form onSubmit={handleCreate} className="mb-3">
@@ -638,18 +360,19 @@ function SitesSection({ tenantId, sites, onReload, siteDetails, onSiteDetailChan
         </form>
 
         {sites.length === 0 ? (
-          <p className="text-muted small mb-0">No sites registered.</p>
+          <p className="text-muted small mb-0">No sites registered yet.</p>
         ) : (
           <table className="table table-sm mb-0">
             <thead className="table-light">
-              <tr><th>ID</th><th>Name</th><th>URL</th><th>Status</th><th>Agent</th><th></th></tr>
+              <tr><th>Name</th><th>URL</th><th>Status</th></tr>
             </thead>
             <tbody>
               {sites.map(site => (
-                <SiteRow
-                  key={site.id}
-                  site={site}
-                  onSiteDetailChange={onSiteDetailChange} />
+                <tr key={site.uuid ?? site.id}>
+                  <td className="fw-semibold">{site.name}</td>
+                  <td className="text-muted small">{site.url}</td>
+                  <td><StatusBadge status={site.status} map={{ active: 'success', inactive: 'secondary', suspended: 'warning' }} /></td>
+                </tr>
               ))}
             </tbody>
           </table>
@@ -659,98 +382,642 @@ function SitesSection({ tenantId, sites, onReload, siteDetails, onSiteDetailChan
   );
 }
 
+// ─── Step 4: Site Status ──────────────────────────────────────────────────────
+
+function SiteStatusPanel({ site, onReload }) {
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg]       = useState(null);
+
+  async function handleSetStatus(status) {
+    setSaving(true); setMsg(null);
+    try {
+      const res = await updateSiteStatus(site.uuid, status);
+      if (res.success) { setMsg({ type: 'success', text: `Site is now ${status}.` }); onReload(); }
+      else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
+    } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div className="card border-0 shadow-sm">
+      <div className="card-header bg-white border-bottom">
+        <h6 className="fw-semibold mb-0">Site Status — <span className="fw-normal text-muted">{site.name}</span></h6>
+        <p className="text-muted small mb-0">Activate the site to make it operational for API access.</p>
+      </div>
+      <div className="card-body">
+        <div className="d-flex align-items-center gap-3 mb-2">
+          <span className="text-muted small">Current status:</span>
+          <StatusBadge status={site.status} map={{ active: 'success', inactive: 'secondary', suspended: 'warning' }} />
+        </div>
+        {site.status !== 'active' ? (
+          <button className="btn btn-success btn-sm" onClick={() => handleSetStatus('active')} disabled={saving}>
+            {saving ? 'Activating…' : 'Activate Site'}
+          </button>
+        ) : (
+          <div className="d-flex align-items-center gap-2">
+            <span className="text-success small fw-semibold">Site is active and ready.</span>
+            <button className="btn btn-outline-secondary btn-sm" onClick={() => handleSetStatus('inactive')} disabled={saving}>
+              Deactivate
+            </button>
+          </div>
+        )}
+        {msg && <Alert type={msg.type} msg={msg.text} />}
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 5: Account Keys ─────────────────────────────────────────────────────
+
+function AccountKeysSection({ tenantUuid }) {
+  const [keys, setKeys]       = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm]       = useState({ label: '' });
+  const [saving, setSaving]   = useState(false);
+  const [rawKey, setRawKey]   = useState(null);
+  const [msg, setMsg]         = useState(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    listAccountKeys(tenantUuid)
+      .then(res => { if (res.success) setKeys(res.data); })
+      .finally(() => setLoading(false));
+  }, [tenantUuid]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleIssue(e) {
+    e.preventDefault();
+    setSaving(true); setMsg(null); setRawKey(null);
+    try {
+      const res = await createAccountKey(tenantUuid, { label: form.label.trim() || 'default' });
+      if (res.success) { setRawKey(res.data.raw_key); setForm({ label: '' }); load(); }
+      else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
+    } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
+    finally { setSaving(false); }
+  }
+
+  async function handleRevoke(uuid) {
+    if (!confirm('Revoke this account key?')) return;
+    try { await deleteAccountKey(uuid); load(); }
+    catch { alert('Failed to revoke.'); }
+  }
+
+  return (
+    <div className="card border-0 shadow-sm">
+      <div className="card-header bg-white border-bottom">
+        <SectionHeader title="Account Keys" onRefresh={load} refreshing={loading} />
+        <p className="text-muted small mb-0">Account keys identify the tenant. Raw key shown only once.</p>
+      </div>
+      <div className="card-body">
+        <form onSubmit={handleIssue} className="mb-3">
+          <div className="row g-2 align-items-end">
+            <div className="col-md-8">
+              <label className="form-label small fw-semibold">Label</label>
+              <input className="form-control form-control-sm" placeholder="production"
+                value={form.label} onChange={e => setForm({ label: e.target.value })} />
+            </div>
+            <div className="col-md-4">
+              <button className="btn btn-primary btn-sm w-100" type="submit" disabled={saving}>
+                {saving ? '…' : 'Issue Key'}
+              </button>
+            </div>
+          </div>
+        </form>
+        {rawKey && (
+          <div className="alert alert-warning py-2 px-3 mb-3">
+            <strong>Copy this key now — it will not be shown again.</strong>
+            <div className="font-monospace mt-1 user-select-all small bg-white border rounded px-2 py-1">{rawKey}</div>
+          </div>
+        )}
+        {msg && <Alert type={msg.type} msg={msg.text} />}
+        {loading ? <p className="text-muted small mb-0">Loading…</p> : keys.length === 0 ? (
+          <p className="text-muted small mb-0">No account keys issued.</p>
+        ) : (
+          <table className="table table-sm mb-0">
+            <thead className="table-light">
+              <tr><th>Label</th><th>Status</th><th>Expires</th><th></th></tr>
+            </thead>
+            <tbody>
+              {keys.map(k => (
+                <tr key={k.uuid ?? k.id}>
+                  <td>{k.label}</td>
+                  <td><StatusBadge status={k.status} map={{ active: 'success', revoked: 'danger' }} /></td>
+                  <td className="text-muted small">{k.expires_at ?? 'never'}</td>
+                  <td>
+                    {k.status === 'active' && (
+                      <button className="btn btn-sm btn-outline-danger py-0"
+                        onClick={() => handleRevoke(k.uuid)}>Revoke</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 6: Site Keys ────────────────────────────────────────────────────────
+
+function SiteKeysSection({ siteUuid, onKeysChange }) {
+  const [keys, setKeys]       = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm]       = useState({ label: '' });
+  const [saving, setSaving]   = useState(false);
+  const [rawKey, setRawKey]   = useState(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    listSiteKeys(siteUuid)
+      .then(res => { if (res.success) { setKeys(res.data); onKeysChange?.(res.data); } })
+      .finally(() => setLoading(false));
+  }, [siteUuid]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleIssue(e) {
+    e.preventDefault();
+    setSaving(true); setRawKey(null);
+    try {
+      const res = await createSiteKey(siteUuid, { label: form.label.trim() || 'default' });
+      if (res.success) { setRawKey(res.data.raw_key); setForm({ label: '' }); load(); }
+    } catch { alert('Request failed.'); }
+    finally { setSaving(false); }
+  }
+
+  async function handleRevoke(uuid) {
+    if (!confirm('Revoke this site key?')) return;
+    try { await deleteSiteKey(uuid); load(); }
+    catch { alert('Failed.'); }
+  }
+
+  return (
+    <div className="card border-0 shadow-sm">
+      <div className="card-header bg-white border-bottom">
+        <SectionHeader title="Site Keys" onRefresh={load} refreshing={loading} />
+        <p className="text-muted small mb-0">Site keys are the site-level credential for API authentication.</p>
+      </div>
+      <div className="card-body">
+        <form onSubmit={handleIssue} className="mb-3">
+          <div className="row g-2 align-items-end">
+            <div className="col-md-8">
+              <label className="form-label small fw-semibold">Label</label>
+              <input className="form-control form-control-sm" placeholder="default"
+                value={form.label} onChange={e => setForm({ label: e.target.value })} />
+            </div>
+            <div className="col-md-4">
+              <button className="btn btn-primary btn-sm w-100" type="submit" disabled={saving}>
+                {saving ? '…' : 'Issue Key'}
+              </button>
+            </div>
+          </div>
+        </form>
+        {rawKey && (
+          <div className="alert alert-warning py-2 px-3 mb-3">
+            <strong>Copy now — shown once.</strong>
+            <div className="font-monospace mt-1 user-select-all small bg-white border rounded px-2 py-1">{rawKey}</div>
+          </div>
+        )}
+        {loading ? <p className="text-muted small mb-0">Loading…</p> : keys.length === 0 ? (
+          <p className="text-muted small mb-0">No site keys issued.</p>
+        ) : (
+          <table className="table table-sm mb-0">
+            <thead className="table-light">
+              <tr><th>Label</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {keys.map(k => (
+                <tr key={k.uuid ?? k.id}>
+                  <td>{k.label}</td>
+                  <td><StatusBadge status={k.status} map={{ active: 'success', revoked: 'danger' }} /></td>
+                  <td>
+                    {k.status === 'active' && (
+                      <button className="btn btn-sm btn-outline-danger py-0"
+                        onClick={() => handleRevoke(k.uuid)}>Revoke</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 7: Agent ────────────────────────────────────────────────────────────
+
+function AgentSection({ siteUuid, tenantUuid, currentAgentId, onAgentChange }) {
+  const [agents, setAgents]     = useState([]);
+  const [selected, setSelected] = useState(currentAgentId ?? '');
+  const [saving, setSaving]     = useState(false);
+  const [msg, setMsg]           = useState(null);
+
+  useEffect(() => {
+    const fetch = tenantUuid ? listAvailableAgents(tenantUuid) : listAgents();
+    fetch.then(res => { if (res.success) setAgents(res.data); }).catch(() => {});
+  }, [tenantUuid]);
+
+  useEffect(() => { setSelected(currentAgentId ?? ''); }, [currentAgentId]);
+
+  async function handleAssign(e) {
+    e.preventDefault();
+    if (!selected) return;
+    setSaving(true); setMsg(null);
+    try {
+      const res = await assignAgent(siteUuid, parseInt(selected, 10));
+      if (res.success) {
+        setMsg({ type: 'success', text: 'Agent assigned.' });
+        onAgentChange?.(parseInt(selected, 10));
+      } else {
+        setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
+      }
+    } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
+    finally { setSaving(false); }
+  }
+
+  const currentAgent = agents.find(a => a.id == currentAgentId);
+
+  return (
+    <div className="card border-0 shadow-sm">
+      <div className="card-header bg-white border-bottom">
+        <h6 className="fw-semibold mb-0">
+          Agent Assignment
+          {currentAgent && <span className="badge bg-success ms-2">{currentAgent.name}</span>}
+        </h6>
+        <p className="text-muted small mb-0">Assign the AI agent that will handle chat for this site.</p>
+      </div>
+      <div className="card-body">
+        <form onSubmit={handleAssign}>
+          <div className="row g-2 align-items-end">
+            <div className="col-md-8">
+              <label className="form-label small fw-semibold">Agent</label>
+              <select className="form-select form-select-sm"
+                value={selected} onChange={e => setSelected(e.target.value)}>
+                <option value="">— select agent —</option>
+                {agents.map(a => (
+                  <option key={a.id} value={a.id}>{a.name} ({a.slug})</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-4">
+              <button className="btn btn-primary btn-sm w-100" type="submit" disabled={saving || !selected}>
+                {saving ? '…' : 'Assign'}
+              </button>
+            </div>
+          </div>
+          {msg && <Alert type={msg.type} msg={msg.text} />}
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 8: Knowledge ────────────────────────────────────────────────────────
+
+function KnowledgeSection({ siteUuid, onItemsChange }) {
+  const [items, setItems]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [form, setForm]         = useState({ title: '', resource_type: 'text', source_content: '' });
+  const [saving, setSaving]     = useState(false);
+  const [msg, setMsg]           = useState(null);
+  const [expanded, setExpanded] = useState(false);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    listKnowledge(siteUuid)
+      .then(res => { if (res.success) { setItems(res.data); onItemsChange?.(res.data); } })
+      .finally(() => setLoading(false));
+  }, [siteUuid]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleAdd(e) {
+    e.preventDefault();
+    if (!form.title.trim()) return;
+    setSaving(true); setMsg(null);
+    try {
+      const res = await createKnowledge({
+        site_uuid:      siteUuid,
+        title:          form.title.trim(),
+        resource_type:  form.resource_type,
+        source_content: form.source_content,
+      });
+      if (res.success) { setForm({ title: '', resource_type: 'text', source_content: '' }); setExpanded(false); load(); }
+      else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
+    } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
+    finally { setSaving(false); }
+  }
+
+  async function handleDelete(uuid) {
+    if (!confirm('Delete this knowledge resource?')) return;
+    try { await deleteKnowledge(uuid); load(); }
+    catch { alert('Failed.'); }
+  }
+
+  return (
+    <div className="card border-0 shadow-sm">
+      <div className="card-header bg-white border-bottom">
+        <div className="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 className="fw-semibold mb-0">
+              Knowledge Resources
+              <span className="badge bg-light text-dark border ms-2">{items.length}</span>
+            </h6>
+            <p className="text-muted small mb-0">Content the agent can use to answer questions for this site.</p>
+          </div>
+          <div className="d-flex gap-2">
+            <button className="btn btn-outline-secondary btn-sm" onClick={load} disabled={loading}>↺</button>
+            <button className="btn btn-outline-primary btn-sm" onClick={() => setExpanded(e => !e)}>
+              {expanded ? '− Cancel' : '+ Add'}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="card-body">
+        {expanded && (
+          <form onSubmit={handleAdd} className="mb-3 p-3 bg-light rounded">
+            <div className="row g-2">
+              <div className="col-md-6">
+                <input className="form-control form-control-sm" placeholder="Title *"
+                  value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
+              </div>
+              <div className="col-md-3">
+                <input className="form-control form-control-sm" placeholder="Type (e.g. text)"
+                  value={form.resource_type} onChange={e => setForm(f => ({ ...f, resource_type: e.target.value }))} />
+              </div>
+              <div className="col-md-3">
+                <button className="btn btn-primary btn-sm w-100" type="submit" disabled={saving}>
+                  {saving ? '…' : 'Add'}
+                </button>
+              </div>
+              <div className="col-12">
+                <textarea className="form-control form-control-sm" rows={3} placeholder="Source content (optional)"
+                  value={form.source_content} onChange={e => setForm(f => ({ ...f, source_content: e.target.value }))} />
+              </div>
+            </div>
+            {msg && <Alert type={msg.type} msg={msg.text} />}
+          </form>
+        )}
+
+        {loading ? <p className="text-muted small mb-0">Loading…</p> : items.length === 0 ? (
+          <p className="text-muted small mb-0">No knowledge resources added yet.</p>
+        ) : (
+          <table className="table table-sm mb-0">
+            <thead className="table-light">
+              <tr><th>Title</th><th>Type</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {items.map(item => (
+                <tr key={item.uuid ?? item.id}>
+                  <td>{item.title}</td>
+                  <td className="text-muted small">{item.resource_type}</td>
+                  <td><StatusBadge status={item.status} /></td>
+                  <td>
+                    <button className="btn btn-sm btn-outline-danger py-0"
+                      onClick={() => handleDelete(item.uuid)}>×</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 9: Launch Panel ─────────────────────────────────────────────────────
+
+function LaunchPanel({ allOk }) {
+  return (
+    <div className="card border-0 shadow-sm">
+      <div className="card-body text-center py-5">
+        {allOk ? (
+          <>
+            <div style={{ fontSize: '52px', color: '#198754', lineHeight: 1 }}>✓</div>
+            <h5 className="fw-bold text-success mt-3 mb-1">All steps complete!</h5>
+            <p className="text-muted small">This tenant is fully configured and ready for Phase 4.4 integration.</p>
+            <span className="badge bg-success px-3 py-2">Ready to Launch</span>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: '52px', color: '#dee2e6', lineHeight: 1 }}>○</div>
+            <h6 className="text-muted mt-3 mb-1">Not ready yet</h6>
+            <p className="text-muted small">Complete all previous steps to unlock launch readiness.</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function TenantDetail({ param, onNavigate }) {
-  const tenantId = parseInt(param, 10);
+  const tenantUuid = param;
 
   const [tenant, setTenant]           = useState(null);
   const [subscription, setSubscription] = useState(null);
   const [sites, setSites]             = useState([]);
   const [users, setUsers]             = useState([]);
   const [accountKeys, setAccountKeys] = useState([]);
-  const [siteDetails, setSiteDetails] = useState({});
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(null);
+  const [activeStep, setActiveStep]   = useState(null);
 
-  function handleSiteDetailChange(siteId, detail) {
-    setSiteDetails(prev => ({ ...prev, [siteId]: detail }));
-  }
+  // First-site sub-data — updated as wizard steps mount
+  const [firstSiteKeys, setFirstSiteKeys]               = useState([]);
+  const [firstSiteAgentId, setFirstSiteAgentId]         = useState(null);
+  const [firstSiteKnowledgeCount, setFirstSiteKnowledgeCount] = useState(0);
 
-  const load = useCallback(() => {
-    if (!tenantId) return;
+  const stepInitialized = useRef(false);
+  const firstSite     = sites[0] ?? null;
+  const firstSiteUuid = firstSite?.uuid ?? null;
+
+  // Sync agent ID when sites array refreshes
+  useEffect(() => {
+    setFirstSiteAgentId(firstSite?.active_agent_id ?? null);
+  }, [firstSite?.active_agent_id]);
+
+  // Compute wizard steps
+  const steps = [
+    { label: 'Tenant',       sub: 'Active',      ok: !!tenant && tenant.status === 'active' },
+    { label: 'Subscription', sub: 'Set',          ok: !!subscription },
+    { label: 'User',         sub: 'Added',        ok: users.length > 0 },
+    { label: 'Site',         sub: 'Registered',   ok: sites.length > 0 },
+    { label: 'Site Status',  sub: 'Active',       ok: firstSite?.status === 'active' },
+    { label: 'Account Key',  sub: 'Issued',       ok: accountKeys.length > 0 },
+    { label: 'Site Key',     sub: 'Issued',       ok: firstSiteKeys.length > 0 },
+    { label: 'Agent',        sub: 'Assigned',     ok: !!firstSiteAgentId },
+    { label: 'Knowledge',    sub: 'Added',        ok: firstSiteKnowledgeCount > 0 },
+    { label: 'Launch',       sub: 'Ready',        ok: false },
+  ];
+  steps[9].ok = steps.slice(0, 9).every(s => s.ok);
+
+  const load = useCallback(async () => {
+    if (!tenantUuid) return;
     setLoading(true);
-    Promise.all([
-      getTenant(tenantId),
-      listAccountKeys(tenantId),
-    ])
-      .then(([tenantRes, keysRes]) => {
-        if (tenantRes.success) {
-          setTenant(tenantRes.data.tenant);
-          setSubscription(tenantRes.data.subscription);
-          setSites(tenantRes.data.sites ?? []);
-          setUsers(tenantRes.data.users ?? []);
-        } else {
-          setError('Tenant not found.');
-        }
-        if (keysRes.success) setAccountKeys(keysRes.data);
-      })
-      .catch(() => setError('Failed to load tenant.'))
-      .finally(() => setLoading(false));
-  }, [tenantId]);
+    try {
+      const [tenantRes, keysRes] = await Promise.all([
+        getTenant(tenantUuid),
+        listAccountKeys(tenantUuid),
+      ]);
+
+      if (!tenantRes.success) { setError('Tenant not found.'); return; }
+
+      const loadedSites = tenantRes.data.sites ?? [];
+      setTenant(tenantRes.data.tenant);
+      setSubscription(tenantRes.data.subscription);
+      setSites(loadedSites);
+      setUsers(tenantRes.data.users ?? []);
+      if (keysRes.success) setAccountKeys(keysRes.data);
+
+      // Pre-load first-site sub-data so stepper reflects real state
+      const fsuuid = loadedSites[0]?.uuid ?? null;
+      if (fsuuid) {
+        const [siteKeysRes, knowledgeRes] = await Promise.all([
+          listSiteKeys(fsuuid),
+          listKnowledge(fsuuid),
+        ]);
+        if (siteKeysRes.success) setFirstSiteKeys(siteKeysRes.data);
+        if (knowledgeRes.success) setFirstSiteKnowledgeCount((knowledgeRes.data ?? []).length);
+      }
+    } catch {
+      setError('Failed to load tenant.');
+    } finally {
+      setLoading(false);
+    }
+  }, [tenantUuid]);
 
   useEffect(() => { load(); }, [load]);
 
-  if (!tenantId) return <p className="text-danger">Invalid tenant ID.</p>;
+  // Auto-navigate to first incomplete step on initial load
+  useEffect(() => {
+    if (!loading && !stepInitialized.current) {
+      stepInitialized.current = true;
+      const firstIncomplete = steps.findIndex(s => !s.ok);
+      setActiveStep(firstIncomplete >= 0 ? firstIncomplete : 9);
+    }
+  }, [loading]);
+
+  if (!tenantUuid) return <p className="text-danger">Invalid tenant.</p>;
+
+  const STEP_TITLES = [
+    'Tenant', 'Subscription', 'Users', 'Register Site',
+    'Site Status', 'Account Keys', 'Site Keys', 'Agent', 'Knowledge', 'Launch',
+  ];
+
+  function renderStepContent() {
+    if (loading || activeStep === null) return <p className="text-muted small">Loading…</p>;
+    switch (activeStep) {
+      case 0: return <TenantInfoPanel tenant={tenant} />;
+      case 1: return <SubscriptionPanel subscription={subscription} />;
+      case 2: return <UsersSection tenantUuid={tenantUuid} onReload={load} />;
+      case 3: return <SiteCreateSection tenantUuid={tenantUuid} sites={sites} onReload={load} />;
+      case 4: return firstSite
+        ? <SiteStatusPanel site={firstSite} onReload={load} />
+        : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
+      case 5: return <AccountKeysSection tenantUuid={tenantUuid} />;
+      case 6: return firstSiteUuid
+        ? <SiteKeysSection siteUuid={firstSiteUuid} onKeysChange={keys => setFirstSiteKeys(keys)} />
+        : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
+      case 7: return firstSiteUuid
+        ? <AgentSection
+            siteUuid={firstSiteUuid}
+            tenantUuid={tenantUuid}
+            currentAgentId={firstSiteAgentId}
+            onAgentChange={id => { setFirstSiteAgentId(id); load(); }}
+          />
+        : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
+      case 8: return firstSiteUuid
+        ? <KnowledgeSection
+            siteUuid={firstSiteUuid}
+            onItemsChange={items => setFirstSiteKnowledgeCount(items.length)}
+          />
+        : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
+      case 9: return <LaunchPanel allOk={steps[9].ok} />;
+      default: return null;
+    }
+  }
 
   return (
     <>
       {/* Header */}
-      <div className="mb-3 d-flex align-items-center gap-3">
+      <div className="mb-3 d-flex align-items-start justify-content-between">
+        <div>
+          {loading ? (
+            <span className="text-muted small">Loading…</span>
+          ) : error ? (
+            <span className="text-danger">{error}</span>
+          ) : (
+            <>
+              <h1 className="h5 fw-semibold text-dark mb-0">{tenant?.name}</h1>
+              <div className="mt-1">
+                <span className="text-muted small me-2">{tenant?.slug}</span>
+                <StatusBadge status={tenant?.status} />
+                {subscription && (
+                  <span className={`badge ms-2 bg-${subscription.status === 'trialing' ? 'info' : subscription.status === 'active' ? 'success' : 'secondary'}`}>
+                    {subscription.status}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+        </div>
         <button className="btn btn-sm btn-outline-secondary"
           onClick={() => onNavigate('tenants')}>← Tenants</button>
-        {loading ? (
-          <span className="text-muted small">Loading…</span>
-        ) : error ? (
-          <span className="text-danger">{error}</span>
-        ) : (
-          <div>
-            <h1 className="h5 fw-semibold text-dark mb-0">{tenant?.name}</h1>
-            <span className="text-muted small me-2">#{tenantId} · {tenant?.slug}</span>
-            <StatusBadge status={tenant?.status} />
-            {subscription && (
-              <span className={`badge ms-2 bg-${subscription.status === 'trialing' ? 'info' : subscription.status === 'active' ? 'success' : 'secondary'}`}>
-                {subscription.status}
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
       {!loading && !error && (
         <>
-          {/* Readiness */}
-          <ReadinessCheck
-            tenant={tenant}
-            subscription={subscription}
-            users={users}
-            accountKeys={accountKeys}
-            sites={sites}
-            siteDetails={siteDetails} />
+          {/* Wizard stepper */}
+          <ReadinessCheck steps={steps} activeStep={activeStep} onStepClick={setActiveStep} />
 
-          {/* Users */}
-          <UsersSection tenantId={tenantId} />
+          {/* Active step label */}
+          {activeStep !== null && (
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <span className="badge bg-primary px-2 py-1" style={{ fontSize: '11px' }}>
+                Step {activeStep + 1}
+              </span>
+              <span className="fw-semibold text-dark" style={{ fontSize: '14px' }}>
+                {STEP_TITLES[activeStep]}
+              </span>
+            </div>
+          )}
 
-          {/* Account Keys */}
-          <AccountKeysSection tenantId={tenantId} />
+          {/* Step content */}
+          {renderStepContent()}
 
-          {/* Sites */}
-          <SitesSection
-            tenantId={tenantId}
-            sites={sites}
-            onReload={load}
-            siteDetails={siteDetails}
-            onSiteDetailChange={handleSiteDetailChange} />
+          {/* Prev / Next navigation */}
+          <div className="d-flex justify-content-between align-items-center mt-3 mb-4">
+            <button
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() => setActiveStep(s => Math.max(0, (s ?? 0) - 1))}
+              disabled={activeStep === 0}
+            >
+              ← Previous
+            </button>
+            <div className="d-flex align-items-center gap-2">
+              {activeStep !== null && !steps[activeStep]?.ok && activeStep !== 9 && (
+                <span className="text-warning small fw-semibold">
+                  Complete this step to continue
+                </span>
+              )}
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => setActiveStep(s => Math.min(9, (s ?? 0) + 1))}
+                disabled={activeStep === 9 || (activeStep !== null && !steps[activeStep]?.ok)}
+                title={activeStep !== null && !steps[activeStep]?.ok ? 'Complete this step first' : ''}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
         </>
       )}
     </>

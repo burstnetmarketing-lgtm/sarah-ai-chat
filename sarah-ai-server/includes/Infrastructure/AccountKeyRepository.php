@@ -25,6 +25,7 @@ class AccountKeyRepository
         $table = $wpdb->prefix . AccountKeyTable::TABLE;
         $now   = current_time('mysql');
         $wpdb->insert($table, [
+            'uuid'       => sarah_ai_uuid(),
             'tenant_id'  => $tenantId,
             'key_hash'   => hash('sha256', $rawKey),
             'label'      => $label !== '' ? $label : null,
@@ -34,6 +35,28 @@ class AccountKeyRepository
             'updated_at' => $now,
         ]);
         return (int) $wpdb->insert_id;
+    }
+
+    public function findById(int $id): ?array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . AccountKeyTable::TABLE;
+        $row   = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id),
+            ARRAY_A
+        );
+        return $row ?: null;
+    }
+
+    public function findByUuid(string $uuid): ?array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . AccountKeyTable::TABLE;
+        $row   = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$table} WHERE uuid = %s", $uuid),
+            ARRAY_A
+        );
+        return $row ?: null;
     }
 
     /**

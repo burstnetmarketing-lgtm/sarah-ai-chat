@@ -63,6 +63,35 @@ class AgentRepository
         ]);
     }
 
+    /** Inserts or updates an agent by slug. Idempotent. */
+    public function upsertBySlug(string $name, string $slug, string $type, string $description, array $config = [], string $status = 'active'): void
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . AgentTable::TABLE;
+        $now   = current_time('mysql');
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE slug = %s", $slug));
+        if ($exists) {
+            $wpdb->update(
+                $table,
+                ['name' => $name, 'type' => $type, 'description' => $description, 'status' => $status, 'config' => $config ? wp_json_encode($config) : null, 'updated_at' => $now],
+                ['slug' => $slug],
+                ['%s', '%s', '%s', '%s', '%s', '%s'],
+                ['%s']
+            );
+        } else {
+            $wpdb->insert($table, [
+                'name'        => $name,
+                'slug'        => $slug,
+                'type'        => $type,
+                'description' => $description,
+                'status'      => $status,
+                'config'      => $config ? wp_json_encode($config) : null,
+                'created_at'  => $now,
+                'updated_at'  => $now,
+            ]);
+        }
+    }
+
     public function updateStatus(int $id, string $status): void
     {
         global $wpdb;

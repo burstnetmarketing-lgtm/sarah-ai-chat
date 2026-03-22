@@ -15,6 +15,7 @@ class SiteTokenTable
         $charset = $wpdb->get_charset_collate();
         $sql     = "CREATE TABLE {$table} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            uuid VARCHAR(36) NULL DEFAULT NULL,
             site_id BIGINT UNSIGNED NOT NULL,
             token_hash VARCHAR(64) NOT NULL,
             label VARCHAR(190) NULL DEFAULT NULL,
@@ -23,6 +24,7 @@ class SiteTokenTable
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,
             PRIMARY KEY (id),
+            UNIQUE KEY uniq_uuid (uuid),
             UNIQUE KEY uniq_token_hash (token_hash),
             KEY idx_site_id (site_id),
             KEY idx_status (status)

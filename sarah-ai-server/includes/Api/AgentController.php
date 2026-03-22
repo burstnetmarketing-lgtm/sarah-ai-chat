@@ -21,20 +21,23 @@ class AgentController
         $this->siteAgents = new SiteAgentRepository();
     }
 
+    public function isAdmin(): bool
+    {
+        return current_user_can('manage_options');
+    }
+
     public function registerRoutes(): void
     {
-        // GET /agents
         register_rest_route('sarah-ai-server/v1', '/agents', [
             'methods'             => 'GET',
             'callback'            => [$this, 'index'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [$this, 'isAdmin'],
         ]);
 
-        // POST /sites/{id}/agent
-        register_rest_route('sarah-ai-server/v1', '/sites/(?P<id>\d+)/agent', [
+        register_rest_route('sarah-ai-server/v1', '/sites/(?P<uuid>[0-9a-f-]{36})/agent', [
             'methods'             => 'POST',
             'callback'            => [$this, 'assign'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [$this, 'isAdmin'],
         ]);
     }
 
@@ -53,17 +56,17 @@ class AgentController
      */
     public function assign(\WP_REST_Request $request): \WP_REST_Response
     {
-        $siteId  = (int) $request->get_param('id');
         $agentId = (int) $request->get_param('agent_id');
 
         if (! $agentId) {
             return new \WP_REST_Response(['success' => false, 'message' => 'agent_id is required'], 400);
         }
 
-        $site = $this->sites->findById($siteId);
+        $site = $this->sites->findByUuid((string) $request->get_param('uuid'));
         if (! $site) {
             return new \WP_REST_Response(['success' => false, 'message' => 'Site not found'], 404);
         }
+        $siteId = (int) $site['id'];
 
         $agent = $this->agents->findById($agentId);
         if (! $agent) {

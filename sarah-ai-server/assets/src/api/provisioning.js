@@ -1,37 +1,43 @@
 import { apiFetch } from './client.js';
 
 // Tenants
-export const listTenants       = ()           => apiFetch('tenants');
-export const createTenant      = (data)       => apiFetch('tenants', 'POST', data);
-export const getTenant         = (id)         => apiFetch(`tenants/${id}`);
-export const updateTenantStatus = (id, status) => apiFetch(`tenants/${id}/status`, 'POST', { status });
+export const listTenants        = ()                   => apiFetch('tenants');
+export const createTenant       = (data)               => apiFetch('tenants', 'POST', data);
+export const getTenant          = (uuid)               => apiFetch(`tenants/${uuid}`);
+export const updateTenantStatus = (uuid, status)       => apiFetch(`tenants/${uuid}/status`, 'POST', { status });
 
 // Users
-export const listTenantUsers  = (tenantId)           => apiFetch(`tenants/${tenantId}/users`);
-export const addTenantUser    = (tenantId, data)      => apiFetch(`tenants/${tenantId}/users`, 'POST', data);
-export const removeTenantUser = (tenantId, wpUserId)  => apiFetch(`tenants/${tenantId}/users/${wpUserId}`, 'DELETE');
+export const listTenantUsers  = (tenantUuid)              => apiFetch(`tenants/${tenantUuid}/users`);
+export const addTenantUser    = (tenantUuid, data)         => apiFetch(`tenants/${tenantUuid}/users`, 'POST', data);
+export const removeTenantUser = (tenantUuid, wpUserId)     => apiFetch(`tenants/${tenantUuid}/users/${wpUserId}`, 'DELETE');
 
 // Sites
-export const createSite      = (data) => apiFetch('sites', 'POST', data);
-export const getSite         = (id)   => apiFetch(`sites/${id}`);
-export const updateSiteStatus = (id, status) => apiFetch(`sites/${id}/status`, 'POST', { status });
+export const createSite       = (data)                => apiFetch('sites', 'POST', data);
+export const getSite          = (uuid)                => apiFetch(`sites/${uuid}`);
+export const updateSiteStatus = (uuid, status)        => apiFetch(`sites/${uuid}/status`, 'POST', { status });
 
 // Account Keys
-export const listAccountKeys  = (tenantId) => apiFetch(`tenants/${tenantId}/account-keys`);
-export const createAccountKey = (tenantId, data) => apiFetch(`tenants/${tenantId}/account-keys`, 'POST', data);
-export const deleteAccountKey = (id)       => apiFetch(`account-keys/${id}`, 'DELETE');
+export const listAccountKeys  = (tenantUuid)          => apiFetch(`tenants/${tenantUuid}/account-keys`);
+export const createAccountKey = (tenantUuid, data)    => apiFetch(`tenants/${tenantUuid}/account-keys`, 'POST', data);
+export const deleteAccountKey = (uuid)                => apiFetch(`account-keys/${uuid}`, 'DELETE');
 
 // Site Keys
-export const listSiteKeys  = (siteId) => apiFetch(`sites/${siteId}/site-keys`);
-export const createSiteKey = (siteId, data) => apiFetch(`sites/${siteId}/site-keys`, 'POST', data);
-export const deleteSiteKey = (id)     => apiFetch(`site-keys/${id}`, 'DELETE');
+export const listSiteKeys  = (siteUuid)               => apiFetch(`sites/${siteUuid}/site-keys`);
+export const createSiteKey = (siteUuid, data)         => apiFetch(`sites/${siteUuid}/site-keys`, 'POST', data);
+export const deleteSiteKey = (uuid)                   => apiFetch(`site-keys/${uuid}`, 'DELETE');
 
 // Agents
-export const listAgents   = ()               => apiFetch('agents');
-export const assignAgent  = (siteId, agentId) => apiFetch(`sites/${siteId}/agent`, 'POST', { agent_id: agentId });
+export const listAgents           = ()                => apiFetch('agents');
+export const assignAgent          = (siteUuid, agentId) => apiFetch(`sites/${siteUuid}/agent`, 'POST', { agent_id: agentId });
+export const listAvailableAgents  = (tenantUuid)      => apiFetch(`tenants/${tenantUuid}/available-agents`);
+
+// Plans
+export const listPlans        = ()                    => apiFetch('plans');
+export const getPlanAgents    = (planId)              => apiFetch(`plans/${planId}/agents`);
+export const syncPlanAgents   = (planId, agentIds)    => apiFetch(`plans/${planId}/agents`, 'POST', { agent_ids: agentIds });
 
 // Knowledge Resources
-export const listKnowledge  = (siteId) => apiFetch(`knowledge-resources?site_id=${siteId}`);
-export const createKnowledge = (data)  => apiFetch('knowledge-resources', 'POST', data);
-export const deleteKnowledge = (id)    => apiFetch(`knowledge-resources/${id}`, 'DELETE');
-export const updateKnowledgeStatus = (id, status) => apiFetch(`knowledge-resources/${id}/status`, 'POST', { status });
+export const listKnowledge         = (siteUuid)       => apiFetch(`knowledge-resources?site_uuid=${siteUuid}`);
+export const createKnowledge       = (data)           => apiFetch('knowledge-resources', 'POST', data);
+export const deleteKnowledge       = (uuid)           => apiFetch(`knowledge-resources/${uuid}`, 'DELETE');
+export const updateKnowledgeStatus = (uuid, status)   => apiFetch(`knowledge-resources/${uuid}/status`, 'POST', { status });

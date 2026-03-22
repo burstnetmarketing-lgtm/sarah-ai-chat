@@ -21,94 +21,91 @@ class UserTenantController
         $this->emailTemplates = new EmailTemplateRepository();
     }
 
+    public function isAdmin(): bool
+    {
+        return current_user_can('manage_options');
+    }
+
     public function registerRoutes(): void
     {
-        // POST /tenants/{id}/users
-        register_rest_route('sarah-ai-server/v1', '/tenants/(?P<id>\d+)/users', [
+        register_rest_route('sarah-ai-server/v1', '/tenants/(?P<uuid>[0-9a-f-]{36})/users', [
             'methods'             => 'POST',
             'callback'            => [$this, 'associate'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [$this, 'isAdmin'],
         ]);
 
-        // GET /tenants/{id}/users
-        register_rest_route('sarah-ai-server/v1', '/tenants/(?P<id>\d+)/users', [
+        register_rest_route('sarah-ai-server/v1', '/tenants/(?P<uuid>[0-9a-f-]{36})/users', [
             'methods'             => 'GET',
             'callback'            => [$this, 'index'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [$this, 'isAdmin'],
         ]);
 
-        // DELETE /tenants/{id}/users/{wpUserId}
-        register_rest_route('sarah-ai-server/v1', '/tenants/(?P<id>\d+)/users/(?P<wp_user_id>\d+)', [
+        register_rest_route('sarah-ai-server/v1', '/tenants/(?P<uuid>[0-9a-f-]{36})/users/(?P<wp_user_id>\d+)', [
             'methods'             => 'DELETE',
             'callback'            => [$this, 'deactivate'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [$this, 'isAdmin'],
         ]);
     }
 
-    /**
-     * Associate a WordPress user with a tenant.
-     *
-     * Body:
-     *   wp_user_id     (required) — WordPress user ID
-     *   role           (optional) — 'owner' | 'admin' | 'member' (default: 'member')
-     *   send_welcome   (optional) — '1' to trigger welcome email
-     */
     public function associate(\WP_REST_Request $request): \WP_REST_Response
     {
-        $tenantId   = (int) $request->get_param('id');
-        $wpUserId   = (int) $request->get_param('wp_user_id');
-        $role       = trim((string) ($request->get_param('role') ?? 'member'));
-        $sendWelcome = $request->get_param('send_welcome') === '1';
-
-        if (! $wpUserId) {
-            return new \WP_REST_Response(['success' => false, 'message' => 'wp_user_id is required'], 400);
-        }
-
-        $allowedRoles = ['owner', 'admin', 'member'];
-        if (! in_array($role, $allowedRoles, true)) {
-            return new \WP_REST_Response([
-                'success' => false,
-                'message' => 'role must be one of: ' . implode(', ', $allowedRoles),
-            ], 400);
-        }
-
-        if (! $this->tenants->findById($tenantId)) {
+        $tenant = $this->tenants->findByUuid((string) $request->get_param('uuid'));
+        if (! $tenant) {
             return new \WP_REST_Response(['success' => false, 'message' => 'Tenant not found'], 404);
         }
+        $tenantId = (int) $tenant['id'];
 
-        $wpUser = get_userdata($wpUserId);
-        if (! $wpUser) {
-            return new \WP_REST_Response(['success' => false, 'message' => 'WordPress user not found'], 404);
+        $username    = trim((string) ($request->get_param('username') ?? ''));
+        $email       = trim((string) ($request->get_param('email') ?? ''));
+        $password    = (string) ($request->get_param('password') ?? '');
+        $sendWelcome = $request->get_param('send_welcome') === true || $request->get_param('send_welcome') === '1';
+
+        if (! $username || ! $email || ! $password) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'username, email, and password are required'], 400);
         }
 
-        $this->userTenants->associate($wpUserId, $tenantId, $role);
+        if (username_exists($username)) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Username already exists'], 409);
+        }
+
+        if (email_exists($email)) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Email already in use'], 409);
+        }
+
+        $wpUserId = wp_create_user($username, $password, $email);
+        if (is_wp_error($wpUserId)) {
+            return new \WP_REST_Response(['success' => false, 'message' => $wpUserId->get_error_message()], 500);
+        }
+
+        // Always assign the minimal WordPress role
+        $wpUser = new \WP_User($wpUserId);
+        $wpUser->set_role('subscriber');
+
+        // Sarah tenant role is always 'member' for end-customers
+        $this->userTenants->associate($wpUserId, $tenantId, 'member');
 
         if ($sendWelcome) {
             $this->sendWelcomeEmail($wpUser, $tenantId);
         }
 
-        return new \WP_REST_Response([
-            'success' => true,
-            'data'    => [
-                'wp_user_id' => $wpUserId,
-                'tenant_id'  => $tenantId,
-                'role'       => $role,
-            ],
-        ], 200);
+        return new \WP_REST_Response(['success' => true, 'data' => [
+            'wp_user_id' => $wpUserId,
+            'username'   => $username,
+            'email'      => $email,
+            'tenant_id'  => $tenantId,
+            'role'       => 'member',
+        ]], 200);
     }
 
-    /** List all user associations for a tenant. */
     public function index(\WP_REST_Request $request): \WP_REST_Response
     {
-        $tenantId = (int) $request->get_param('id');
-
-        if (! $this->tenants->findById($tenantId)) {
+        $tenant = $this->tenants->findByUuid((string) $request->get_param('uuid'));
+        if (! $tenant) {
             return new \WP_REST_Response(['success' => false, 'message' => 'Tenant not found'], 404);
         }
 
-        $associations = $this->userTenants->findByTenant($tenantId);
+        $associations = $this->userTenants->findByTenant((int) $tenant['id']);
 
-        // Enrich with basic WP user info
         $result = array_map(function (array $assoc) {
             $wpUser = get_userdata((int) $assoc['wp_user_id']);
             return array_merge($assoc, [
@@ -120,23 +117,25 @@ class UserTenantController
         return new \WP_REST_Response(['success' => true, 'data' => $result], 200);
     }
 
-    /** Deactivate a user-tenant association. */
     public function deactivate(\WP_REST_Request $request): \WP_REST_Response
     {
-        $tenantId = (int) $request->get_param('id');
-        $wpUserId = (int) $request->get_param('wp_user_id');
+        $tenant = $this->tenants->findByUuid((string) $request->get_param('uuid'));
+        if (! $tenant) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Tenant not found'], 404);
+        }
 
-        $this->userTenants->deactivate($wpUserId, $tenantId);
+        $wpUserId = (int) $request->get_param('wp_user_id');
+        $this->userTenants->deactivate($wpUserId, (int) $tenant['id']);
         return new \WP_REST_Response(['success' => true, 'message' => 'Association deactivated'], 200);
     }
 
     private function sendWelcomeEmail(\WP_User $wpUser, int $tenantId): void
     {
         $rendered = $this->emailTemplates->render('welcome', [
-            'name'        => $wpUser->display_name ?: $wpUser->user_login,
-            'username'    => $wpUser->user_login,
-            'site_url'    => get_site_url(),
-            'trial_days'  => '14',
+            'name'       => $wpUser->display_name ?: $wpUser->user_login,
+            'username'   => $wpUser->user_login,
+            'site_url'   => get_site_url(),
+            'trial_days' => '14',
         ]);
 
         if ($rendered && $wpUser->user_email) {
