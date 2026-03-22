@@ -36,14 +36,28 @@ class SettingsController
             'success' => true,
             'data'    => [
                 'widget_enabled' => $this->repo->get('widget_enabled', '1') === '1',
+                'server_url'     => $this->repo->get('server_url', ''),
+                'account_key'    => $this->repo->get('account_key', ''),
+                'site_key'       => $this->repo->get('site_key', ''),
             ],
         ], 200);
     }
 
     public function update(WP_REST_Request $request): WP_REST_Response
     {
-        $enabled = filter_var($request['widget_enabled'] ?? true, FILTER_VALIDATE_BOOLEAN);
-        $this->repo->set('widget_enabled', $enabled ? '1' : '0');
+        if (isset($request['widget_enabled'])) {
+            $enabled = filter_var($request['widget_enabled'], FILTER_VALIDATE_BOOLEAN);
+            $this->repo->set('widget_enabled', $enabled ? '1' : '0');
+        }
+        if (isset($request['server_url'])) {
+            $this->repo->set('server_url', trim((string) $request['server_url']));
+        }
+        if (isset($request['account_key'])) {
+            $this->repo->set('account_key', trim((string) $request['account_key']));
+        }
+        if (isset($request['site_key'])) {
+            $this->repo->set('site_key', trim((string) $request['site_key']));
+        }
         return new WP_REST_Response(['success' => true], 200);
     }
 }

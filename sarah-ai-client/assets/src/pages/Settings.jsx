@@ -2,23 +2,43 @@ import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../api/client.js';
 
 export default function Settings() {
-  const [enabled, setEnabled] = useState(true);
+  const [form, setForm]     = useState({ widget_enabled: true, server_url: '', account_key: '', site_key: '' });
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]   = useState(false);
+  const [saved, setSaved]     = useState(false);
 
   useEffect(() => {
     apiFetch('widget-settings')
-      .then(res => { if (res.success) setEnabled(res.data.widget_enabled); })
+      .then(res => {
+        if (res.success) {
+          setForm({
+            widget_enabled: res.data.widget_enabled,
+            server_url:     res.data.server_url     || '',
+            account_key:    res.data.account_key    || '',
+            site_key:       res.data.site_key       || '',
+          });
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   function handleToggle() {
-    const next = !enabled;
-    setEnabled(next);
+    setForm(prev => ({ ...prev, widget_enabled: !prev.widget_enabled }));
+  }
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  }
+
+  function handleSave(e) {
+    e.preventDefault();
     setSaving(true);
-    apiFetch('widget-settings', 'POST', { widget_enabled: next })
-      .catch(() => setEnabled(!next))
+    setSaved(false);
+    apiFetch('widget-settings', 'POST', form)
+      .then(() => setSaved(true))
+      .catch(() => {})
       .finally(() => setSaving(false));
   }
 
@@ -31,30 +51,92 @@ export default function Settings() {
         <p className="text-muted small mb-0">Configure the Sarah AI chat widget.</p>
       </div>
 
-      <div className="card border-0 shadow-sm">
-        <div className="card-header bg-white border-bottom">
-          <h6 className="mb-0 fw-semibold">Chat Widget</h6>
-        </div>
-        <div className="card-body">
-          <div className="d-flex align-items-center justify-content-between">
-            <div>
-              <div className="fw-semibold small">Enable Chat Widget</div>
-              <div className="text-muted small">Show the floating chat button on the website frontend.</div>
+      <form onSubmit={handleSave}>
+        {/* Widget enable toggle */}
+        <div className="card border-0 shadow-sm mb-3">
+          <div className="card-header bg-white border-bottom">
+            <h6 className="mb-0 fw-semibold">Chat Widget</h6>
+          </div>
+          <div className="card-body">
+            <div className="d-flex align-items-center justify-content-between">
+              <div>
+                <div className="fw-semibold small">Enable Chat Widget</div>
+                <div className="text-muted small">Show the floating chat button on the website frontend.</div>
+              </div>
+              <div className="form-check form-switch mb-0">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  checked={form.widget_enabled}
+                  onChange={handleToggle}
+                  disabled={saving}
+                  style={{ cursor: saving ? 'wait' : 'pointer', width: '2.5em', height: '1.25em' }}
+                />
+              </div>
             </div>
-            <div className="form-check form-switch mb-0">
+          </div>
+        </div>
+
+        {/* Server connection */}
+        <div className="card border-0 shadow-sm mb-3">
+          <div className="card-header bg-white border-bottom">
+            <h6 className="mb-0 fw-semibold">Server Connection</h6>
+          </div>
+          <div className="card-body">
+            <p className="text-muted small mb-3">
+              Enter the credentials provided by your Sarah AI platform administrator.
+            </p>
+
+            <div className="mb-3">
+              <label className="form-label fw-semibold small">Server URL</label>
               <input
-                className="form-check-input"
-                type="checkbox"
-                role="switch"
-                checked={enabled}
-                onChange={handleToggle}
+                type="url"
+                className="form-control form-control-sm"
+                name="server_url"
+                value={form.server_url}
+                onChange={handleChange}
+                placeholder="https://your-server.example.com/wp-json/sarah-ai-server/v1"
                 disabled={saving}
-                style={{ cursor: saving ? 'wait' : 'pointer', width: '2.5em', height: '1.25em' }}
+              />
+              <div className="form-text">Base URL of the sarah-ai-server REST API.</div>
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label fw-semibold small">Account Key</label>
+              <input
+                type="text"
+                className="form-control form-control-sm font-monospace"
+                name="account_key"
+                value={form.account_key}
+                onChange={handleChange}
+                placeholder="Paste your account key here"
+                disabled={saving}
+              />
+            </div>
+
+            <div className="mb-0">
+              <label className="form-label fw-semibold small">Site Key</label>
+              <input
+                type="text"
+                className="form-control form-control-sm font-monospace"
+                name="site_key"
+                value={form.site_key}
+                onChange={handleChange}
+                placeholder="Paste your site key here"
+                disabled={saving}
               />
             </div>
           </div>
         </div>
-      </div>
+
+        <div className="d-flex align-items-center gap-2">
+          <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
+            {saving ? 'Saving…' : 'Save Settings'}
+          </button>
+          {saved && <span className="text-success small">Saved.</span>}
+        </div>
+      </form>
     </>
   );
 }

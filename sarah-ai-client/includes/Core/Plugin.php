@@ -73,6 +73,11 @@ class Plugin
         wp_localize_script('sarah-ai-client-widget', 'SarahAiWidget', [
             'quickQuestions' => $quickQuestionsRepo->allEnabled(),
             'settings'       => $settingsRepo->getPublishedSettings(),
+            'connection'     => [
+                'server_url'  => $settingsRepo->get('server_url', ''),
+                'account_key' => $settingsRepo->get('account_key', ''),
+                'site_key'    => $settingsRepo->get('site_key', ''),
+            ],
         ]);
     }
 
