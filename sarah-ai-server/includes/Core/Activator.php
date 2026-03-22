@@ -12,6 +12,7 @@ use SarahAiServer\DB\SiteTable;
 use SarahAiServer\DB\SiteTokenTable;
 use SarahAiServer\DB\SubscriptionTable;
 use SarahAiServer\DB\TenantTable;
+use SarahAiServer\DB\AccountKeyTable;
 use SarahAiServer\DB\KnowledgeResourceTable;
 use SarahAiServer\DB\UsageLogTable;
 use SarahAiServer\DB\UserTenantTable;
@@ -37,6 +38,7 @@ class Activator
         EmailTemplateTable::create();
         UsageLogTable::create();
         KnowledgeResourceTable::create();
+        AccountKeyTable::create();
 
         // Seed core menu items and baseline data
         (new MenuRepository())->ensureCoreItems();

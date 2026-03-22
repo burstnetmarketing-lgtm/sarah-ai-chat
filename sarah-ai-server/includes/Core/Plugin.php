@@ -18,10 +18,17 @@ use SarahAiServer\DB\SiteTable;
 use SarahAiServer\DB\SiteTokenTable;
 use SarahAiServer\DB\SubscriptionTable;
 use SarahAiServer\DB\TenantTable;
+use SarahAiServer\DB\AccountKeyTable;
 use SarahAiServer\DB\KnowledgeResourceTable;
 use SarahAiServer\DB\UsageLogTable;
 use SarahAiServer\DB\UserTenantTable;
+use SarahAiServer\Api\AccountKeyController;
+use SarahAiServer\Api\AgentController;
 use SarahAiServer\Api\KnowledgeController;
+use SarahAiServer\Api\SiteController;
+use SarahAiServer\Api\SiteTokenController;
+use SarahAiServer\Api\TenantController;
+use SarahAiServer\Api\UserTenantController;
 use SarahAiServer\Infrastructure\MenuRepository;
 
 class Plugin
@@ -42,6 +49,7 @@ class Plugin
         EmailTemplateTable::create();
         UsageLogTable::create();
         KnowledgeResourceTable::create();
+        AccountKeyTable::create();
 
         // Seed baseline data (idempotent)
         Seeder::run();
@@ -53,6 +61,12 @@ class Plugin
         add_action('rest_api_init', [$controller, 'registerRoutes']);
         add_action('rest_api_init', [(new LogController()), 'registerRoutes']);
         add_action('rest_api_init', [(new KnowledgeController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new TenantController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new UserTenantController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new SiteController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new AccountKeyController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new SiteTokenController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new AgentController()), 'registerRoutes']);
 
         if (! is_admin()) {
             return;

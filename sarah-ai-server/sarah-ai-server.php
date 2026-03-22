@@ -34,6 +34,7 @@ require_once SARAH_AI_SERVER_PATH . 'includes/DB/SubscriptionTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/EmailTemplateTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/UsageLogTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/KnowledgeResourceTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/AccountKeyTable.php';
 
 // Infrastructure
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/MenuRepository.php';
@@ -47,6 +48,9 @@ require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/PlanRepository.php'
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/SubscriptionRepository.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/EmailTemplateRepository.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/KnowledgeResourceRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/AccountKeyRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/SiteAgentRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/CredentialValidator.php';
 
 // Admin
 require_once SARAH_AI_SERVER_PATH . 'includes/Admin/DashboardPage.php';
@@ -56,6 +60,12 @@ require_once SARAH_AI_SERVER_PATH . 'includes/Admin/AdminMenu.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/MenuItemsController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/LogController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/KnowledgeController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/TenantController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/UserTenantController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/SiteController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/AccountKeyController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/SiteTokenController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/AgentController.php';
 
 // Core
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Logger.php';
