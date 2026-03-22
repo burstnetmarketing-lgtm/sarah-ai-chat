@@ -4,7 +4,7 @@ import TypingIndicator from './TypingIndicator.jsx';
 const quickQuestions  = (window.SarahAiWidget?.quickQuestions || []).map(q => q.question);
 const welcomeMessage  = window.SarahAiWidget?.settings?.welcomeMessage || 'How can I help you today?';
 
-export default function MessageArea({ messages, isTyping, onQuickQuestion }) {
+export default function MessageArea({ messages, isTyping, onQuickQuestion, onRetry }) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -37,8 +37,17 @@ export default function MessageArea({ messages, isTyping, onQuickQuestion }) {
   return (
     <div className="sac-messages">
       {messages.map(msg => (
-        <div key={msg.id} className={`sac-bubble sac-bubble-${msg.type}`}>
+        <div key={msg.id} className={`sac-bubble sac-bubble-${msg.type}${msg.isError ? ' sac-bubble-error' : ''}`}>
           {msg.text}
+          {msg.isError && msg.retryText && onRetry && (
+            <button
+              className="sac-retry-btn"
+              onClick={() => onRetry(msg.retryText)}
+              aria-label="Retry sending message"
+            >
+              ↺ Try again
+            </button>
+          )}
         </div>
       ))}
       {isTyping && <TypingIndicator />}
