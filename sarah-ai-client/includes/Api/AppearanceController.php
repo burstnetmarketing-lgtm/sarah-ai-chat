@@ -31,6 +31,9 @@ class AppearanceController
         register_rest_route('sarah-ai-client/v1', '/appearance/discard', [
             ['methods' => 'POST', 'callback' => [$this, 'discard'], 'permission_callback' => [$this, 'can']],
         ]);
+        register_rest_route('sarah-ai-client/v1', '/appearance/reset', [
+            ['methods' => 'POST', 'callback' => [$this, 'reset'], 'permission_callback' => [$this, 'can']],
+        ]);
     }
 
     public function can(): bool
@@ -67,6 +70,12 @@ class AppearanceController
     public function discard(WP_REST_Request $request): WP_REST_Response
     {
         $this->repo->discardDraft();
+        return new WP_REST_Response(['success' => true, 'data' => $this->repo->getAllAppearance()], 200);
+    }
+
+    public function reset(WP_REST_Request $request): WP_REST_Response
+    {
+        $this->repo->resetToDefaults();
         return new WP_REST_Response(['success' => true, 'data' => $this->repo->getAllAppearance()], 200);
     }
 }

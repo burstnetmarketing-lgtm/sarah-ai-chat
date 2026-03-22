@@ -76,3 +76,4 @@
 0019 Fixed widget positioning gap and added mobile fullscreen mode; fixed PHP fatal error in enqueueWidget.
 0020 Expanded appearance settings to 6 tabs with per-element color/size controls and full-height sticky live preview.
 0021 Fixed Publish and Discard buttons by adding SettingsTable::create() to Plugin::boot() so draft columns exist.
+0022 Added Reset to Default button with navy+yellow brand theme; added /appearance/reset endpoint.

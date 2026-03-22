@@ -30,10 +30,10 @@ class SettingsRepository
         'widget_width'       => '360',
         'widget_height'      => '500',
         'widget_position'    => 'right',
-        'launcher_bg_color'  => '#2563eb',
+        'launcher_bg_color'  => '#1a3460',
         'launcher_icon'      => 'bubble',
         'launcher_image'     => '',
-        'header_bg_color'    => '#2563eb',
+        'header_bg_color'    => '#1a3460',
         'header_text'        => 'Sarah Assistant',
         'header_text_color'  => '#ffffff',
         'header_font_family' => 'inherit',
@@ -41,14 +41,14 @@ class SettingsRepository
         'close_btn_size'     => '16',
         'welcome_message'    => 'Hi 👋 How can I help you today?',
         'msg_area_bg'        => '#f8fafc',
-        'bubble_user_bg'     => '#2563eb',
-        'bubble_user_text'   => '#ffffff',
+        'bubble_user_bg'     => '#f5c518',
+        'bubble_user_text'   => '#1a3460',
         'bubble_ai_bg'       => '#ffffff',
         'bubble_ai_text'     => '#1e293b',
-        'send_bg_color'      => '#2563eb',
-        'qq_border_color'    => '#2563eb',
-        'qq_text_color'      => '#2563eb',
-        'qq_hover_bg'        => '#2563eb',
+        'send_bg_color'      => '#f5c518',
+        'qq_border_color'    => '#1a3460',
+        'qq_text_color'      => '#1a3460',
+        'qq_hover_bg'        => '#fffbeb',
         'qq_border_radius'   => '20',
     ];
 
@@ -209,6 +209,41 @@ class SettingsRepository
                 ],
                 ['setting_key' => $key]
             );
+        }
+    }
+
+    public function resetToDefaults(): void
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . SettingsTable::TABLE;
+        $now   = current_time('mysql');
+
+        foreach (self::APPEARANCE_KEYS as $key) {
+            $value = self::APPEARANCE_DEFAULTS[$key];
+            $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE setting_key = %s", $key));
+            if ($exists) {
+                $wpdb->update(
+                    $table,
+                    [
+                        'setting_value'    => $value,
+                        'published_at'     => $now,
+                        'draft_value'      => null,
+                        'draft_updated_at' => null,
+                        'updated_at'       => $now,
+                    ],
+                    ['setting_key' => $key]
+                );
+            } else {
+                $wpdb->insert($table, [
+                    'setting_key'      => $key,
+                    'setting_value'    => $value,
+                    'published_at'     => $now,
+                    'draft_value'      => null,
+                    'draft_updated_at' => null,
+                    'created_at'       => $now,
+                    'updated_at'       => $now,
+                ]);
+            }
         }
     }
 

@@ -13,24 +13,24 @@
   line-height: 1.5;
 
   /* ── CSS Variables (overridden by JS from published settings) ── */
-  --sac-launcher-bg:      #2563eb;
-  --sac-launcher-shadow:  rgba(37, 99, 235, 0.45);
-  --sac-launcher-shadow2: rgba(37, 99, 235, 0.55);
+  --sac-launcher-bg:      #1a3460;
+  --sac-launcher-shadow:  rgba(26, 52, 96, 0.45);
+  --sac-launcher-shadow2: rgba(26, 52, 96, 0.55);
   --sac-widget-width:     360px;
   --sac-widget-height:    500px;
-  --sac-header-bg:        #2563eb;
+  --sac-header-bg:        #1a3460;
   --sac-header-text:      #ffffff;
   --sac-close-color:      #ffffff;
   --sac-close-size:       16px;
   --sac-msg-bg:           #f8fafc;
-  --sac-bubble-user-bg:   #2563eb;
-  --sac-bubble-user-text: #ffffff;
+  --sac-bubble-user-bg:   #f5c518;
+  --sac-bubble-user-text: #1a3460;
   --sac-bubble-ai-bg:     #ffffff;
   --sac-bubble-ai-text:   #1e293b;
-  --sac-send-bg:          #2563eb;
-  --sac-qq-border:        #2563eb;
-  --sac-qq-text:          #2563eb;
-  --sac-qq-hover:         #2563eb;
+  --sac-send-bg:          #f5c518;
+  --sac-qq-border:        #1a3460;
+  --sac-qq-text:          #1a3460;
+  --sac-qq-hover:         #fffbeb;
   --sac-qq-radius:        20px;
 }
 

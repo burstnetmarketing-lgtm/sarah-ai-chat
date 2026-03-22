@@ -7,10 +7,10 @@ const DEFAULTS = {
   widget_width:       '360',
   widget_height:      '500',
   widget_position:    'right',
-  launcher_bg_color:  '#2563eb',
+  launcher_bg_color:  '#1a3460',
   launcher_icon:      'bubble',
   launcher_image:     '',
-  header_bg_color:    '#2563eb',
+  header_bg_color:    '#1a3460',
   header_text:        'Sarah Assistant',
   header_text_color:  '#ffffff',
   header_font_family: 'inherit',
@@ -18,14 +18,14 @@ const DEFAULTS = {
   close_btn_size:     '16',
   welcome_message:    'Hi 👋 How can I help you today?',
   msg_area_bg:        '#f8fafc',
-  bubble_user_bg:     '#2563eb',
-  bubble_user_text:   '#ffffff',
+  bubble_user_bg:     '#f5c518',
+  bubble_user_text:   '#1a3460',
   bubble_ai_bg:       '#ffffff',
   bubble_ai_text:     '#1e293b',
-  send_bg_color:      '#2563eb',
-  qq_border_color:    '#2563eb',
-  qq_text_color:      '#2563eb',
-  qq_hover_bg:        '#2563eb',
+  send_bg_color:      '#f5c518',
+  qq_border_color:    '#1a3460',
+  qq_text_color:      '#1a3460',
+  qq_hover_bg:        '#fffbeb',
   qq_border_radius:   '20',
 };
 
@@ -223,7 +223,7 @@ function SelectRow({ label, value, onChange, options }) {
 
 /* ── Tab Content Components ────────────────────────────────── */
 
-function TabGeneral({ form, update, canPublish, isDirty, saving, publishing, onSaveDraft, onPublish, onDiscard }) {
+function TabGeneral({ form, update, canPublish, isDirty, saving, publishing, resetting, onSaveDraft, onPublish, onDiscard, onReset }) {
   return (
     <>
       <div className="card border-0 shadow-sm mb-3">
@@ -276,6 +276,18 @@ function TabGeneral({ form, update, canPublish, isDirty, saving, publishing, onS
           </div>
           <p className="text-muted mt-2 mb-0" style={{ fontSize: '11px' }}>
             Save Draft stores changes. Publish makes them visible to visitors.
+          </p>
+        </div>
+      </div>
+
+      <div className="card border-0 shadow-sm mb-3">
+        <div className="card-header bg-white border-bottom py-2 fw-semibold small">Reset</div>
+        <div className="card-body py-3 px-3">
+          <button className="btn btn-sm btn-outline-danger" onClick={onReset} disabled={resetting}>
+            {resetting ? 'Resetting...' : '↺ Reset to Default Theme'}
+          </button>
+          <p className="text-muted mt-2 mb-0" style={{ fontSize: '11px' }}>
+            Restores the original navy &amp; yellow brand colors and publishes immediately.
           </p>
         </div>
       </div>
@@ -446,6 +458,7 @@ export default function AppearanceSettings() {
   const [loading, setLoading]       = useState(true);
   const [saving, setSaving]         = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [resetting, setResetting]   = useState(false);
 
   useEffect(() => {
     apiFetch('appearance')
@@ -509,9 +522,25 @@ export default function AppearanceSettings() {
       .catch(() => {});
   }
 
+  function handleReset() {
+    if (!window.confirm('Reset all appearance settings to defaults? This will publish the default theme immediately.')) return;
+    setResetting(true);
+    apiFetch('appearance/reset', 'POST')
+      .then(res => {
+        if (!res.success) return;
+        const pub = { ...DEFAULTS, ...res.data.published };
+        setForm(pub);
+        setSavedDraft(pub);
+        setPublished(pub);
+        setCanPublish(false);
+      })
+      .catch(() => {})
+      .finally(() => setResetting(false));
+  }
+
   if (loading) return <p className="text-muted small p-3">Loading...</p>;
 
-  const tabProps = { form, update, canPublish, isDirty, saving, publishing, onSaveDraft: handleSaveDraft, onPublish: handlePublish, onDiscard: handleDiscard };
+  const tabProps = { form, update, canPublish, isDirty, saving, publishing, resetting, onSaveDraft: handleSaveDraft, onPublish: handlePublish, onDiscard: handleDiscard, onReset: handleReset };
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0, margin: '-20px -20px -20px 0' }}>
