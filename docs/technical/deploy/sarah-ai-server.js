@@ -22,11 +22,11 @@ module.exports = {
   targets: {
     win32: {
       // Example: C:\\Users\\YourUser\\Local Sites\\mysite\\app\\public\\wp-content\\plugins
-      localWpPluginsPath: 'C:\\Users\\Marketing\\Local Sites\\sarah\\app\\public\\wp-content\\plugins',
+      localWpPluginsPath: 'C:\\Users\\Marketing\\Local Sites\\sarah-server\\app\\public\\wp-content\\plugins',
     },
     darwin: {
       // Example: /Users/youruser/Local Sites/mysite/app/public/wp-content/plugins
-      localWpPluginsPath: '/Users/youruser/Local Sites/sarah-server/app/public/wp-content/plugins',
+      localWpPluginsPath: '/Users/youruser/Local Sites/sarah-client/app/public/wp-content/plugins',
     },
   },
 };

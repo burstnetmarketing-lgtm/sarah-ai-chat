@@ -1,0 +1,33 @@
+// ── Bootstrap foundation (needed before techmin vars) ──────
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/variables-dark';
+@import 'bootstrap/scss/maps';
+
+// ── Techmin custom variables & theme ───────────────────────
+@import 'techmin/variables-custom';
+@import 'techmin/theme-mode';
+
+// ── Bootstrap full ─────────────────────────────────────────
+@import 'bootstrap/scss/bootstrap';
+
+// ── Bootstrap Icons ────────────────────────────────────────
+@import 'bootstrap-icons/font/bootstrap-icons';
+
+// ── Simplebar ──────────────────────────────────────────────
+@import 'simplebar-react/dist/simplebar.min.css';
+
+// ── Techmin structure ──────────────────────────────────────
+@import 'techmin/sidenav';
+@import 'techmin/topbar';
+@import 'techmin/footer';
+
+// ── Brand overrides (navy + yellow) ───────────────────────
+html[data-menu-color="brand"] {
+  --bs-menu-bg:                  #1a3460;
+  --bs-menu-item-color:          rgba(255, 255, 255, 0.55);
+  --bs-menu-item-hover-color:    rgba(255, 255, 255, 0.9);
+  --bs-menu-item-active-color:   #f5c518;
+  --bs-menu-item-active-bg:      rgba(245, 197, 24, 0.12);
+  --bs-menu-condensed-link-bg:   #122448;
+}

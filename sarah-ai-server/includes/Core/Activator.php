@@ -12,6 +12,6 @@ class Activator
     {
         SettingsTable::create();
         MenuTable::create();
-        (new MenuRepository())->seedDefaults();
+        (new MenuRepository())->ensureCoreItems();
     }
 }

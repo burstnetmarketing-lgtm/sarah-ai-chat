@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import Sidebar from './components/Sidebar.jsx';
-import Topbar from './components/Topbar.jsx';
+import { LayoutProvider } from './context/LayoutContext.jsx';
+import AdminLayout from './layouts/AdminLayout.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import MenuManager from './pages/MenuManager.jsx';
 import Log from './pages/Log.jsx';
@@ -31,17 +31,10 @@ export default function App() {
   const pageTitle     = LABELS[view] ?? view.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
   return (
-    <div className="wrapper">
-      <Sidebar activeView={view} onNavigate={navigate} />
-      <Topbar title={pageTitle} onNavigate={navigate} />
-      <div className="content-page">
-        <div className="content">
-          <PageComponent />
-        </div>
-        <footer className="admin-footer">
-          &copy; {new Date().getFullYear()} Sarah AI Server
-        </footer>
-      </div>
-    </div>
+    <LayoutProvider>
+      <AdminLayout title={pageTitle} onNavigate={navigate} activeView={view}>
+        <PageComponent />
+      </AdminLayout>
+    </LayoutProvider>
   );
 }
