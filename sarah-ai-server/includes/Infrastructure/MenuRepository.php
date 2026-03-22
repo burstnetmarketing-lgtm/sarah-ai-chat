@@ -16,8 +16,8 @@ class MenuRepository
         $this->insertIfMissing('subscriptions', 'Subscriptions', 'subscriptions', null, false, false);
         $this->insertIfMissing('usage',         'Usage',         'usage',         null, false, false);
         $this->insertIfMissing('agents',        'Agents',        'agents',        null, false, false);
+        $this->insertIfMissing('settings',      'Settings',      'settings',      null, false, false);
         $this->removeIfExists('menu-manager');
-        $this->removeIfExists('settings');
     }
 
     public function allEnabled(): array

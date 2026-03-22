@@ -39,6 +39,10 @@ export const listPlans        = ()                    => apiFetch('plans');
 export const getPlanAgents    = (planId)              => apiFetch(`plans/${planId}/agents`);
 export const syncPlanAgents   = (planId, agentIds)    => apiFetch(`plans/${planId}/agents`, 'POST', { agent_ids: agentIds });
 
+// Platform Settings
+export const getPlatformSettings    = ()     => apiFetch('platform-settings');
+export const updatePlatformSettings = (data) => apiFetch('platform-settings', 'POST', data);
+
 // Usage
 export const getUsage        = (params = {}) => apiFetch('usage?' + new URLSearchParams(params).toString());
 export const getUsageSummary = (params = {}) => apiFetch('usage/summary?' + new URLSearchParams(params).toString());

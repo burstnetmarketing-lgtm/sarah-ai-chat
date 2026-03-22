@@ -85,6 +85,7 @@ require_once SARAH_AI_SERVER_PATH . 'includes/Api/SubscriptionController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/ChatController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/SessionController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/UsageController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/PlatformSettingsController.php';
 
 // Core
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Logger.php';

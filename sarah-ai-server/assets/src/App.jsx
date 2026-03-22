@@ -10,6 +10,7 @@ import Plans from './pages/Plans.jsx';
 import Subscriptions from './pages/Subscriptions.jsx';
 import Usage from './pages/Usage.jsx';
 import Agents from './pages/Agents.jsx';
+import Settings from './pages/Settings.jsx';
 
 const VIEWS = {
   dashboard:       Dashboard,
@@ -21,6 +22,7 @@ const VIEWS = {
   'subscriptions': Subscriptions,
   'usage':         Usage,
   'agents':        Agents,
+  'settings':      Settings,
 };
 
 const LABELS = {
@@ -33,6 +35,7 @@ const LABELS = {
   'subscriptions': 'Subscriptions',
   'usage':         'Usage',
   'agents':        'Agents',
+  'settings':      'Settings',
 };
 
 function parseHash() {
