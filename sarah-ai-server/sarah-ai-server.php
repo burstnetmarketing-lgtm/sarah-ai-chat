@@ -20,15 +20,46 @@ define('SARAH_AI_SERVER_URL', plugin_dir_url(__FILE__));
 
 require_once SARAH_AI_SERVER_PATH . 'update.php';
 
+// DB Tables
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/MenuTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/SettingsTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/TenantTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/UserTenantTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/SiteTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/SiteTokenTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/AgentTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/SiteAgentTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/PlanTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/SubscriptionTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/EmailTemplateTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/UsageLogTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/KnowledgeResourceTable.php';
+
+// Infrastructure
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/MenuRepository.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/SettingsRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/TenantRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/UserTenantRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/SiteRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/SiteTokenRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/AgentRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/PlanRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/SubscriptionRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/EmailTemplateRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/KnowledgeResourceRepository.php';
+
+// Admin
 require_once SARAH_AI_SERVER_PATH . 'includes/Admin/DashboardPage.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Admin/AdminMenu.php';
+
+// API
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/MenuItemsController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/LogController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/KnowledgeController.php';
+
+// Core
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Logger.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Core/Seeder.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Activator.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Plugin.php';
 
