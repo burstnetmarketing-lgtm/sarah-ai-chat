@@ -97,6 +97,14 @@ class QuickSetupController
             return new \WP_REST_Response(['success' => false, 'message' => 'site_name and site_url are required'], 400);
         }
 
+        if ($whmcsKey === '') {
+            return new \WP_REST_Response(['success' => false, 'message' => 'whmcs_key is required'], 422);
+        }
+
+        if ($openAiKey === '') {
+            return new \WP_REST_Response(['success' => false, 'message' => 'openai_api_key is required'], 422);
+        }
+
         // Enforce WHMCS key if platform requires it
         $whmcsRequired = $this->settings->get('whmcs_key_required', '0', 'platform') === '1';
         if ($whmcsRequired && $whmcsKey === '') {

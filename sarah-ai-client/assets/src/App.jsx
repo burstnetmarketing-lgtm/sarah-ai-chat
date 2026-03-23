@@ -9,6 +9,7 @@ import AppearanceSettings from './pages/AppearanceSettings.jsx';
 import Settings from './pages/Settings.jsx';
 import KnowledgeBase from './pages/KnowledgeBase.jsx';
 import QuickSetup from './pages/QuickSetup.jsx';
+import PublicApi from './pages/PublicApi.jsx';
 
 const VIEWS = {
   dashboard:        Dashboard,
@@ -18,6 +19,7 @@ const VIEWS = {
   'appearance':     AppearanceSettings,
   'settings':       Settings,
   'knowledge-base': KnowledgeBase,
+  'public-api':     PublicApi,
 };
 
 export default function App() {

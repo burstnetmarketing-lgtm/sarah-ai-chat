@@ -53,8 +53,8 @@ export default function QuickSetup() {
         body: JSON.stringify({
           site_name:      cfg.siteName || 'My Site',
           site_url:       cfg.siteUrl  || window.location.origin,
-          whmcs_key:      form.whmcs_key      || undefined,
-          openai_api_key: form.openai_api_key  || undefined,
+          whmcs_key:      form.whmcs_key,
+          openai_api_key: form.openai_api_key,
         }),
       });
 
@@ -176,42 +176,44 @@ export default function QuickSetup() {
               </div>
             )}
 
-            {/* WHMCS Key (optional) */}
+            {/* WHMCS Key (required) */}
             <div className="mb-3">
-              <label className="form-label fw-semibold small">WHMCS License Key <span className="text-muted">(optional)</span></label>
+              <label className="form-label fw-semibold small">WHMCS License Key <span className="text-danger">*</span></label>
               <input
                 type="password"
                 className="form-control form-control-sm font-monospace"
                 name="whmcs_key"
                 value={form.whmcs_key}
                 onChange={handleChange}
-                placeholder="Leave blank for 30-day trial"
+                placeholder="Your WHMCS license key"
                 autoComplete="new-password"
+                required
                 disabled={step === 'loading'}
               />
-              <div className="form-text">Enter to activate the Customer plan. Leave blank for a 30-day trial.</div>
+              <div className="form-text">Required to activate your service.</div>
             </div>
 
-            {/* OpenAI API Key (optional) */}
+            {/* OpenAI API Key (required) */}
             <div className="mb-4">
-              <label className="form-label fw-semibold small">OpenAI API Key <span className="text-muted">(optional)</span></label>
+              <label className="form-label fw-semibold small">OpenAI API Key <span className="text-danger">*</span></label>
               <input
                 type="password"
                 className="form-control form-control-sm font-monospace"
                 name="openai_api_key"
                 value={form.openai_api_key}
                 onChange={handleChange}
-                placeholder="sk-… (uses platform key if left blank)"
+                placeholder="sk-…"
                 autoComplete="new-password"
+                required
                 disabled={step === 'loading'}
               />
-              <div className="form-text">Chat messages will be billed to this key. Falls back to the platform's shared key if not set.</div>
+              <div className="form-text">Chat messages will be billed to this key.</div>
             </div>
 
             <button
               type="submit"
               className="btn btn-primary w-100"
-              disabled={step === 'loading' || !form.server_url || !form.platform_key}
+              disabled={step === 'loading' || !form.server_url || !form.platform_key || !form.whmcs_key || !form.openai_api_key}
             >
               {step === 'loading' ? (
                 <><span className="spinner-border spinner-border-sm me-2" />Connecting…</>

@@ -38,6 +38,8 @@ require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Logger.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Activator.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Deactivator.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Plugin.php';
+require_once SARAH_AI_CLIENT_PATH . 'includes/Core/PublicApiService.php';
+require_once SARAH_AI_CLIENT_PATH . 'public-api.php';
 
 register_activation_hook(SARAH_AI_CLIENT_FILE, ['SarahAiClient\\Core\\Activator', 'activate']);
 register_deactivation_hook(SARAH_AI_CLIENT_FILE, ['SarahAiClient\\Core\\Deactivator', 'deactivate']);
