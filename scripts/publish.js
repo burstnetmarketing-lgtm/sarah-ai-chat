@@ -101,7 +101,8 @@ async function publishRelease(slug, guid, releaseId) {
 // ── Publish one plugin ──────────────────────────
 async function publishPlugin(config) {
   const { pluginSlug, projectGuid } = config;
-  const log = [`Publish started: ${new Date().toISOString()}`, `Slug: ${pluginSlug}`];
+  const remoteSlug = config.remoteSlug || pluginSlug;
+  const log = [`Publish started: ${new Date().toISOString()}`, `Slug: ${pluginSlug}`, `Remote slug: ${remoteSlug}`];
 
   if (!projectGuid) {
     console.error(`Error: projectGuid is not set for "${pluginSlug}". Run publish again to enter it.`);
@@ -120,16 +121,16 @@ async function publishPlugin(config) {
   }
 
   log.push(`ZIP: ${path.basename(zipPath)}`);
-  console.log(`\nPublishing : ${pluginSlug}`);
+  console.log(`\nPublishing : ${pluginSlug}${remoteSlug !== pluginSlug ? ` → ${remoteSlug}` : ''}`);
   console.log(`ZIP        : ${path.basename(zipPath)}`);
 
   console.log('Uploading...');
-  const releaseId = await upload(pluginSlug, projectGuid, zipPath);
+  const releaseId = await upload(remoteSlug, projectGuid, zipPath);
   log.push(`Uploaded. release_id: ${releaseId}`);
   console.log(`Uploaded. release_id: ${releaseId}`);
 
   console.log('Publishing...');
-  await publishRelease(pluginSlug, projectGuid, releaseId);
+  await publishRelease(remoteSlug, projectGuid, releaseId);
   log.push('Published successfully.');
   log.push(`Done: ${new Date().toISOString()}`);
 
@@ -139,9 +140,10 @@ async function publishPlugin(config) {
 
 // ── Main ────────────────────────────────────────
 (async () => {
-  let all = await loadConfigs();
-  all = await ensureConfigs(all, true);
+  // 1. Load configs (slugs only — no GUID prompts yet)
+  const all = await loadConfigs();
 
+  // 2. Select which plugin(s) to publish
   let selected;
   if (publishAll) {
     selected = all;
@@ -155,6 +157,9 @@ async function publishPlugin(config) {
   } else {
     selected = await promptSelectConfig(all, 'plugin to publish');
   }
+
+  // 3. Ensure GUID only for the selected plugin(s)
+  selected = await ensureConfigs(selected, true);
 
   for (const config of selected) {
     await publishPlugin(config);

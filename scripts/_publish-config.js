@@ -22,13 +22,17 @@ function ask(rl, question) {
 }
 
 function saveConfig(filePath, config) {
+  const remoteSlugLine = config.remoteSlug
+    ? `  remoteSlug:  '${config.remoteSlug}',\n`
+    : '';
   const content =
     `// ${path.basename(filePath)}\n` +
     `// ${'─'.repeat(45)}\n` +
     `// Publish config for the ${config.pluginSlug} plugin.\n` +
     `// ${'─'.repeat(45)}\n\n` +
     `module.exports = {\n` +
-    `  pluginSlug: '${config.pluginSlug}',\n` +
+    `  pluginSlug:  '${config.pluginSlug}',\n` +
+    remoteSlugLine +
     `  projectGuid: '${config.projectGuid}',\n` +
     `};\n`;
   fs.writeFileSync(filePath, content, 'utf8');
