@@ -13,13 +13,14 @@ import { apiFetch } from '../api/client.js';
 export default function QuickSetup() {
   const cfg = window.SarahAiClientConfig || {};
 
-  // If config.php defines SARAH_AI_CLIENT_SERVER_URL, use it and hide the field.
-  const fixedServerUrl = cfg.serverUrl || '';
+  // If config.php defines these constants, use them and hide the fields.
+  const fixedServerUrl   = cfg.serverUrl   || '';
+  const fixedPlatformKey = cfg.platformKey || '';
 
   const [step, setStep]       = useState('form'); // 'form' | 'loading' | 'success' | 'error'
   const [form, setForm]       = useState({
     server_url:      fixedServerUrl,
-    platform_key:    '',
+    platform_key:    fixedPlatformKey,
     whmcs_key:       '',
     openai_api_key:  '',
     kb_link:         '',
@@ -158,21 +159,39 @@ export default function QuickSetup() {
               </div>
             )}
 
-            {/* Platform Key */}
+            {/* Platform Key — hidden when pre-configured via config.php */}
+            {!fixedPlatformKey && (
+              <div className="mb-3">
+                <label className="form-label fw-semibold small">Platform Key <span className="text-danger">*</span></label>
+                <input
+                  type="password"
+                  className="form-control form-control-sm font-monospace"
+                  name="platform_key"
+                  value={form.platform_key}
+                  onChange={handleChange}
+                  placeholder="Provided by your platform administrator"
+                  autoComplete="new-password"
+                  required
+                  disabled={step === 'loading'}
+                />
+                <div className="form-text">Used to authenticate this setup request with the server.</div>
+              </div>
+            )}
+
+            {/* Initial Knowledge Base URL (required) */}
             <div className="mb-3">
-              <label className="form-label fw-semibold small">Platform Key <span className="text-danger">*</span></label>
+              <label className="form-label fw-semibold small">Initial Knowledge Base URL <span className="text-danger">*</span></label>
               <input
-                type="password"
-                className="form-control form-control-sm font-monospace"
-                name="platform_key"
-                value={form.platform_key}
+                type="url"
+                className="form-control form-control-sm"
+                name="kb_link"
+                value={form.kb_link}
                 onChange={handleChange}
-                placeholder="Provided by your platform administrator"
-                autoComplete="new-password"
+                placeholder="https://yoursite.com/about"
                 required
                 disabled={step === 'loading'}
               />
-              <div className="form-text">Used to authenticate this setup request with the server.</div>
+              <div className="form-text">A webpage the AI will use as its first knowledge source. You can add more later.</div>
             </div>
 
             {/* WHMCS Key (optional) */}
@@ -192,7 +211,7 @@ export default function QuickSetup() {
             </div>
 
             {/* OpenAI API Key (optional) */}
-            <div className="mb-3">
+            <div className="mb-4">
               <label className="form-label fw-semibold small">OpenAI API Key <span className="text-muted">(optional)</span></label>
               <input
                 type="password"
@@ -207,25 +226,10 @@ export default function QuickSetup() {
               <div className="form-text">Chat messages will be billed to this key. Falls back to the platform's shared key if not set.</div>
             </div>
 
-            {/* Initial Knowledge Base Link (optional) */}
-            <div className="mb-4">
-              <label className="form-label fw-semibold small">Initial Knowledge Base URL <span className="text-muted">(optional)</span></label>
-              <input
-                type="url"
-                className="form-control form-control-sm"
-                name="kb_link"
-                value={form.kb_link}
-                onChange={handleChange}
-                placeholder="https://yoursite.com/about"
-                disabled={step === 'loading'}
-              />
-              <div className="form-text">A webpage the AI will use as its first knowledge source. You can add more later.</div>
-            </div>
-
             <button
               type="submit"
               className="btn btn-primary w-100"
-              disabled={step === 'loading' || !form.server_url || !form.platform_key}
+              disabled={step === 'loading' || !form.server_url || !form.platform_key || !form.kb_link}
             >
               {step === 'loading' ? (
                 <><span className="spinner-border spinner-border-sm me-2" />Connecting…</>
