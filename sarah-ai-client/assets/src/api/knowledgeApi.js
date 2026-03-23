@@ -7,7 +7,10 @@
  */
 
 function getConn() {
-  return window.SarahAiWidget?.connection || {};
+  // Admin panel uses SarahAiClientConfig; frontend widget uses SarahAiWidget
+  return window.SarahAiClientConfig?.connection
+      || window.SarahAiWidget?.connection
+      || {};
 }
 
 function requireConn() {

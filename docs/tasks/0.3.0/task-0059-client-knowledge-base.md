@@ -61,5 +61,17 @@ Routes under `/client/` prefix:
 ### Modified: `sarah-ai-client/assets/src/components/Sidebar.jsx`
 - Added ICONS map with `bi-database` for `knowledge-base`
 
+### Modified: `sarah-ai-client/includes/Admin/DashboardPage.php`
+- Added `connection` (server_url, account_key, site_key, platform_key) to `window.SarahAiClientConfig`
+- **Bug fix:** admin panel did not inject `SarahAiWidget.connection` — KB API calls were always failing with auth error
+
+### Modified: `sarah-ai-client/assets/src/api/knowledgeApi.js`
+- `getConn()` now falls back: `SarahAiClientConfig.connection` → `SarahAiWidget.connection`
+
+### Modified: `sarah-ai-server/assets/src/pages/ApiGuide.jsx`
+- Added `Client Knowledge Base` group (badge: client/cyan) with all 6 `/client/` endpoints
+- Added `BADGE_LABEL` map for proper label rendering (public / admin / client)
+- Updated Admin filter description to reflect client endpoints inclusion
+
 ## Commit
 0059

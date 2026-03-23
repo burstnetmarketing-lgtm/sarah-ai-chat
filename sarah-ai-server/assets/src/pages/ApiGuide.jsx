@@ -174,6 +174,26 @@ const GROUPS = [
       { method: 'POST', path: '/platform-settings', summary: 'Update platform settings.',     auth: 'WP Admin', params: [{ name: '...', type: 'object', req: false, desc: 'Key-value setting pairs' }], response: '{ success }' },
     ],
   },
+  {
+    id: 'client-knowledge',
+    label: 'Client Knowledge Base',
+    badge: 'bg-info',
+    description: 'KB management from the sarah-ai-client plugin. Auth: account_key + site_key + X-Sarah-Platform-Key header (server-to-server).',
+    endpoints: [
+      { method: 'GET',    path: '/client/knowledge-resource-types',          summary: 'List enabled resource types.',          auth: 'account_key + site_key + X-Sarah-Platform-Key', params: [], response: '{ success, types: [{type_key, label}] }' },
+      { method: 'GET',    path: '/client/knowledge-resources',               summary: 'List all KB resources for the site.',   auth: 'account_key + site_key + X-Sarah-Platform-Key', params: [], response: '{ success, data: [resource...] }' },
+      { method: 'POST',   path: '/client/knowledge-resources',               summary: 'Create a text or link resource.',       auth: 'account_key + site_key + X-Sarah-Platform-Key', params: [
+        { name: 'resource_type',  type: 'string', req: true,  desc: 'Enabled type key (e.g. text, link)' },
+        { name: 'title',          type: 'string', req: false, desc: 'Resource title' },
+        { name: 'source_content', type: 'string', req: true,  desc: 'Text content or URL' },
+        { name: 'content_group',  type: 'string', req: false, desc: 'Optional group label' },
+        { name: 'meta',           type: 'object', req: false, desc: 'Arbitrary metadata' },
+      ], response: '{ success, data: resource }' },
+      { method: 'DELETE', path: '/client/knowledge-resources/{uuid}',        summary: 'Soft-delete a resource.',               auth: 'account_key + site_key + X-Sarah-Platform-Key', params: [], response: '{ success }' },
+      { method: 'POST',   path: '/client/knowledge-resources/{uuid}/status', summary: 'Update resource status.',               auth: 'account_key + site_key + X-Sarah-Platform-Key', params: [{ name: 'status', type: 'string', req: true, desc: 'active | inactive | pending | archived' }], response: '{ success, data: resource }' },
+      { method: 'POST',   path: '/client/knowledge-resources/{uuid}/process', summary: 'Run processing pipeline (extract → chunk → embed).', auth: 'account_key + site_key + X-Sarah-Platform-Key', params: [], response: '{ success, chunks, message }' },
+    ],
+  },
 ];
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -269,13 +289,19 @@ function EndpointRow({ ep }) {
   );
 }
 
+const BADGE_LABEL = {
+  'bg-success': 'public',
+  'bg-primary': 'admin',
+  'bg-info':    'client',
+};
+
 function GroupPanel({ group }) {
   return (
     <div className="mb-4">
       <div className="d-flex align-items-center gap-2 mb-1">
         <h6 className="mb-0 fw-semibold">{group.label}</h6>
         <span className={`badge ${group.badge}`} style={{ fontSize: '0.65rem' }}>
-          {group.badge === 'bg-success' ? 'public' : 'admin'}
+          {BADGE_LABEL[group.badge] ?? 'other'}
         </span>
         <span className="text-muted small">({group.endpoints.length} endpoints)</span>
       </div>
@@ -297,8 +323,8 @@ export default function ApiGuide({ filter = 'all' }) {
 
   const visibleCount = visibleGroups.reduce((n, g) => n + g.endpoints.length, 0);
 
-  const filterLabel = filter === 'public' ? 'Public endpoints only.'
-                    : filter === 'admin'  ? 'Admin endpoints only (require WP login).'
+  const filterLabel = filter === 'public' ? 'Public endpoints only (no WP login — auth via account_key + site_key).'
+                    : filter === 'admin'  ? 'Admin & Client endpoints — require WP login or X-Sarah-Platform-Key.'
                     : 'All REST endpoints exposed by sarah-ai-server.';
 
   return (

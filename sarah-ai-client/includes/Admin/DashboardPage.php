@@ -29,14 +29,21 @@ class DashboardPage
 
     private function renderPage(): void
     {
-        $userName = $this->currentUserName();
-        $config   = [
+        $userName     = $this->currentUserName();
+        $settingsRepo = new \SarahAiClient\Infrastructure\SettingsRepository();
+        $config       = [
             'apiUrl'          => rest_url('sarah-ai-client/v1'),
             'nonce'           => wp_create_nonce('wp_rest'),
             'adminUrl'        => admin_url(),
             'userName'        => $userName,
             'initials'        => $this->userInitials($userName),
             'canManageMenus'  => current_user_can('manage_options'),
+            'connection'      => [
+                'server_url'   => $settingsRepo->get('server_url',   ''),
+                'account_key'  => $settingsRepo->get('account_key',  ''),
+                'site_key'     => $settingsRepo->get('site_key',     ''),
+                'platform_key' => $settingsRepo->get('platform_key', ''),
+            ],
         ];
         $appCss = esc_url(SARAH_AI_CLIENT_URL . 'assets/dist/app.css?ver=' . SARAH_AI_CLIENT_VERSION);
         $appJs  = esc_url(SARAH_AI_CLIENT_URL . 'assets/dist/app.js?ver=' . SARAH_AI_CLIENT_VERSION);
