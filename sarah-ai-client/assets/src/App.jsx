@@ -7,14 +7,16 @@ import Log from './pages/Log.jsx';
 import QuickQuestions from './pages/QuickQuestions.jsx';
 import AppearanceSettings from './pages/AppearanceSettings.jsx';
 import Settings from './pages/Settings.jsx';
+import KnowledgeBase from './pages/KnowledgeBase.jsx';
 
 const VIEWS = {
-  dashboard: Dashboard,
-  'menu-manager': MenuManager,
-  'log': Log,
+  dashboard:        Dashboard,
+  'menu-manager':   MenuManager,
+  'log':            Log,
   'quick-questions': QuickQuestions,
-  'appearance': AppearanceSettings,
-  'settings': Settings,
+  'appearance':     AppearanceSettings,
+  'settings':       Settings,
+  'knowledge-base': KnowledgeBase,
 };
 
 export default function App() {

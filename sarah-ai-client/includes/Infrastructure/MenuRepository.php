@@ -11,6 +11,7 @@ class MenuRepository
     public function ensureCoreItems(): void
     {
         $this->insertIfMissing('dashboard',       'Dashboard',       'dashboard',       null, false, false);
+        $this->insertIfMissing('knowledge-base',  'Knowledge Base',  'knowledge-base',  null, false, false);
         $this->insertIfMissing('quick-questions', 'Quick Questions', 'quick-questions', null, false, false);
         $this->insertIfMissing('appearance',      'Appearance',      'appearance',      null, false, false);
         $this->insertIfMissing('settings',        'Settings',        'settings',        null, false, false);

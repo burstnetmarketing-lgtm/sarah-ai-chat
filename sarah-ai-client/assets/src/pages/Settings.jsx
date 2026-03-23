@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../api/client.js';
 
 export default function Settings() {
-  const [form, setForm]     = useState({ widget_enabled: true, server_url: '', account_key: '', site_key: '', greeting_message: '' });
+  const [form, setForm]     = useState({ widget_enabled: true, server_url: '', account_key: '', site_key: '', platform_key: '', greeting_message: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
   const [saved, setSaved]     = useState(false);
@@ -16,6 +16,7 @@ export default function Settings() {
             server_url:       res.data.server_url       || '',
             account_key:      res.data.account_key      || '',
             site_key:         res.data.site_key         || '',
+            platform_key:     res.data.platform_key     || '',
             greeting_message: res.data.greeting_message || '',
           });
         }
@@ -127,6 +128,20 @@ export default function Settings() {
                 placeholder="Paste your site key here"
                 disabled={saving}
               />
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label fw-semibold small">Platform Key</label>
+              <input
+                type="text"
+                className="form-control form-control-sm font-monospace"
+                name="platform_key"
+                value={form.platform_key}
+                onChange={handleChange}
+                placeholder="Platform secret key provided by your administrator"
+                disabled={saving}
+              />
+              <div className="form-text">Used as <code>X-Sarah-Platform-Key</code> header for Knowledge Base sync.</div>
             </div>
 
             <div className="mb-0">

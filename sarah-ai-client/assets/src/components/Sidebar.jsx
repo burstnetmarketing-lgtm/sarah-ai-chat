@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../api/client.js';
 
+const ICONS = {
+  dashboard:        'bi-speedometer2',
+  'knowledge-base': 'bi-database',
+  'quick-questions':'bi-chat-left-text',
+  appearance:       'bi-palette',
+  settings:         'bi-gear',
+};
+
 export default function Sidebar({ activeView, onNavigate }) {
   const [parents, setParents] = useState([]);
 
@@ -29,12 +37,14 @@ function SidebarItem({ parent, activeView, onNavigate }) {
   const isChildActive = children.some(c => c.view_key === activeView);
   const collapseId = `sidebar-${parent.item_key}`;
 
+  const icon = ICONS[parent.view_key] ?? 'bi-circle';
+
   if (children.length === 0) {
     return (
       <li className="nav-item">
         <a href="#" className={`nav-link ${activeView === parent.view_key ? 'active' : ''}`}
            onClick={e => { e.preventDefault(); onNavigate(parent.view_key); }}>
-          <i className="bi bi-circle"></i> {parent.label}
+          <i className={`bi ${icon}`}></i> {parent.label}
         </a>
       </li>
     );
@@ -46,7 +56,7 @@ function SidebarItem({ parent, activeView, onNavigate }) {
          className={`nav-link ${isChildActive ? '' : 'collapsed'}`}
          data-bs-toggle="collapse"
          aria-expanded={isChildActive ? 'true' : 'false'}>
-        <i className="bi bi-circle"></i>
+        <i className={`bi ${icon}`}></i>
         {parent.label}
         <i className="bi bi-chevron-down sidebar-chevron ms-auto small"></i>
       </a>

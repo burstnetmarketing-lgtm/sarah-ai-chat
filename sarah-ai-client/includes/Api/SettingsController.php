@@ -39,6 +39,7 @@ class SettingsController
                 'server_url'      => $this->repo->get('server_url', ''),
                 'account_key'     => $this->repo->get('account_key', ''),
                 'site_key'        => $this->repo->get('site_key', ''),
+                'platform_key'    => $this->repo->get('platform_key', ''),
                 'greeting_message'=> $this->repo->get('greeting_message', ''),
             ],
         ], 200);
@@ -58,6 +59,9 @@ class SettingsController
         }
         if (isset($request['site_key'])) {
             $this->repo->set('site_key', trim((string) $request['site_key']));
+        }
+        if (isset($request['platform_key'])) {
+            $this->repo->set('platform_key', trim((string) $request['platform_key']));
         }
         if (isset($request['greeting_message'])) {
             $this->repo->set('greeting_message', trim((string) $request['greeting_message']));

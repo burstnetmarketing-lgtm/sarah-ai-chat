@@ -77,6 +77,7 @@ class Plugin
                 'server_url'       => $settingsRepo->get('server_url', ''),
                 'account_key'      => $settingsRepo->get('account_key', ''),
                 'site_key'         => $settingsRepo->get('site_key', ''),
+                'platform_key'     => $settingsRepo->get('platform_key', ''),
                 'greeting_message' => $settingsRepo->get('greeting_message', ''),
             ],
         ]);

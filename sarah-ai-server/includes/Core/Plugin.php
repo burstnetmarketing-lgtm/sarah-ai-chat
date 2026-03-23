@@ -41,6 +41,7 @@ use SarahAiServer\Api\UsageController;
 use SarahAiServer\Api\PlatformSettingsController;
 use SarahAiServer\Api\KnowledgeFieldsController;
 use SarahAiServer\Api\KnowledgeProcessingController;
+use SarahAiServer\Api\ClientKnowledgeController;
 use SarahAiServer\Infrastructure\MenuRepository;
 use SarahAiServer\Infrastructure\SettingsRepository;
 
@@ -102,6 +103,7 @@ class Plugin
         add_action('rest_api_init', [(new \SarahAiServer\Api\SessionController()), 'registerRoutes']);
         add_action('rest_api_init', [(new UsageController()), 'registerRoutes']);
         add_action('rest_api_init', [(new PlatformSettingsController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new ClientKnowledgeController()), 'registerRoutes']);
 
         if (! is_admin()) {
             return;

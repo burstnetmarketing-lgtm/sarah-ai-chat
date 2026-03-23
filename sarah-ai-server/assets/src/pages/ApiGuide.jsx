@@ -53,9 +53,9 @@ const GROUPS = [
   },
   {
     id: 'sessions',
-    label: 'Sessions (Public)',
-    badge: 'bg-success',
-    description: 'Read-only session access for account holders. Auth via account_key + site_key.',
+    label: 'Sessions',
+    badge: 'bg-primary',
+    description: 'Read-only session access. Auth via account_key + site_key + X-Sarah-Platform-Key header (server-to-server only).',
     endpoints: [
       {
         method: 'GET',
