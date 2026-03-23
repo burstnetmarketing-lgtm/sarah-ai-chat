@@ -1,7 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function InputBox({ onSend, disabled }) {
   const [value, setValue] = useState('');
+  const inputRef = useRef(null);
+
+  // Auto-focus the input whenever the AI finishes responding (disabled → false)
+  useEffect(() => {
+    if (!disabled) {
+      inputRef.current?.focus();
+    }
+  }, [disabled]);
 
   function handleSend() {
     if (!value.trim() || disabled) return;
@@ -19,6 +27,7 @@ export default function InputBox({ onSend, disabled }) {
   return (
     <div className="sac-input-area">
       <input
+        ref={inputRef}
         className="sac-input"
         type="text"
         placeholder="Type a message..."
