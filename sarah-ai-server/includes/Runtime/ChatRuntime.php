@@ -80,8 +80,7 @@ class ChatRuntime
             return $this->error('not_eligible', 'Service is not currently available.', 403);
         }
 
-        $subscription = $eligible['subscription'];
-        $agent        = $eligible['agent'];
+        $agent = $eligible['agent'];
 
         // ── Step 3: Session resolution ────────────────────────────────────────
         $session = null;
@@ -104,7 +103,7 @@ class ChatRuntime
                 (int) $tenant['id'],
                 (int) $site['id'],
                 (int) $agent['id'],
-                (int) ($subscription['id'] ?? 0)
+                0
             );
             $session = $this->sessions->findById($sessionId);
         }
@@ -178,7 +177,7 @@ class ChatRuntime
             (int) $tenant['id'],
             (int) $site['id'],
             (int) $agent['id'],
-            (int) ($subscription['id'] ?? 0),
+            0,
             (int) $session['id'],
             'chat_message',
             $result['tokens_in']  ?? null,

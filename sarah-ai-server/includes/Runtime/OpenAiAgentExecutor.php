@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SarahAiServer\Runtime;
 
 use SarahAiServer\Infrastructure\SettingsRepository;
+use SarahAiServer\Infrastructure\SiteApiKeyRepository;
 use SarahAiServer\Processing\KnowledgePolicyFilter;
 use SarahAiServer\Processing\SemanticRetriever;
 
@@ -26,11 +27,13 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
 {
     private const API_URL = 'https://api.openai.com/v1/chat/completions';
 
-    private SettingsRepository $settings;
+    private SettingsRepository   $settings;
+    private SiteApiKeyRepository $siteApiKeys;
 
     public function __construct()
     {
-        $this->settings = new SettingsRepository();
+        $this->settings    = new SettingsRepository();
+        $this->siteApiKeys = new SiteApiKeyRepository();
     }
 
     public function execute(array $context): array
@@ -46,7 +49,12 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         $maxTokens   = (int)   ($config['max_tokens']  ?? 1024);
         $temperature = (float) ($config['temperature'] ?? 0.7);
 
-        $apiKey = $this->settings->get('openai_api_key', '', 'platform');
+        // Use site's own OpenAI key if configured, otherwise fall back to platform key.
+        $siteId = (int) ($site['id'] ?? 0);
+        $apiKey = ($siteId > 0) ? ($this->siteApiKeys->get($siteId, 'openai') ?? '') : '';
+        if ($apiKey === '') {
+            $apiKey = $this->settings->get('openai_api_key', '', 'platform');
+        }
         if (! $apiKey) {
             return [
                 'content'    => '[TEST MODE] Hello! I am ' . ($agent['name'] ?? 'Sarah AI') . '. OpenAI API key is not set — this is a mock response.',

@@ -35,6 +35,9 @@ class DashboardPage
         $accountKey = $settingsRepo->get('account_key',  '');
         $siteKey    = $settingsRepo->get('site_key',     '');
 
+        // Deploy-time server URL takes precedence over DB-stored value.
+        $deployServerUrl = defined('SARAH_AI_CLIENT_SERVER_URL') ? (string) SARAH_AI_CLIENT_SERVER_URL : '';
+
         $config = [
             'apiUrl'         => rest_url('sarah-ai-client/v1'),
             'nonce'          => wp_create_nonce('wp_rest'),
@@ -45,6 +48,7 @@ class DashboardPage
             'siteName'       => get_bloginfo('name'),
             'siteUrl'        => get_bloginfo('url'),
             'isConfigured'   => ($serverUrl !== '' && $accountKey !== '' && $siteKey !== ''),
+            'serverUrl'      => $deployServerUrl !== '' ? $deployServerUrl : $serverUrl,
             'connection'     => [
                 'server_url'   => $serverUrl,
                 'account_key'  => $accountKey,

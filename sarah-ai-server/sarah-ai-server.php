@@ -38,6 +38,7 @@ require_once SARAH_AI_SERVER_PATH . 'includes/DB/AccountKeyTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/PlanAgentTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/ChatSessionTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/ChatMessageTable.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/DB/SiteApiKeyTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/KnowledgeChunksTable.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/DB/KnowledgeResourceTypeTable.php';
 
@@ -61,6 +62,7 @@ require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/PlanAgentRepository
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/ChatSessionRepository.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/ChatMessageRepository.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/UsageLogRepository.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/SiteApiKeyRepository.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/KnowledgeChunkRepository.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/KnowledgeResourceTypeRepository.php';
 
@@ -102,6 +104,7 @@ require_once SARAH_AI_SERVER_PATH . 'includes/Api/PlatformSettingsController.php
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/KnowledgeProcessingController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/KnowledgeFieldsController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/ClientKnowledgeController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/ClientSiteController.php';
 
 // Core
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Logger.php';

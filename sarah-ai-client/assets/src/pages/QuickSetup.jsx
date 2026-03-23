@@ -13,11 +13,16 @@ import { apiFetch } from '../api/client.js';
 export default function QuickSetup() {
   const cfg = window.SarahAiClientConfig || {};
 
+  // If config.php defines SARAH_AI_CLIENT_SERVER_URL, use it and hide the field.
+  const fixedServerUrl = cfg.serverUrl || '';
+
   const [step, setStep]       = useState('form'); // 'form' | 'loading' | 'success' | 'error'
   const [form, setForm]       = useState({
-    server_url:   '',
-    platform_key: '',
-    whmcs_key:    '',
+    server_url:      fixedServerUrl,
+    platform_key:    '',
+    whmcs_key:       '',
+    openai_api_key:  '',
+    kb_link:         '',
   });
   const [result, setResult]   = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -46,9 +51,11 @@ export default function QuickSetup() {
           'X-Sarah-Platform-Key': form.platform_key,
         },
         body: JSON.stringify({
-          site_name: cfg.siteName || 'My Site',
-          site_url:  cfg.siteUrl  || window.location.origin,
-          whmcs_key: form.whmcs_key || undefined,
+          site_name:      cfg.siteName || 'My Site',
+          site_url:       cfg.siteUrl  || window.location.origin,
+          whmcs_key:      form.whmcs_key      || undefined,
+          openai_api_key: form.openai_api_key  || undefined,
+          kb_link:        form.kb_link         || undefined,
         }),
       });
 
@@ -86,11 +93,23 @@ export default function QuickSetup() {
               <span style={{ fontSize: 48 }}>✅</span>
             </div>
             <h4 className="fw-bold mb-1">All set!</h4>
-            <p className="text-muted small mb-3">
+            <p className="text-muted small mb-2">
               Your Sarah AI chat widget is configured and ready.
-              Plan: <strong>{result?.plan ?? 'trial'}</strong> —
-              Agent: <strong>{result?.agent_slug ?? '—'}</strong>
             </p>
+            <div className="d-flex flex-wrap justify-content-center gap-2 mb-3">
+              <span className="badge bg-primary-subtle text-primary border border-primary-subtle">
+                Plan: {result?.plan ?? 'trial'}
+              </span>
+              <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                Agent: {result?.agent_slug ?? '—'}
+              </span>
+              {result?.has_openai_key && (
+                <span className="badge bg-success-subtle text-success border border-success-subtle">OpenAI key saved</span>
+              )}
+              {result?.has_kb && (
+                <span className="badge bg-info-subtle text-info border border-info-subtle">KB entry created</span>
+              )}
+            </div>
             <button
               className="btn btn-primary w-100"
               onClick={() => window.location.reload()}
@@ -121,21 +140,23 @@ export default function QuickSetup() {
 
           <form onSubmit={handleSubmit}>
 
-            {/* Server URL */}
-            <div className="mb-3">
-              <label className="form-label fw-semibold small">Server URL <span className="text-danger">*</span></label>
-              <input
-                type="url"
-                className="form-control form-control-sm"
-                name="server_url"
-                value={form.server_url}
-                onChange={handleChange}
-                placeholder="https://your-server.example.com/wp-json"
-                required
-                disabled={step === 'loading'}
-              />
-              <div className="form-text">Base WordPress REST API URL of the sarah-ai-server installation.</div>
-            </div>
+            {/* Server URL — hidden when pre-configured via config.php */}
+            {!fixedServerUrl && (
+              <div className="mb-3">
+                <label className="form-label fw-semibold small">Server URL <span className="text-danger">*</span></label>
+                <input
+                  type="url"
+                  className="form-control form-control-sm"
+                  name="server_url"
+                  value={form.server_url}
+                  onChange={handleChange}
+                  placeholder="https://your-server.example.com/wp-json"
+                  required
+                  disabled={step === 'loading'}
+                />
+                <div className="form-text">Base WordPress REST API URL of the sarah-ai-server installation.</div>
+              </div>
+            )}
 
             {/* Platform Key */}
             <div className="mb-3">
@@ -155,7 +176,7 @@ export default function QuickSetup() {
             </div>
 
             {/* WHMCS Key (optional) */}
-            <div className="mb-4">
+            <div className="mb-3">
               <label className="form-label fw-semibold small">WHMCS License Key <span className="text-muted">(optional)</span></label>
               <input
                 type="password"
@@ -167,10 +188,38 @@ export default function QuickSetup() {
                 autoComplete="new-password"
                 disabled={step === 'loading'}
               />
-              <div className="form-text">
-                If you have a WHMCS license key, enter it here to activate the Customer plan immediately.
-                Otherwise a 30-day free trial starts automatically.
-              </div>
+              <div className="form-text">Enter to activate the Customer plan. Leave blank for a 30-day trial.</div>
+            </div>
+
+            {/* OpenAI API Key (optional) */}
+            <div className="mb-3">
+              <label className="form-label fw-semibold small">OpenAI API Key <span className="text-muted">(optional)</span></label>
+              <input
+                type="password"
+                className="form-control form-control-sm font-monospace"
+                name="openai_api_key"
+                value={form.openai_api_key}
+                onChange={handleChange}
+                placeholder="sk-… (uses platform key if left blank)"
+                autoComplete="new-password"
+                disabled={step === 'loading'}
+              />
+              <div className="form-text">Chat messages will be billed to this key. Falls back to the platform's shared key if not set.</div>
+            </div>
+
+            {/* Initial Knowledge Base Link (optional) */}
+            <div className="mb-4">
+              <label className="form-label fw-semibold small">Initial Knowledge Base URL <span className="text-muted">(optional)</span></label>
+              <input
+                type="url"
+                className="form-control form-control-sm"
+                name="kb_link"
+                value={form.kb_link}
+                onChange={handleChange}
+                placeholder="https://yoursite.com/about"
+                disabled={step === 'loading'}
+              />
+              <div className="form-text">A webpage the AI will use as its first knowledge source. You can add more later.</div>
             </div>
 
             <button

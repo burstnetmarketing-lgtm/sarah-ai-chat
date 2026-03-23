@@ -18,6 +18,7 @@ define('SARAH_AI_CLIENT_FILE', __FILE__);
 define('SARAH_AI_CLIENT_PATH', plugin_dir_path(__FILE__));
 define('SARAH_AI_CLIENT_URL', plugin_dir_url(__FILE__));
 
+require_once SARAH_AI_CLIENT_PATH . 'config.php';
 require_once SARAH_AI_CLIENT_PATH . 'update.php';
 
 require_once SARAH_AI_CLIENT_PATH . 'includes/DB/MenuTable.php';
@@ -35,7 +36,9 @@ require_once SARAH_AI_CLIENT_PATH . 'includes/Api/QuickQuestionsController.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Api/AppearanceController.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Logger.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Activator.php';
+require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Deactivator.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Plugin.php';
 
 register_activation_hook(SARAH_AI_CLIENT_FILE, ['SarahAiClient\\Core\\Activator', 'activate']);
+register_deactivation_hook(SARAH_AI_CLIENT_FILE, ['SarahAiClient\\Core\\Deactivator', 'deactivate']);
 add_action('plugins_loaded', ['SarahAiClient\\Core\\Plugin', 'boot']);

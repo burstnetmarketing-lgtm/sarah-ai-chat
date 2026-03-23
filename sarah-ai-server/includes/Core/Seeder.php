@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SarahAiServer\Core;
 
 use SarahAiServer\Infrastructure\AgentRepository;
-use SarahAiServer\Infrastructure\EmailTemplateRepository;
 use SarahAiServer\Infrastructure\KnowledgeResourceTypeRepository;
 use SarahAiServer\Infrastructure\PlanAgentRepository;
 use SarahAiServer\Infrastructure\PlanRepository;
@@ -22,7 +21,6 @@ class Seeder
         self::seedAgents();
         self::seedPlans();
         self::seedPlanAgents();
-        self::seedEmailTemplates();
         self::seedSettings();
         self::seedKnowledgeResourceTypes();
     }
@@ -114,19 +112,6 @@ class Seeder
                 }
             }
         }
-    }
-
-    private static function seedEmailTemplates(): void
-    {
-        $repo = new EmailTemplateRepository();
-
-        $repo->insertIfMissing(
-            'welcome',
-            'welcome',
-            'Welcome to Sarah — Your AI Chat Platform',
-            "Hello {{name}},\n\nWelcome to Sarah! Your account has been created successfully.\n\nHere are your login details:\n\nSite: {{site_url}}\nUsername: {{username}}\n\nYour trial period is active for {{trial_days}} days.\n\nIf you have any questions, feel free to reach out.\n\nBest regards,\nThe Sarah Team",
-            ['name', 'site_url', 'username', 'trial_days']
-        );
     }
 
     private static function seedKnowledgeResourceTypes(): void

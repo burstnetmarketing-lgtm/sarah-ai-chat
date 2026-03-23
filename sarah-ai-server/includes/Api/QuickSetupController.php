@@ -11,6 +11,8 @@ use SarahAiServer\Infrastructure\SiteTokenRepository;
 use SarahAiServer\Infrastructure\AgentRepository;
 use SarahAiServer\Infrastructure\PlanRepository;
 use SarahAiServer\Infrastructure\SettingsRepository;
+use SarahAiServer\Infrastructure\SiteApiKeyRepository;
+use SarahAiServer\Infrastructure\KnowledgeResourceRepository;
 
 /**
  * One-call provisioning endpoint for the sarah-ai-client Quick Setup wizard.
@@ -18,17 +20,23 @@ use SarahAiServer\Infrastructure\SettingsRepository;
  * POST /sarah-ai-server/v1/quick-setup
  * Auth: X-Sarah-Platform-Key header
  * Body:
- *   site_name  string  required — display name for the new site
- *   site_url   string  required — URL of the client WordPress site
- *   whmcs_key  string  optional — WHMCS license key; if valid, plan = customer
+ *   site_name      string  required — display name for the new site
+ *   site_url       string  required — URL of the client WordPress site
+ *   whmcs_key      string  optional — WHMCS license key; activates customer plan
+ *   openai_api_key string  optional — site's own OpenAI key; falls back to platform key if omitted
+ *   kb_link        string  optional — URL to seed as the first knowledge base entry
  *
  * Response:
  *   {
  *     success: true,
  *     data: {
- *       account_key: "...",
- *       site_key:    "...",
- *       agent_slug:  "..."
+ *       account_key:    "...",
+ *       site_key:       "...",
+ *       agent_slug:     "...",
+ *       plan:           "trial|customer",
+ *       site_uuid:      "...",
+ *       has_openai_key: bool,
+ *       has_kb:         bool
  *     }
  *   }
  *
@@ -38,13 +46,15 @@ use SarahAiServer\Infrastructure\SettingsRepository;
  */
 class QuickSetupController
 {
-    private TenantRepository     $tenants;
-    private SiteRepository       $sites;
-    private AccountKeyRepository $accountKeys;
-    private SiteTokenRepository  $siteTokens;
-    private AgentRepository      $agents;
-    private PlanRepository       $plans;
-    private SettingsRepository   $settings;
+    private TenantRepository              $tenants;
+    private SiteRepository                $sites;
+    private AccountKeyRepository          $accountKeys;
+    private SiteTokenRepository           $siteTokens;
+    private AgentRepository               $agents;
+    private PlanRepository                $plans;
+    private SettingsRepository            $settings;
+    private SiteApiKeyRepository          $siteApiKeys;
+    private KnowledgeResourceRepository   $knowledge;
 
     public function __construct()
     {
@@ -55,6 +65,8 @@ class QuickSetupController
         $this->agents      = new AgentRepository();
         $this->plans       = new PlanRepository();
         $this->settings    = new SettingsRepository();
+        $this->siteApiKeys = new SiteApiKeyRepository();
+        $this->knowledge   = new KnowledgeResourceRepository();
     }
 
     public function registerRoutes(): void
@@ -76,9 +88,11 @@ class QuickSetupController
             return new \WP_REST_Response(['success' => false, 'message' => 'Unauthorized'], 401);
         }
 
-        $siteName = trim((string) ($request->get_param('site_name') ?? ''));
-        $siteUrl  = trim((string) ($request->get_param('site_url')  ?? ''));
-        $whmcsKey = trim((string) ($request->get_param('whmcs_key') ?? ''));
+        $siteName    = trim((string) ($request->get_param('site_name')      ?? ''));
+        $siteUrl     = trim((string) ($request->get_param('site_url')       ?? ''));
+        $whmcsKey    = trim((string) ($request->get_param('whmcs_key')      ?? ''));
+        $openAiKey   = trim((string) ($request->get_param('openai_api_key') ?? ''));
+        $kbLink      = trim((string) ($request->get_param('kb_link')        ?? ''));
 
         if ($siteName === '' || $siteUrl === '') {
             return new \WP_REST_Response(['success' => false, 'message' => 'site_name and site_url are required'], 400);
@@ -113,14 +127,30 @@ class QuickSetupController
             $this->sites->updateActiveAgent($siteId, (int) $agent['id']);
         }
 
+        // Optional: store site's own OpenAI API key
+        $hasOpenAiKey = false;
+        if ($openAiKey !== '') {
+            $this->siteApiKeys->set($siteId, 'openai', $openAiKey);
+            $hasOpenAiKey = true;
+        }
+
+        // Optional: seed first knowledge base entry from a link
+        $hasKb = false;
+        if ($kbLink !== '' && filter_var($kbLink, FILTER_VALIDATE_URL)) {
+            $this->knowledge->create($siteId, 'link', $siteName, $kbLink);
+            $hasKb = true;
+        }
+
         return new \WP_REST_Response([
             'success' => true,
             'data'    => [
-                'account_key' => $rawAccountKey,
-                'site_key'    => $rawSiteKey,
-                'agent_slug'  => $agent ? (string) $agent['slug'] : $defaultSlug,
-                'plan'        => $planSlug,
-                'site_uuid'   => (string) ($site['uuid'] ?? ''),
+                'account_key'    => $rawAccountKey,
+                'site_key'       => $rawSiteKey,
+                'agent_slug'     => $agent ? (string) $agent['slug'] : $defaultSlug,
+                'plan'           => $planSlug,
+                'site_uuid'      => (string) ($site['uuid'] ?? ''),
+                'has_openai_key' => $hasOpenAiKey,
+                'has_kb'         => $hasKb,
             ],
         ], 201);
     }

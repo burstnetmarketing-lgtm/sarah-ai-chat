@@ -1,24 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../api/client.js';
 
+const PROVIDERS = [
+  { value: 'openai', label: 'OpenAI' },
+];
+
+async function serverFetch(serverUrl, platformKey, path, method = 'GET', body = null) {
+  const headers = { 'Content-Type': 'application/json', 'X-Sarah-Platform-Key': platformKey };
+  const res = await fetch(`${serverUrl}/${path}`, {
+    method,
+    headers,
+    body: body !== null ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new Error(`Server error: ${res.status}`);
+  return res.json();
+}
+
 export default function Settings() {
   const [form, setForm]     = useState({ widget_enabled: true, server_url: '', account_key: '', site_key: '', platform_key: '', greeting_message: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
   const [saved, setSaved]     = useState(false);
 
+  // API key section state
+  const [apiKeyProvider, setApiKeyProvider] = useState('openai');
+  const [apiKeyValue, setApiKeyValue]       = useState('');
+  const [savedProviders, setSavedProviders] = useState([]);
+  const [apiKeySaving, setApiKeySaving]     = useState(false);
+  const [apiKeySaved, setApiKeySaved]       = useState(false);
+  const [apiKeyError, setApiKeyError]       = useState('');
+
   useEffect(() => {
     apiFetch('widget-settings')
       .then(res => {
         if (res.success) {
+          const d = res.data;
           setForm({
-            widget_enabled:   res.data.widget_enabled,
-            server_url:       res.data.server_url       || '',
-            account_key:      res.data.account_key      || '',
-            site_key:         res.data.site_key         || '',
-            platform_key:     res.data.platform_key     || '',
-            greeting_message: res.data.greeting_message || '',
+            widget_enabled:   d.widget_enabled,
+            server_url:       d.server_url       || '',
+            account_key:      d.account_key      || '',
+            site_key:         d.site_key         || '',
+            platform_key:     d.platform_key     || '',
+            greeting_message: d.greeting_message || '',
           });
+          // Load saved API key providers from server if connection is configured
+          if (d.server_url && d.account_key && d.site_key && d.platform_key) {
+            serverFetch(d.server_url, d.platform_key, `client/api-keys?account_key=${encodeURIComponent(d.account_key)}&site_key=${encodeURIComponent(d.site_key)}`)
+              .then(r => { if (r.success) setSavedProviders(r.data.providers || []); })
+              .catch(() => {});
+          }
         }
       })
       .catch(() => {})
@@ -32,6 +62,44 @@ export default function Settings() {
   function handleChange(e) {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
+  }
+
+  function handleApiKeySave(e) {
+    e.preventDefault();
+    if (!form.server_url || !form.account_key || !form.site_key || !form.platform_key) {
+      setApiKeyError('Save server connection settings first.');
+      return;
+    }
+    setApiKeySaving(true);
+    setApiKeySaved(false);
+    setApiKeyError('');
+    serverFetch(form.server_url, form.platform_key, 'client/api-key', 'POST', {
+      account_key: form.account_key,
+      site_key:    form.site_key,
+      provider:    apiKeyProvider,
+      api_key:     apiKeyValue,
+    })
+      .then(r => {
+        if (r.success) {
+          setSavedProviders(r.data.providers || []);
+          setApiKeyValue('');
+          setApiKeySaved(true);
+        }
+      })
+      .catch(() => setApiKeyError('Failed to save key. Check server connection.'))
+      .finally(() => setApiKeySaving(false));
+  }
+
+  function handleApiKeyClear(provider) {
+    if (!form.server_url || !form.account_key || !form.site_key || !form.platform_key) return;
+    serverFetch(form.server_url, form.platform_key, 'client/api-key', 'POST', {
+      account_key: form.account_key,
+      site_key:    form.site_key,
+      provider,
+      api_key:     '',
+    })
+      .then(r => { if (r.success) setSavedProviders(r.data.providers || []); })
+      .catch(() => {});
   }
 
   function handleSave(e) {
@@ -166,6 +234,74 @@ export default function Settings() {
             {saving ? 'Saving…' : 'Save Settings'}
           </button>
           {saved && <span className="text-success small">Saved.</span>}
+        </div>
+      </form>
+
+      {/* AI Provider API Keys */}
+      <form onSubmit={handleApiKeySave} className="mt-3">
+        <div className="card border-0 shadow-sm mb-3">
+          <div className="card-header bg-white border-bottom">
+            <h6 className="mb-0 fw-semibold">AI Provider Keys</h6>
+          </div>
+          <div className="card-body">
+            <p className="text-muted small mb-3">
+              Enter your own API key to use your account's quota. If not set, the platform's shared key is used.
+            </p>
+
+            {savedProviders.length > 0 && (
+              <div className="mb-3">
+                <div className="text-muted small fw-semibold mb-1">Keys saved on server:</div>
+                <div className="d-flex flex-wrap gap-2">
+                  {savedProviders.map(p => (
+                    <span key={p} className="badge bg-success-subtle text-success border border-success-subtle d-flex align-items-center gap-1">
+                      {p}
+                      <button
+                        type="button"
+                        className="btn-close btn-close-sm"
+                        style={{ fontSize: '0.6rem' }}
+                        onClick={() => handleApiKeyClear(p)}
+                        title="Remove key"
+                      />
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="row g-2 align-items-end">
+              <div className="col-auto">
+                <label className="form-label fw-semibold small">Provider</label>
+                <select
+                  className="form-select form-select-sm"
+                  value={apiKeyProvider}
+                  onChange={e => setApiKeyProvider(e.target.value)}
+                  disabled={apiKeySaving}
+                >
+                  {PROVIDERS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
+              </div>
+              <div className="col">
+                <label className="form-label fw-semibold small">API Key</label>
+                <input
+                  type="password"
+                  className="form-control form-control-sm font-monospace"
+                  value={apiKeyValue}
+                  onChange={e => setApiKeyValue(e.target.value)}
+                  placeholder="Paste your API key here"
+                  disabled={apiKeySaving}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="col-auto">
+                <button type="submit" className="btn btn-sm btn-primary" disabled={apiKeySaving}>
+                  {apiKeySaving ? 'Saving…' : 'Save Key'}
+                </button>
+              </div>
+            </div>
+
+            {apiKeySaved && <div className="text-success small mt-2">Key saved.</div>}
+            {apiKeyError && <div className="text-danger small mt-2">{apiKeyError}</div>}
+          </div>
         </div>
       </form>
     </>

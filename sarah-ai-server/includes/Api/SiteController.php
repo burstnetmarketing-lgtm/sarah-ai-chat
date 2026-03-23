@@ -11,6 +11,7 @@ use SarahAiServer\Infrastructure\AccountKeyRepository;
 use SarahAiServer\Infrastructure\SiteTokenRepository;
 use SarahAiServer\Infrastructure\KnowledgeResourceRepository;
 use SarahAiServer\Infrastructure\PlanRepository;
+use SarahAiServer\Infrastructure\SiteApiKeyRepository;
 
 class SiteController
 {
@@ -21,6 +22,7 @@ class SiteController
     private SiteTokenRepository $siteTokens;
     private KnowledgeResourceRepository $knowledge;
     private PlanRepository $plans;
+    private SiteApiKeyRepository $siteApiKeys;
 
     public function __construct()
     {
@@ -31,6 +33,7 @@ class SiteController
         $this->siteTokens  = new SiteTokenRepository();
         $this->knowledge   = new KnowledgeResourceRepository();
         $this->plans       = new PlanRepository();
+        $this->siteApiKeys = new SiteApiKeyRepository();
     }
 
     public function isAdmin(): bool
@@ -68,6 +71,11 @@ class SiteController
             'methods'             => 'POST',
             'callback'            => [$this, 'updatePlan'],
             'permission_callback' => [$this, 'isAdmin'],
+        ]);
+
+        register_rest_route('sarah-ai-server/v1', '/sites/(?P<uuid>[0-9a-f-]{36})/api-key', [
+            ['methods' => 'GET',  'callback' => [$this, 'getApiKeys'],   'permission_callback' => [$this, 'isAdmin']],
+            ['methods' => 'POST', 'callback' => [$this, 'setApiKey'],    'permission_callback' => [$this, 'isAdmin']],
         ]);
 
         register_rest_route('sarah-ai-server/v1', '/sites/(?P<uuid>[0-9a-f-]{36})/agent-identity', [
@@ -194,6 +202,49 @@ class SiteController
 
         $this->sites->updatePlan((int) $site['id'], (int) $plan['id']);
         return new \WP_REST_Response(['success' => true, 'data' => $this->sites->findById((int) $site['id'])], 200);
+    }
+
+    /**
+     * GET /sites/{uuid}/api-key — list which providers have a key set (keys not returned).
+     * Returns: { success: true, data: { providers: ['openai', ...] } }
+     */
+    public function getApiKeys(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $site = $this->sites->findByUuid((string) $request->get_param('uuid'));
+        if (! $site) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Site not found'], 404);
+        }
+
+        return new \WP_REST_Response([
+            'success' => true,
+            'data'    => ['providers' => $this->siteApiKeys->listProviders((int) $site['id'])],
+        ], 200);
+    }
+
+    /**
+     * POST /sites/{uuid}/api-key — set or clear an API key for a provider.
+     * Body: { provider: 'openai', api_key: 'sk-...' }  (api_key empty = clear)
+     */
+    public function setApiKey(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $site = $this->sites->findByUuid((string) $request->get_param('uuid'));
+        if (! $site) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Site not found'], 404);
+        }
+
+        $provider = trim((string) ($request->get_param('provider') ?? ''));
+        $apiKey   = trim((string) ($request->get_param('api_key')  ?? ''));
+
+        if ($provider === '') {
+            return new \WP_REST_Response(['success' => false, 'message' => 'provider is required'], 400);
+        }
+
+        $this->siteApiKeys->set((int) $site['id'], $provider, $apiKey);
+
+        return new \WP_REST_Response([
+            'success' => true,
+            'data'    => ['providers' => $this->siteApiKeys->listProviders((int) $site['id'])],
+        ], 200);
     }
 
     public function updateStatus(\WP_REST_Request $request): \WP_REST_Response

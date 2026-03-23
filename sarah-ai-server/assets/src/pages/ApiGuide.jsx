@@ -124,6 +124,11 @@ const GROUPS = [
       { method: 'GET',    path: '/sites/{uuid}/site-keys',      summary: 'List site keys.',                         auth: 'WP Admin', params: [], response: '{ success, data: [key...] }' },
       { method: 'POST',   path: '/sites/{uuid}/site-keys',      summary: 'Create a site key.',                      auth: 'WP Admin', params: [], response: '{ success, data: key }' },
       { method: 'DELETE', path: '/site-keys/{uuid}',            summary: 'Delete a site key.',                      auth: 'WP Admin', params: [], response: '{ success }' },
+      { method: 'GET',    path: '/sites/{uuid}/api-key',         summary: 'List providers that have an API key set (keys not returned).', auth: 'WP Admin', params: [], response: '{ success, data: { providers: ["openai", ...] } }' },
+      { method: 'POST',   path: '/sites/{uuid}/api-key',         summary: 'Set or clear a provider API key for a site.',                  auth: 'WP Admin', params: [
+        { name: 'provider', type: 'string', req: true,  desc: 'Provider slug (e.g. openai)' },
+        { name: 'api_key',  type: 'string', req: true,  desc: 'API key value — pass empty string to clear' },
+      ], response: '{ success, data: { providers: [...] } }' },
     ],
   },
   {
@@ -192,6 +197,39 @@ const GROUPS = [
       { method: 'DELETE', path: '/client/knowledge-resources/{uuid}',        summary: 'Soft-delete a resource.',               auth: 'account_key + site_key + X-Sarah-Platform-Key', params: [], response: '{ success }' },
       { method: 'POST',   path: '/client/knowledge-resources/{uuid}/status', summary: 'Update resource status.',               auth: 'account_key + site_key + X-Sarah-Platform-Key', params: [{ name: 'status', type: 'string', req: true, desc: 'active | inactive | pending | archived' }], response: '{ success, data: resource }' },
       { method: 'POST',   path: '/client/knowledge-resources/{uuid}/process', summary: 'Run processing pipeline (extract → chunk → embed).', auth: 'account_key + site_key + X-Sarah-Platform-Key', params: [], response: '{ success, chunks, message }' },
+    ],
+  },
+  {
+    id: 'client-site',
+    label: 'Client Site Settings',
+    badge: 'bg-info',
+    description: 'Per-site AI provider key management from the sarah-ai-client plugin. Auth: account_key + site_key + X-Sarah-Platform-Key header.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/client/api-keys',
+        summary: 'List providers that have an API key configured on this site (keys are NOT returned).',
+        auth: 'account_key + site_key + X-Sarah-Platform-Key',
+        params: [
+          { name: 'account_key', type: 'string', req: true, desc: 'Tenant account key (query param)' },
+          { name: 'site_key',    type: 'string', req: true, desc: 'Site key (query param)' },
+        ],
+        response: '{ success, data: { providers: ["openai", ...] } }',
+        note: 'Keys are never returned. Use this to check which providers are configured.',
+      },
+      {
+        method: 'POST',
+        path: '/client/api-key',
+        summary: 'Set or clear a provider API key. Pass empty api_key to remove the key for that provider.',
+        auth: 'account_key + site_key + X-Sarah-Platform-Key',
+        params: [
+          { name: 'account_key', type: 'string', req: true,  desc: 'Tenant account key' },
+          { name: 'site_key',    type: 'string', req: true,  desc: 'Site key' },
+          { name: 'provider',    type: 'string', req: true,  desc: 'Provider slug — currently supported: openai' },
+          { name: 'api_key',     type: 'string', req: true,  desc: 'API key value — empty string clears the key' },
+        ],
+        response: '{ success, data: { providers: [...] } }',
+      },
     ],
   },
 ];
