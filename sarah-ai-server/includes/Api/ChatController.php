@@ -62,6 +62,7 @@ class ChatController
         $siteKey     = trim((string) ($request->get_param('site_key')     ?? ''));
         $message     = trim((string) ($request->get_param('message')      ?? ''));
         $sessionUuid = trim((string) ($request->get_param('session_uuid') ?? '')) ?: null;
+        $language    = trim((string) ($request->get_param('language')     ?? ''));
         $lead        = $request->get_param('lead');
         $leadInfo    = is_array($lead) ? $lead : [];
 
@@ -81,7 +82,7 @@ class ChatController
             ], 400);
         }
 
-        $result = $this->runtime->handle($accountKey, $siteKey, $message, $sessionUuid, $leadInfo);
+        $result = $this->runtime->handle($accountKey, $siteKey, $message, $sessionUuid, $leadInfo, $language);
 
         $status = $result['success'] ? 200 : ($result['status'] ?? 400);
         unset($result['status']);

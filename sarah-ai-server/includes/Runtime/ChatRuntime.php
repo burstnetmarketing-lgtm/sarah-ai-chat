@@ -63,7 +63,8 @@ class ChatRuntime
         string $siteKey,
         string $message,
         ?string $sessionUuid = null,
-        array $leadInfo = []
+        array $leadInfo = [],
+        string $language = ''
     ): array {
         // ── Step 1: Credential validation ────────────────────────────────────
         $context = $this->credentials->resolveContext($accountKey, $siteKey);
@@ -157,6 +158,7 @@ class ChatRuntime
             'message'       => $message,
             'history'       => $history,
             'knowledge'     => $knowledge,
+            'language'      => $language,
         ]);
 
         // ── Step 8: Persist assistant response ───────────────────────────────

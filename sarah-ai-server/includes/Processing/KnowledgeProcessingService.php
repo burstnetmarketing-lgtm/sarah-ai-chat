@@ -88,6 +88,11 @@ class KnowledgeProcessingService
                 throw new \RuntimeException('Text extraction produced empty content after normalization.');
             }
 
+            // Step 4b: Save extracted text back to source_content so the
+            // keyword fallback in buildSystemPrompt() works even without embeddings.
+            // (For link/file resources source_content holds only the URL initially.)
+            $this->resources->updateSourceContent($resourceId, $cleanText);
+
             // Step 5: Chunk
             $chunks = $this->chunker->chunk($cleanText);
             if (empty($chunks)) {

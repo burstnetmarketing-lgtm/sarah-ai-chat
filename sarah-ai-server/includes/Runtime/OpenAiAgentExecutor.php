@@ -84,7 +84,8 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
 
         // System prompt: use retrieved chunks if available, else raw knowledge
         $siteIdentity = $context['site_identity'] ?? [];
-        $systemPrompt = $this->buildSystemPrompt($agent, $knowledge, $siteIdentity, $retrievedChunks);
+        $language     = trim((string) ($context['language'] ?? ''));
+        $systemPrompt = $this->buildSystemPrompt($agent, $knowledge, $siteIdentity, $retrievedChunks, $language);
         if ($systemPrompt) {
             $messages[] = ['role' => 'system', 'content' => $systemPrompt];
         }
@@ -169,7 +170,8 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         array $agent,
         array $knowledge,
         array $siteIdentity = [],
-        array $retrievedChunks = []
+        array $retrievedChunks = [],
+        string $language = ''
     ): string {
         $config      = is_array($agent['config']) ? $agent['config'] : [];
         $customPrompt      = trim((string) ($config['system_prompt'] ?? ''));
@@ -223,9 +225,26 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
             $identitySection .= "\n{$introMessage}";
         }
 
+        // ── Language rule ──────────────────────────────────────────────────
+        $languageSection = '';
+        if ($language) {
+            $languageNames = [
+                'en' => 'English',
+                'fa' => 'Persian (Farsi)',
+                'ar' => 'Arabic',
+                'zh' => 'Mandarin Chinese',
+                'fr' => 'French',
+                'de' => 'German',
+                'es' => 'Spanish',
+                'tr' => 'Turkish',
+            ];
+            $langName = $languageNames[$language] ?? $language;
+            $languageSection = "\n\n## Language — MANDATORY\nYou MUST respond exclusively in {$langName}. Never switch to any other language, even if the user writes in a different language.";
+        }
+
         // ── Custom override ────────────────────────────────────────────────
         if ($customPrompt) {
-            return $customPrompt . $identitySection . $knowledgeSection . $this->buildStructuredOutputInstruction();
+            return $customPrompt . $identitySection . $languageSection . $knowledgeSection . $this->buildStructuredOutputInstruction();
         }
 
         // ── Composed prompt ────────────────────────────────────────────────
@@ -247,6 +266,14 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         }
 
         $lines[] = '';
+        $lines[] = '## Output Format — MANDATORY — NEVER VIOLATE';
+        $lines[] = 'CRITICAL: Every single response you send MUST be formatted in HTML. No exceptions.';
+        $lines[] = '- Use <p> for paragraphs, <ul>/<li> for bullet lists, <ol>/<li> for numbered lists, <strong> for bold, <em> for italic, <h3>/<h4> for headings.';
+        $lines[] = '- NEVER use Markdown syntax. Not even partially. This means: no **bold**, no *italic*, no ## headings, no - bullet lines, no `code`, no [links](url).';
+        $lines[] = '- Do NOT wrap output in <html>, <body>, or <head> — return only the inner content HTML.';
+        $lines[] = '- Do NOT add inline style attributes. Use only the HTML tags listed above.';
+
+        $lines[] = '';
         $lines[] = '## Behaviour Rules';
         $lines[] = '- Answer only what you know. If you are unsure, say so clearly rather than guessing.';
         $lines[] = '- Do not make up facts, names, prices, dates, or any information not provided to you.';
@@ -254,7 +281,7 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         $lines[] = '- If a question is outside your scope, politely say you cannot help with that.';
         $lines[] = '- Do not generate harmful, misleading, or offensive content.';
 
-        return implode("\n", $lines) . $identitySection . $knowledgeSection . $this->buildStructuredOutputInstruction();
+        return implode("\n", $lines) . $identitySection . $languageSection . $knowledgeSection . $this->buildStructuredOutputInstruction();
     }
 
     /**

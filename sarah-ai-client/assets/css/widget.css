@@ -159,10 +159,13 @@
 .sac-messages {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;   /* never let a wide bubble cause horizontal scroll */
   padding: 16px;
   background: var(--sac-msg-bg);
   display: flex;
   flex-direction: column;
+  align-items: stretch;  /* children control their own alignment via align-self */
+  min-height: 0;         /* allows flex child to shrink below content height */
 }
 
 .sac-messages-empty {
@@ -272,6 +275,9 @@
   line-height: 1.5;
   margin-bottom: 8px;
   word-break: break-word;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .sac-bubble-user {
@@ -288,6 +294,53 @@
   border: 1px solid #e2e8f0;
   border-bottom-left-radius: 4px;
 }
+
+/* ── AI Bubble HTML content ──────────────── */
+/* All rules prefixed with #sarah-chat-root for higher specificity than   */
+/* theme styles. !important added where themes commonly override defaults. */
+
+#sarah-chat-root .sac-bubble-html {
+  line-height: 1.55 !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+}
+#sarah-chat-root .sac-bubble-html p {
+  margin: 0 0 8px !important;
+  padding: 0 !important;
+  display: block !important;
+}
+#sarah-chat-root .sac-bubble-html p:last-child { margin-bottom: 0 !important; }
+
+/* Lists — full reset so theme cannot interfere */
+#sarah-chat-root .sac-bubble-html ul,
+#sarah-chat-root .sac-bubble-html ol {
+  display: block !important;
+  margin: 6px 0 8px !important;
+  padding: 0 !important;
+  padding-inline-start: 18px !important; /* logical: auto-flips for RTL */
+  list-style-position: outside !important;
+}
+#sarah-chat-root .sac-bubble-html ul        { list-style-type: disc   !important; }
+#sarah-chat-root .sac-bubble-html ol        { list-style-type: decimal !important; }
+#sarah-chat-root .sac-bubble-html ul ul     { list-style-type: circle  !important; }
+#sarah-chat-root .sac-bubble-html ul ul ul  { list-style-type: square  !important; }
+
+#sarah-chat-root .sac-bubble-html li {
+  display: list-item !important;
+  margin: 0 0 3px !important;
+  padding: 0 !important;
+}
+#sarah-chat-root .sac-bubble-html h3,
+#sarah-chat-root .sac-bubble-html h4 {
+  display: block !important;
+  margin: 10px 0 4px !important;
+  padding: 0 !important;
+  font-size: 0.92em !important;
+  font-weight: 600 !important;
+}
+#sarah-chat-root .sac-bubble-html strong { font-weight: 600 !important; }
+#sarah-chat-root .sac-bubble-html em     { font-style: italic !important; }
+#sarah-chat-root .sac-bubble-html a     { color: inherit !important; text-decoration: underline !important; }
 
 /* ── Typing Indicator ────────────────────── */
 
@@ -446,6 +499,41 @@
 .sac-contact-link:hover {
   color: #0f2040;
   border-bottom-color: #1a3460;
+}
+
+/* ── Language Quick Questions ────────────── */
+
+.sac-lang-questions {
+  align-items: center;
+}
+
+.sac-lang-hint {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.sac-lang-btn {
+  text-align: center;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+/* ── RTL bubble overrides ────────────────── */
+
+/* AI bubble in RTL: flip corner radius */
+.sac-bubble-ai[dir="rtl"] {
+  border-bottom-left-radius:  14px;
+  border-bottom-right-radius: 4px;
+  align-self: flex-end;
+}
+
+/* User bubble in RTL: flip corner radius + side */
+.sac-bubble-user[dir="rtl"] {
+  border-bottom-right-radius: 14px;
+  border-bottom-left-radius:  4px;
+  align-self: flex-start;
 }
 
 /* ── Mobile Fullscreen ───────────────────── */

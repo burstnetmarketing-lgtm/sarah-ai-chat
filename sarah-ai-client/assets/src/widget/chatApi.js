@@ -27,12 +27,13 @@ function requireConn() {
  * @param {object|null} lead        Optional lead data {name?, phone?, email?}
  * @returns {Promise<{success, session_uuid, message, agent}>}
  */
-export async function sendChatMessage(text, sessionUuid = null, lead = null) {
+export async function sendChatMessage(text, sessionUuid = null, lead = null, language = null) {
   const { server_url, account_key, site_key } = requireConn();
 
   const body = { account_key, site_key, message: text };
   if (sessionUuid) body.session_uuid = sessionUuid;
   if (lead && (lead.name || lead.phone || lead.email)) body.lead = lead;
+  if (language) body.language = language;
 
   const res = await fetch(`${server_url}/chat`, {
     method: 'POST',

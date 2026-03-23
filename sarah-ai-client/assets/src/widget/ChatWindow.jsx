@@ -17,19 +17,75 @@ function nextId() { return ++_id; }
 
 const SARAH_CARD_RE = /<sarah_card>([\s\S]*?)<\/sarah_card>/i;
 
+// ─── RTL / LTR direction detection ───────────────────────────────────────────
+// Strips HTML tags and checks whether the first meaningful characters are
+// in an RTL Unicode range (Arabic, Persian, Hebrew, etc.).
+// Used to set dir="rtl/ltr" on each chat bubble individually.
+const RTL_RE = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/;
+
+function detectDir(text) {
+  const plain = text.replace(/<[^>]+>/g, '').trimStart();
+  return RTL_RE.test(plain.slice(0, 120)) ? 'rtl' : 'ltr';
+}
+
+// ─── Markdown → HTML safety net ──────────────────────────────────────────────
+// The AI is instructed to respond in HTML, but may occasionally slip into
+// Markdown (especially in longer conversations). This converts common Markdown
+// patterns to HTML as a client-side fallback. Only runs when the response
+// contains no HTML tags (pure Markdown output).
+function markdownToHtml(text) {
+  // If the text already contains HTML tags, trust it and return as-is
+  if (/<[a-z][\s\S]*?>/i.test(text)) return text;
+
+  return text
+    // Headings: ### → <h4>, ## → <h3>
+    .replace(/^###\s+(.+)$/gm, '<h4>$1</h4>')
+    .replace(/^##\s+(.+)$/gm, '<h3>$1</h3>')
+    .replace(/^#\s+(.+)$/gm, '<h3>$1</h3>')
+    // Bold+italic: ***text*** or ___text___
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    // Bold: **text** or __text__
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    // Italic: *text* or _text_
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/_(.+?)_/g, '<em>$1</em>')
+    // Unordered lists: lines starting with - or *
+    .replace(/^(?:[*-])\s+(.+)$/gm, '<li>$1</li>')
+    // Ordered lists: lines starting with 1. 2. etc
+    .replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
+    // Wrap consecutive <li> blocks in <ul>
+    .replace(/(<li>.*<\/li>\n?)+/gs, match => '<ul>' + match + '</ul>')
+    // Paragraphs: blank-line-separated blocks not already wrapped in a tag
+    .split(/\n{2,}/)
+    .map(block => {
+      block = block.trim();
+      if (!block) return '';
+      if (/^<(h[1-6]|ul|ol|li|blockquote)/i.test(block)) return block;
+      return '<p>' + block.replace(/\n/g, '<br>') + '</p>';
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
 function parseAiResponse(rawText) {
   const match = rawText.match(SARAH_CARD_RE);
-  if (!match) return { text: rawText, cardData: null };
 
-  const text = rawText.replace(SARAH_CARD_RE, '').trim();
+  if (!match) {
+    const text = markdownToHtml(rawText);
+    return { text, cardData: null, dir: detectDir(text) };
+  }
+
+  const text = markdownToHtml(rawText.replace(SARAH_CARD_RE, '').trim());
   try {
     const cardData = JSON.parse(match[1]);
-    // Only accept the expected shape
     if (cardData && Array.isArray(cardData.fields)) {
-      return { text, cardData };
+      return { text, cardData, dir: detectDir(text) };
     }
-  } catch { /* malformed JSON — discard the tag, show full text */ }
-  return { text: rawText, cardData: null };
+  } catch { /* malformed JSON — discard tag */ }
+
+  const fallback = markdownToHtml(rawText);
+  return { text: fallback, cardData: null, dir: detectDir(fallback) };
 }
 
 // ─── localStorage helpers ────────────────────────────────────────────────────
@@ -72,11 +128,12 @@ function greetingMessage() {
 // ─── ChatWindow ──────────────────────────────────────────────────────────────
 
 export default function ChatWindow({ onClose }) {
-  const [messages, setMessages]     = useState([]);
-  const [isTyping, setIsTyping]     = useState(false);
+  const [messages, setMessages]       = useState([]);
+  const [isTyping, setIsTyping]       = useState(false);
   const [sessionUuid, setSessionUuid] = useState(null);
-  const [lastFailed, setLastFailed] = useState(null); // text of last failed send
+  const [lastFailed, setLastFailed]   = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [language, setLanguage]       = useState(null); // ISO 639-1 code selected by user
 
   // ── On mount: restore session + history, or show greeting ────────────────
   useEffect(() => {
@@ -106,10 +163,10 @@ export default function ChatWindow({ onClose }) {
           // Restore conversation — no greeting (user already saw it)
           setMessages(history.map(msg => {
             if (msg.role !== 'customer') {
-              const { text, cardData } = parseAiResponse(msg.content);
-              return { id: nextId(), type: 'ai', text, cardData };
+              const { text, cardData, dir } = parseAiResponse(msg.content);
+              return { id: nextId(), type: 'ai', text, cardData, dir };
             }
-            return { id: nextId(), type: 'user', text: msg.content };
+            return { id: nextId(), type: 'user', text: msg.content, dir: detectDir(msg.content) };
           }));
         }
       })
@@ -126,20 +183,17 @@ export default function ChatWindow({ onClose }) {
     if (!trimmed || isTyping) return;
 
     setLastFailed(null);
-    setMessages(prev => [...prev, { id: nextId(), type: 'user', text: trimmed }]);
+    setMessages(prev => [...prev, { id: nextId(), type: 'user', text: trimmed, dir: detectDir(trimmed) }]);
     setIsTyping(true);
 
-    sendChatMessage(trimmed, sessionUuid, getLead())
+    sendChatMessage(trimmed, sessionUuid, getLead(), language)
       .then(data => {
-        // Task 1: persist session UUID on first reply
-        if (data.session_uuid) {
-          if (!sessionUuid) {
-            setSessionUuid(data.session_uuid);
-            saveStoredSession(data.session_uuid);
-          }
+        if (data.session_uuid && !sessionUuid) {
+          setSessionUuid(data.session_uuid);
+          saveStoredSession(data.session_uuid);
         }
-        const { text: aiText, cardData } = parseAiResponse(data.message);
-        setMessages(prev => [...prev, { id: nextId(), type: 'ai', text: aiText, cardData }]);
+        const { text: aiText, cardData, dir } = parseAiResponse(data.message);
+        setMessages(prev => [...prev, { id: nextId(), type: 'ai', text: aiText, cardData, dir }]);
       })
       .catch(err => {
         const errorText = err.message?.includes('not configured')
@@ -166,11 +220,40 @@ export default function ChatWindow({ onClose }) {
     sendMessage(text);
   }, [sendMessage]);
 
+  // ── Language selection from seed quick questions ──────────────────────────
+  // Displays the short label (e.g. "🇮🇷 فارسی") as the user bubble but sends
+  // the full instruction message to the API so the AI switches language.
+  const handleLanguageSelect = useCallback(({ label, message, language: lang }) => {
+    if (isTyping) return;
+    setLanguage(lang);
+    setLastFailed(null);
+    setMessages(prev => [...prev, { id: nextId(), type: 'user', text: label, dir: detectDir(label) }]);
+    setIsTyping(true);
+
+    sendChatMessage(message, sessionUuid, getLead(), lang)
+      .then(data => {
+        if (data.session_uuid && !sessionUuid) {
+          setSessionUuid(data.session_uuid);
+          saveStoredSession(data.session_uuid);
+        }
+        const { text: aiText, cardData, dir } = parseAiResponse(data.message);
+        setMessages(prev => [...prev, { id: nextId(), type: 'ai', text: aiText, cardData, dir }]);
+      })
+      .catch(() => {
+        setMessages(prev => [...prev, {
+          id: nextId(), type: 'ai', text: 'Unable to connect. Please try again.',
+          isError: true, retryText: message,
+        }]);
+      })
+      .finally(() => setIsTyping(false));
+  }, [isTyping, sessionUuid]);
+
   // ── Task 6: reset chat ────────────────────────────────────────────────────
   const handleReset = useCallback(() => {
     clearStoredSession();
     setSessionUuid(null);
     setLastFailed(null);
+    setLanguage(null);
     setMessages(greetingMessage());
   }, []);
 
@@ -181,6 +264,7 @@ export default function ChatWindow({ onClose }) {
         messages={messages}
         isTyping={isTyping || historyLoading}
         onQuickQuestion={sendMessage}
+        onLanguageSelect={handleLanguageSelect}
         onRetry={handleRetry}
       />
       <InputBox onSend={sendMessage} disabled={isTyping || historyLoading} />

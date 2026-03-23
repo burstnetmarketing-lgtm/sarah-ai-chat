@@ -243,6 +243,23 @@ class KnowledgeResourceRepository
      *
      * Do not use this method to change admin lifecycle state — use updateStatus().
      */
+    /**
+     * Saves the extracted and normalized text back into source_content.
+     * Called by KnowledgeProcessingService after extraction so the keyword fallback
+     * in buildSystemPrompt() works even when embeddings have not been generated.
+     */
+    public function updateSourceContent(int $id, string $content): void
+    {
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->prefix . KnowledgeResourceTable::TABLE,
+            ['source_content' => $content, 'updated_at' => current_time('mysql')],
+            ['id'             => $id],
+            ['%s', '%s'],
+            ['%d']
+        );
+    }
+
     public function updateProcessingStatus(int $id, string $processingStatus): void
     {
         global $wpdb;
