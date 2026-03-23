@@ -15,6 +15,7 @@ class MenuRepository
         $this->insertIfMissing('quick-questions', 'Quick Questions', 'quick-questions', null, false, false);
         $this->insertIfMissing('appearance',      'Appearance',      'appearance',      null, false, false);
         $this->insertIfMissing('settings',        'Settings',        'settings',        null, false, false);
+        $this->insertIfMissing('chat-history',    'Chat History',    'chat-history',    null, false, false);
         $this->insertIfMissing('public-api',      'PHP API',         'public-api',      null, false, false);
     }
 

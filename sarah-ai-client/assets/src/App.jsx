@@ -10,16 +10,18 @@ import Settings from './pages/Settings.jsx';
 import KnowledgeBase from './pages/KnowledgeBase.jsx';
 import QuickSetup from './pages/QuickSetup.jsx';
 import PublicApi from './pages/PublicApi.jsx';
+import ChatHistory from './pages/ChatHistory.jsx';
 
 const VIEWS = {
-  dashboard:        Dashboard,
-  'menu-manager':   MenuManager,
-  'log':            Log,
+  dashboard:         Dashboard,
+  'menu-manager':    MenuManager,
+  'log':             Log,
   'quick-questions': QuickQuestions,
-  'appearance':     AppearanceSettings,
-  'settings':       Settings,
-  'knowledge-base': KnowledgeBase,
-  'public-api':     PublicApi,
+  'appearance':      AppearanceSettings,
+  'settings':        Settings,
+  'knowledge-base':  KnowledgeBase,
+  'chat-history':    ChatHistory,
+  'public-api':      PublicApi,
 };
 
 export default function App() {
