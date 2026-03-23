@@ -315,16 +315,19 @@ function GroupPanel({ group }) {
 
 export default function ApiGuide({ filter = 'all' }) {
   const publicGroups = GROUPS.filter(g => g.badge === 'bg-success');
-  const adminGroups  = GROUPS.filter(g => g.badge !== 'bg-success');
+  const adminGroups  = GROUPS.filter(g => g.badge === 'bg-primary');
+  const clientGroups = GROUPS.filter(g => g.badge === 'bg-info');
 
   const visibleGroups = filter === 'public' ? publicGroups
                       : filter === 'admin'  ? adminGroups
+                      : filter === 'client' ? clientGroups
                       : GROUPS;
 
   const visibleCount = visibleGroups.reduce((n, g) => n + g.endpoints.length, 0);
 
   const filterLabel = filter === 'public' ? 'Public endpoints only (no WP login — auth via account_key + site_key).'
-                    : filter === 'admin'  ? 'Admin & Client endpoints — require WP login or X-Sarah-Platform-Key.'
+                    : filter === 'admin'  ? 'Admin endpoints — require WordPress admin login (manage_options).'
+                    : filter === 'client' ? 'Client endpoints — auth via account_key + site_key + X-Sarah-Platform-Key header.'
                     : 'All REST endpoints exposed by sarah-ai-server.';
 
   return (

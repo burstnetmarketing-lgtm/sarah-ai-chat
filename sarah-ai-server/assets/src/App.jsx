@@ -15,6 +15,7 @@ import ApiGuide from './pages/ApiGuide.jsx';
 const ApiGuideAll    = (p) => <ApiGuide {...p} filter="all" />;
 const ApiGuidePublic = (p) => <ApiGuide {...p} filter="public" />;
 const ApiGuideAdmin  = (p) => <ApiGuide {...p} filter="admin" />;
+const ApiGuideClient = (p) => <ApiGuide {...p} filter="client" />;
 
 const VIEWS = {
   dashboard:          Dashboard,
@@ -31,6 +32,7 @@ const VIEWS = {
   'api-guide-all':    ApiGuideAll,
   'api-guide-public': ApiGuidePublic,
   'api-guide-admin':  ApiGuideAdmin,
+  'api-guide-client': ApiGuideClient,
 };
 
 const LABELS = {
@@ -48,6 +50,7 @@ const LABELS = {
   'api-guide-all':    'API Guide — All',
   'api-guide-public': 'API Guide — Public',
   'api-guide-admin':  'API Guide — Admin',
+  'api-guide-client': 'API Guide — Client',
 };
 
 function parseHash() {

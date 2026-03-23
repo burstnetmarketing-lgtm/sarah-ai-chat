@@ -21,6 +21,7 @@ class MenuRepository
         $this->insertIfMissing('api-guide-all',    'All',       'api-guide-all',    'api-guide', false, false);
         $this->insertIfMissing('api-guide-public', 'Public',    'api-guide-public', 'api-guide', false, false);
         $this->insertIfMissing('api-guide-admin',  'Admin',     'api-guide-admin',  'api-guide', false, false);
+        $this->insertIfMissing('api-guide-client', 'Client',    'api-guide-client', 'api-guide', false, false);
         $this->removeIfExists('menu-manager');
     }
 
