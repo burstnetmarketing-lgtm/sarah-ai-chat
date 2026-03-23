@@ -8,8 +8,8 @@ setlocal enabledelayedexpansion
 
 :: ── CONFIGURATION ────────────────────────────────────────────────────────────
 set BASE_URL=http://sarah-server.local/wp-json/sarah-ai-server/v1
-set ACCOUNT_KEY=3e928cf79fc83453cd8447ef98ba395f0c8de38a11a7a957827f5ba6e8e1466d
-set SITE_KEY=0741fc0800b9ed96152213226f69dabdad2b6527cbc70af05ea88f714b5a3da3
+set ACCOUNT_KEY=1b646204ea191017201822bdc6abbea49b50dad08dc6868c54e2fa8ddccea50f
+set SITE_KEY=885a974ec2f8ccd8aa6280917d6106eced234220e7576b862ff35f1d1d687755
 set PLATFORM_KEY=www.BurstNET.com.au
 set MESSAGE_1=Hello! What services do you offer?
 set MESSAGE_2=Can you tell me more about pricing?
@@ -19,9 +19,8 @@ set MESSAGE_2=Can you tell me more about pricing?
 set SCRIPT_DIR=%~dp0
 set OUT=%SCRIPT_DIR%
 
-:: Log file with timestamp
-for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value') do set DT=%%I
-set TIMESTAMP=%DT:~0,4%-%DT:~4,2%-%DT:~6,2%_%DT:~8,2%-%DT:~10,2%-%DT:~12,2%
+:: Log file with timestamp (PowerShell — wmic removed in Windows 11)
+for /f "delims=" %%T in ('powershell -NoProfile -Command "Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'"') do set TIMESTAMP=%%T
 set LOGFILE=%OUT%test-chat-%TIMESTAMP%.log
 
 echo. > "%LOGFILE%"

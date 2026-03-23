@@ -107,6 +107,7 @@ require_once SARAH_AI_SERVER_PATH . 'includes/Api/KnowledgeFieldsController.php'
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/ClientKnowledgeController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/ClientSiteController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/WhmcsTestController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/AuthTestController.php';
 
 // Core
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Logger.php';

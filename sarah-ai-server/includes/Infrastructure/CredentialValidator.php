@@ -80,10 +80,10 @@ class CredentialValidator
             return null;
         }
 
-        // Step 4: license check — trial expiry or valid WHMCS key
-        if (! $this->license->isActive($site)) {
-            return null;
-        }
+        // Step 4: license check — temporarily disabled, re-enable when WHMCS is configured
+        // if (! $this->license->isActive($site)) {
+        //     return null;
+        // }
 
         return [
             'tenant' => $tenant,

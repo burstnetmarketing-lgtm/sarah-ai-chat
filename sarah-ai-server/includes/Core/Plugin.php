@@ -65,8 +65,11 @@ class Plugin
         // Register background job hooks (must run on every boot so cron callbacks are found).
         KbSyncJob::register();
 
-        // CORS — allow any origin to call public client-facing endpoints (chat, auth-test, etc.)
-        // WordPress strips CORS headers it doesn't know about, so we must re-add them here.
+        // CORS — allow any origin to call public client-facing endpoints (chat, etc.)
+        // Two hooks are needed:
+        //   1. 'init' (priority 1) — intercept OPTIONS preflight before WordPress routing kicks in.
+        //   2. 'rest_pre_serve_request' — add headers to actual GET/POST responses.
+        add_action('init', [self::class, 'handleCorsEarly'], 1);
         add_action('rest_api_init', function () {
             remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
             add_filter('rest_pre_serve_request', [self::class, 'sendCorsHeaders']);
@@ -109,31 +112,49 @@ class Plugin
     }
 
     /**
-     * Sends CORS headers for all REST API responses.
-     *
-     * Public client endpoints (chat, auth-test, client/*) are called from external
-     * WordPress sites (e.g. sarah.local → sarah-server.local), so the server must
-     * allow cross-origin requests.
-     *
-     * We allow any origin (*) because tenants' sites can have any domain.
-     * Credentials are not used — keys are sent in the request body, not cookies.
+     * Intercepts OPTIONS preflight requests at 'init' (priority 1) before WordPress
+     * routing has a chance to return a 404 or redirect.
+     * Only fires for paths under /wp-json/ so it does not affect normal page requests.
+     */
+    public static function handleCorsEarly(): void
+    {
+        if (
+            ! isset($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']) ||
+            $_SERVER['REQUEST_METHOD'] !== 'OPTIONS'
+        ) {
+            return;
+        }
+
+        $uri = (string) $_SERVER['REQUEST_URI'];
+        if (strpos($uri, '/wp-json/') === false) {
+            return;
+        }
+
+        self::outputCorsHeaders();
+        status_header(200);
+        exit;
+    }
+
+    /**
+     * Adds CORS headers to actual REST API responses (GET, POST, etc.).
+     * Replaces WordPress's default rest_send_cors_headers which sends a restrictive header.
      */
     public static function sendCorsHeaders(bool $served): bool
+    {
+        self::outputCorsHeaders();
+        return $served;
+    }
+
+    /** Outputs the CORS response headers. */
+    private static function outputCorsHeaders(): void
     {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? (string) $_SERVER['HTTP_ORIGIN'] : '*';
 
         header('Access-Control-Allow-Origin: ' . $origin);
+        header('Vary: Origin');
         header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
         header('Access-Control-Allow-Headers: Content-Type, Authorization, X-WP-Nonce, X-Sarah-Platform-Key');
         header('Access-Control-Max-Age: 3600');
-
-        // Handle OPTIONS preflight — return 200 immediately.
-        if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-            status_header(200);
-            exit;
-        }
-
-        return $served;
     }
 
     /**
