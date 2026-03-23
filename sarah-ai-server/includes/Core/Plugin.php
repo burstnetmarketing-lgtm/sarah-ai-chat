@@ -41,6 +41,7 @@ use SarahAiServer\Api\KnowledgeFieldsController;
 use SarahAiServer\Api\KnowledgeProcessingController;
 use SarahAiServer\Api\ClientKnowledgeController;
 use SarahAiServer\Api\ClientSiteController;
+use SarahAiServer\Api\AuthTestController;
 use SarahAiServer\DB\SiteApiKeyTable;
 use SarahAiServer\Core\KbSyncJob;
 use SarahAiServer\Infrastructure\MenuRepository;
@@ -63,6 +64,13 @@ class Plugin
 
         // Register background job hooks (must run on every boot so cron callbacks are found).
         KbSyncJob::register();
+
+        // CORS — allow any origin to call public client-facing endpoints (chat, auth-test, etc.)
+        // WordPress strips CORS headers it doesn't know about, so we must re-add them here.
+        add_action('rest_api_init', function () {
+            remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
+            add_filter('rest_pre_serve_request', [self::class, 'sendCorsHeaders']);
+        }, 15);
 
         // Wire logger on/off from DB setting and register PHP error hooks
         $settingsRepo   = new SettingsRepository();
@@ -92,11 +100,40 @@ class Plugin
         add_action('rest_api_init', [(new ClientKnowledgeController()), 'registerRoutes']);
         add_action('rest_api_init', [(new ClientSiteController()), 'registerRoutes']);
         add_action('rest_api_init', [(new \SarahAiServer\Api\WhmcsTestController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new AuthTestController()), 'registerRoutes']);
 
         if (! is_admin()) {
             return;
         }
         (new AdminMenu(new DashboardPage()))->register();
+    }
+
+    /**
+     * Sends CORS headers for all REST API responses.
+     *
+     * Public client endpoints (chat, auth-test, client/*) are called from external
+     * WordPress sites (e.g. sarah.local → sarah-server.local), so the server must
+     * allow cross-origin requests.
+     *
+     * We allow any origin (*) because tenants' sites can have any domain.
+     * Credentials are not used — keys are sent in the request body, not cookies.
+     */
+    public static function sendCorsHeaders(bool $served): bool
+    {
+        $origin = isset($_SERVER['HTTP_ORIGIN']) ? (string) $_SERVER['HTTP_ORIGIN'] : '*';
+
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-WP-Nonce, X-Sarah-Platform-Key');
+        header('Access-Control-Max-Age: 3600');
+
+        // Handle OPTIONS preflight — return 200 immediately.
+        if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            status_header(200);
+            exit;
+        }
+
+        return $served;
     }
 
     /**

@@ -505,6 +505,18 @@ function AccountKeysSection({ tenantUuid, onKeysChange }) {
     catch { alert('Failed to revoke.'); }
   }
 
+  async function handleRegenerate(key) {
+    if (!confirm('This will revoke the current key and issue a new one. Continue?')) return;
+    setSaving(true); setMsg(null); setRawKey(null);
+    try {
+      await deleteAccountKey(key.uuid);
+      const res = await createAccountKey(tenantUuid, { label: key.label || 'default' });
+      if (res.success) { setRawKey(res.data.raw_key); load(); }
+      else setMsg({ type: 'danger', text: res.message ?? 'Failed to regenerate.' });
+    } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
+    finally { setSaving(false); }
+  }
+
   return (
     <div className="card border-0 shadow-sm">
       <div className="card-header">
@@ -546,10 +558,14 @@ function AccountKeysSection({ tenantUuid, onKeysChange }) {
                   <td>{k.label}</td>
                   <td><StatusBadge status={k.status} map={{ active: 'success', revoked: 'danger' }} /></td>
                   <td className="text-muted small">{k.expires_at ?? 'never'}</td>
-                  <td>
+                  <td className="d-flex gap-1">
                     {k.status === 'active' && (
-                      <button className="btn btn-sm btn-outline-danger py-0"
-                        onClick={() => handleRevoke(k.uuid)}>Revoke</button>
+                      <>
+                        <button className="btn btn-sm btn-outline-secondary py-0"
+                          onClick={() => handleRegenerate(k)} disabled={saving}>Regenerate</button>
+                        <button className="btn btn-sm btn-outline-danger py-0"
+                          onClick={() => handleRevoke(k.uuid)}>Revoke</button>
+                      </>
                     )}
                   </td>
                 </tr>
@@ -597,6 +613,18 @@ function SiteKeysSection({ sites = [], onKeysChange }) {
     if (!confirm('Revoke this site key?')) return;
     try { await deleteSiteKey(uuid); load(); }
     catch { alert('Failed.'); }
+  }
+
+  async function handleRegenerate(key) {
+    if (!confirm('This will revoke the current key and issue a new one. Continue?')) return;
+    setSaving(true); setRawKey(null);
+    try {
+      await deleteSiteKey(key.uuid);
+      const res = await createSiteKey(selectedUuid, { label: key.label || 'default' });
+      if (res.success) { setRawKey(res.data.raw_key); load(); }
+      else alert(res.message ?? 'Failed to regenerate.');
+    } catch { alert('Request failed.'); }
+    finally { setSaving(false); }
   }
 
   const selectedSite = sites.find(s => s.uuid === selectedUuid);
@@ -659,10 +687,14 @@ function SiteKeysSection({ sites = [], onKeysChange }) {
                 <tr key={k.uuid ?? k.id}>
                   <td>{k.label}</td>
                   <td><StatusBadge status={k.status} map={{ active: 'success', revoked: 'danger' }} /></td>
-                  <td>
+                  <td className="d-flex gap-1">
                     {k.status === 'active' && (
-                      <button className="btn btn-sm btn-outline-danger py-0"
-                        onClick={() => handleRevoke(k.uuid)}>Revoke</button>
+                      <>
+                        <button className="btn btn-sm btn-outline-secondary py-0"
+                          onClick={() => handleRegenerate(k)} disabled={saving}>Regenerate</button>
+                        <button className="btn btn-sm btn-outline-danger py-0"
+                          onClick={() => handleRevoke(k.uuid)}>Revoke</button>
+                      </>
                     )}
                   </td>
                 </tr>

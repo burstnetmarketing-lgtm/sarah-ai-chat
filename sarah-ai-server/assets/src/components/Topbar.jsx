@@ -25,11 +25,9 @@ export default function Topbar({ title, onNavigate }) {
       <span className="topbar-title">{title}</span>
 
       <div className="d-flex align-items-center gap-3">
-        {adminUrl && (
-          <a href={adminUrl} className="topbar-action" title="Back to WordPress">
-            <i className="bi bi-arrow-left-circle"></i>
-          </a>
-        )}
+        <a href="/" className="topbar-action" title="Back to WordPress">
+          <i className="bi bi-arrow-left-circle"></i>
+        </a>
 
         <div className="topbar-divider" />
 
@@ -62,6 +60,14 @@ export default function Topbar({ title, onNavigate }) {
                 </button>
               </li>
               <li><hr className="dropdown-divider" /></li>
+              {adminUrl && (
+                <li>
+                  <a className="dropdown-item d-flex align-items-center gap-2"
+                     href={adminUrl}>
+                    <i className="bi bi-speedometer2"></i> Back to Admin
+                  </a>
+                </li>
+              )}
               <li>
                 <a className="dropdown-item d-flex align-items-center gap-2 text-danger"
                    href={logoutUrl}>

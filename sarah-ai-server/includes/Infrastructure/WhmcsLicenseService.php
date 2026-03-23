@@ -50,6 +50,13 @@ class WhmcsLicenseService
      */
     public function isValid(array $site, string $whmcsKey): bool
     {
+        // Grace mode takes precedence — if no endpoint is configured, all keys are valid
+        // regardless of whether a WHMCS key is present on the tenant.
+        $apiUrl = $this->settings->get('whmcs_api_url', '', 'platform');
+        if ($apiUrl === '') {
+            return true;
+        }
+
         if ($whmcsKey === '') {
             return false;
         }
