@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatField } from './contactFormatter.js';
+import { isCanonicalKey } from './knowledgeFieldSchema.js';
 
 /**
  * ContactCard
@@ -11,14 +12,24 @@ import { formatField } from './contactFormatter.js';
  * Props:
  *   fields — array of { key, label, value } objects from a <sarah_card> block
  *
- * TODO: add policy/access-control filtering before formatter
- * TODO: support tenant-specific business data source (drive fields from KB)
+ * Policy validation:
+ *   Only fields with canonical keys (defined in knowledgeFieldSchema.js) are rendered.
+ *   Fields with unknown keys, empty values, or non-string values are silently dropped.
+ *   This is a defence-in-depth measure — the server already enforces visibility,
+ *   but the widget must not blindly render arbitrary key/value pairs from AI output.
  */
 export default function ContactCard({ fields }) {
   if (!fields || fields.length === 0) return null;
 
-  // TODO: add policy/access-control filtering before formatter
-  const formatted = fields.map(formatField).filter(f => f.displayValue);
+  // Policy validation: only canonical keys with non-empty string values
+  const validated = fields.filter(
+    f => f && typeof f.key === 'string' && isCanonicalKey(f.key)
+      && typeof f.value === 'string' && f.value.trim() !== ''
+  );
+
+  if (validated.length === 0) return null;
+
+  const formatted = validated.map(formatField).filter(f => f.displayValue);
 
   if (formatted.length === 0) return null;
 

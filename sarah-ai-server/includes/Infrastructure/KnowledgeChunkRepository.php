@@ -105,8 +105,15 @@ class KnowledgeChunkRepository
     }
 
     /**
-     * Return all chunks with embeddings for a site, restricted to resources
-     * that are active (status = active) and fully processed (processing_status = done).
+     * Return all PUBLIC chunks with embeddings for a site.
+     *
+     * Restricted to resources that are:
+     *   - active (status = active)
+     *   - fully processed (processing_status = done)
+     *   - visibility = public  ← enforces KB access control
+     *
+     * Private resources are intentionally excluded so they never enter the
+     * semantic search corpus and cannot surface in AI responses via RAG.
      *
      * Used by SemanticRetriever to load the search corpus at runtime.
      * Includes resource_title (joined from knowledge_resources) for prompt labelling.
@@ -127,6 +134,7 @@ class KnowledgeChunkRepository
                    AND kc.embedding IS NOT NULL
                    AND kr.status = 'active'
                    AND kr.processing_status = 'done'
+                   AND kr.visibility = 'public'
                    AND kr.deleted_at IS NULL
                  ORDER BY kc.resource_id ASC, kc.chunk_index ASC",
                 $siteId

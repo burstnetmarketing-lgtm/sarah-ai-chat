@@ -1,51 +1,82 @@
 /**
- * Business Data Provider
+ * Business data provider — fetches structured KB fields from the server.
  *
- * Supplies structured business field values by canonical key.
- * This is the single source of truth for business contact/info data
- * accessible to the widget without going through the AI.
+ * Data source: GET /sarah-ai-server/v1/sites/{uuid}/knowledge-fields
+ * Auth: account_key + site_key from window.SarahAiWidget.connection
  *
- * Canonical key format:
- *   contact.phone_admin     — main admin phone number
- *   contact.phone_marketing — marketing phone number
- *   contact.website         — website URL
- *   contact.email_support   — support email address
- *   business.address        — physical address
- *   business.hours          — trading / opening hours
+ * Only public fields are returned by the server (visibility enforcement
+ * is done server-side by KnowledgePolicyFilter + KnowledgeFieldsController).
  *
- * Current state: mock/static placeholder.
- *
- * TODO: replace mock provider with KB-backed provider
- * TODO: support tenant-specific business data source
- * TODO: add policy/access-control filtering before formatter
- * TODO: move business fields to canonical KB schema
- * TODO: validate and sanitize structured values before render
+ * Fields are canonical key → string value pairs as defined in knowledgeFieldSchema.js.
+ * Non-canonical keys are stripped by filterCanonicalFields() before use.
  */
 
-// TODO: replace mock provider with KB-backed provider
-// These values are intentionally empty — replace with KB API integration.
-// The provider exists as an architectural placeholder so components depend on
-// this interface, not on hardcoded values scattered across the codebase.
-const _fields = {};
+import { filterCanonicalFields } from './knowledgeFieldSchema.js';
+
+let _cache = null;        // resolved fields map, or null if not yet fetched
+let _fetchPromise = null; // in-flight fetch — deduplicate concurrent calls
 
 /**
- * Get a single business field by canonical key.
- * Returns null if the field is not available.
+ * Fetches public structured fields for the current site from the KB API.
+ * Results are cached for the widget session.
  *
- * @param {string} key  e.g. 'contact.phone_admin'
- * @returns {string|null}
+ * @returns {Promise<Record<string, string>>}  Canonical key → value map (may be empty)
  */
-export function getBusinessField(key) {
-  // TODO: support tenant-specific business data source
-  return _fields[key] ?? null;
+export async function fetchBusinessFields() {
+  if (_cache !== null) return _cache;
+  if (_fetchPromise) return _fetchPromise;
+
+  const conn = window.SarahAiWidget?.connection || {};
+  const { server_url, account_key, site_key, site_uuid } = conn;
+
+  if (!server_url || !account_key || !site_key || !site_uuid) {
+    _cache = {};
+    return _cache;
+  }
+
+  _fetchPromise = fetch(
+    `${server_url}/sites/${site_uuid}/knowledge-fields?account_key=${encodeURIComponent(account_key)}&site_key=${encodeURIComponent(site_key)}`
+  )
+    .then(res => res.json())
+    .then(data => {
+      _cache = data.success ? filterCanonicalFields(data.fields ?? {}) : {};
+      return _cache;
+    })
+    .catch(() => {
+      _cache = {};
+      return _cache;
+    })
+    .finally(() => {
+      _fetchPromise = null;
+    });
+
+  return _fetchPromise;
 }
 
 /**
- * Get all available business fields as a key→value map.
+ * Returns a single field value by canonical key.
  *
- * @returns {object}
+ * @param {string} key  Canonical key (e.g. 'contact.phone_admin')
+ * @returns {Promise<string|null>}
  */
-export function getAllBusinessFields() {
-  // TODO: replace mock provider with KB-backed provider
-  return { ..._fields };
+export async function getBusinessField(key) {
+  const fields = await fetchBusinessFields();
+  return fields[key] ?? null;
+}
+
+/**
+ * Returns all available business fields.
+ *
+ * @returns {Promise<Record<string, string>>}
+ */
+export async function getAllBusinessFields() {
+  return fetchBusinessFields();
+}
+
+/**
+ * Clears the field cache — useful for forced refresh.
+ */
+export function clearBusinessFieldsCache() {
+  _cache = null;
+  _fetchPromise = null;
 }

@@ -10,6 +10,7 @@ import {
   getAgentIdentity, updateAgentIdentity,
   listKnowledge, createKnowledge, deleteKnowledge,
   processKnowledge, uploadKnowledgeFile, getKnowledgeResourceTypes,
+  updateKnowledgeVisibility,
   markTenantSetupComplete,
 } from '../api/provisioning.js';
 
@@ -906,6 +907,12 @@ function KnowledgeSection({ siteUuid, onItemsChange }) {
     catch { alert('Failed.'); }
   }
 
+  async function handleToggleVisibility(uuid, currentVisibility) {
+    const next = currentVisibility === 'private' ? 'public' : 'private';
+    try { await updateKnowledgeVisibility(uuid, next); load(); }
+    catch { setMsg({ type: 'danger', text: 'Failed to update visibility.' }); }
+  }
+
   async function handleProcess(uuid) {
     setProcessing(p => ({ ...p, [uuid]: true }));
     try {
@@ -1007,13 +1014,23 @@ function KnowledgeSection({ siteUuid, onItemsChange }) {
         ) : (
           <table className="table table-sm mb-0">
             <thead className="table-light">
-              <tr><th>Title</th><th>Type</th><th>Status</th><th>Processing</th><th></th></tr>
+              <tr><th>Title</th><th>Type</th><th>Visibility</th><th>Status</th><th>Processing</th><th></th></tr>
             </thead>
             <tbody>
               {items.map(item => (
                 <tr key={item.uuid ?? item.id}>
                   <td>{getDisplayTitle(item)}</td>
                   <td className="text-muted small">{item.resource_type}</td>
+                  <td>
+                    <button
+                      className={`btn btn-sm py-0 ${item.visibility === 'private' ? 'btn-secondary' : 'btn-outline-success'}`}
+                      onClick={() => handleToggleVisibility(item.uuid, item.visibility ?? 'public')}
+                      title="Toggle public / private"
+                      style={{ fontSize: '0.7rem' }}
+                    >
+                      {item.visibility === 'private' ? '🔒 private' : '🌐 public'}
+                    </button>
+                  </td>
                   <td><StatusBadge status={item.status} /></td>
                   <td>
                     <StatusBadge status={item.processing_status ?? 'none'} map={PROCESSING_COLORS} />

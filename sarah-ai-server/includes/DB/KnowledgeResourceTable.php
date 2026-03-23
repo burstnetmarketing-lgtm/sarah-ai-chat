@@ -69,6 +69,16 @@ class KnowledgeResourceTable
     public const TYPE_LINK = 'link';
     public const TYPE_FILE = 'file';
 
+    // -------------------------------------------------------------------------
+    // Visibility constants (access control — who can see this resource?)
+    // -------------------------------------------------------------------------
+    // public  : injected into AI prompts AND returned via the public knowledge-fields API
+    // private : injected into AI prompts ONLY when the site_token query is from the
+    //           admin context; never returned to the widget or public API
+    // -------------------------------------------------------------------------
+    public const VISIBILITY_PUBLIC  = 'public';
+    public const VISIBILITY_PRIVATE = 'private';
+
     public static function create(): void
     {
         global $wpdb;
@@ -85,6 +95,7 @@ class KnowledgeResourceTable
             source_content LONGTEXT NULL DEFAULT NULL,
             processed_content LONGTEXT NULL DEFAULT NULL,
             processing_status VARCHAR(30) NOT NULL DEFAULT 'none',
+            visibility VARCHAR(20) NOT NULL DEFAULT 'public',
             meta LONGTEXT NULL DEFAULT NULL,
             sort_order INT NOT NULL DEFAULT 0,
             deleted_at DATETIME NULL DEFAULT NULL,

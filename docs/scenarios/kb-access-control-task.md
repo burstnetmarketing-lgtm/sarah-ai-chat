@@ -1,71 +1,130 @@
-# Task: KB Access Control System
+# KB Access Control & Integration - Task Specification
 
-## Objective
-Prevent sensitive data (e.g. personal mobile numbers) from being exposed by the AI agent.
+## Overview
 
----
+This document defines the full implementation plan for Knowledge Base
+(KB) access control, secure data handling, and frontend integration in
+the Sarah AI system.
 
-## Description
-The AI agent currently returns data directly from the Knowledge Base without any access control.  
-This task introduces a visibility layer to ensure only safe (public) information is returned.
+The goal is to ensure: - No private data leaks into AI prompts or
+frontend - Structured KB data is accessible deterministically - Full
+end-to-end security and tenant isolation
 
----
+------------------------------------------------------------------------
 
-## Subtasks
+## Tasks
 
-### 1. Define Visibility Structure
-- Add `visibility` field to KB entries
-- Supported values:
-  - `public`
-  - `private`
+### 1. Add KB Visibility Model (Public / Private)
 
-Example:
-```json
-{
-  "phone": {
-    "value": "0449...",
-    "visibility": "private"
-  }
-}
-```
+Add a visibility field to KB resources and/or chunks.
 
----
+Requirements: - Values: `public`, `private` - Default: `public` - Must
+be enforced at query level
 
-### 2. Server-side Filtering
-- Filter out all `private` fields before sending response to client
-- Ensure no sensitive data reaches frontend
+------------------------------------------------------------------------
 
----
+### 2. Define Canonical KB Field Schema
 
-### 3. Safe Response Handling
-- If user requests restricted data:
-  - Return alternative response
-  - Example:
-    - "Please contact us via the website for assistance"
+Create a consistent schema for structured fields.
 
----
+Example: - contact.phone_admin - contact.phone_sales - contact.website -
+business.address
 
-### 4. Intent Detection (Basic)
-- Detect requests like:
-  - "admin number"
-  - "mobile"
-- Route through access control logic
+------------------------------------------------------------------------
 
----
+### 3. Add Tenant Isolation with site_token
 
-### 5. Test Scenarios
-- Request admin phone → should NOT return
-- Request marketing phone → return only if public
-- Request website → always return
-- Ask unrelated question → handled normally
+Ensure all KB access is scoped per site.
 
----
+Requirements: - All queries must filter by `site_id` - API access must
+validate `site_token`
 
-## Notes
-- This is critical for privacy, security, and future SaaS scaling
-- Should be reusable across all agents (multi-tenant ready)
+------------------------------------------------------------------------
 
----
+### 4. Apply KB Filtering Before Prompt Injection
 
-## Status
-⏳ Pending
+Ensure private data never reaches AI prompts.
+
+Requirements: - Filter KB data before system prompt creation - No
+exception
+
+------------------------------------------------------------------------
+
+### 5. Make SemanticRetriever Visibility-Aware
+
+Modify retrieval logic:
+
+Requirements: - Exclude private chunks - Only return allowed data
+
+------------------------------------------------------------------------
+
+### 6. Add Safe Response for Restricted Data
+
+If user requests private info:
+
+-   Return predefined safe response
+-   Do not rely on AI improvisation
+
+------------------------------------------------------------------------
+
+### 7. Use Intent Detection Only as UX Helper
+
+Intent detection can assist UX but must not be used as primary security.
+
+------------------------------------------------------------------------
+
+### 8. Implement Knowledge Fields API
+
+Endpoint: GET /sarah-ai-server/v1/sites/{uuid}/knowledge-fields
+
+Response: { "fields": { "contact.phone_admin": "...", "contact.website":
+"...", "business.address": "..." } }
+
+Requirements: - Only public data - Protected with site_token
+
+------------------------------------------------------------------------
+
+### 9. Connect businessProvider to API
+
+Replace mock logic with real API call.
+
+------------------------------------------------------------------------
+
+### 10. Update ContactCard Rendering
+
+Render only validated fields.
+
+------------------------------------------------------------------------
+
+### 11. Add Policy Validation Layer
+
+Ensure: - Field-level filtering - Response validation
+
+------------------------------------------------------------------------
+
+### 12. Add End-to-End Tests
+
+Validate: - Private data not exposed - Public data accessible - Prompt
+safety
+
+------------------------------------------------------------------------
+
+### 13. Add Admin UI for Visibility
+
+Allow admin to: - Set visibility - Manage KB entries
+
+------------------------------------------------------------------------
+
+### 14. Document KB Access Control
+
+Document: - Architecture - Data flow - Security rules
+
+------------------------------------------------------------------------
+
+## Deliverables
+
+-   Backend implementation
+-   API endpoints
+-   Frontend integration
+-   Tests
+-   Documentation

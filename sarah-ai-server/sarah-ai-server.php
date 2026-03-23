@@ -65,6 +65,8 @@ require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/KnowledgeChunkRepos
 require_once SARAH_AI_SERVER_PATH . 'includes/Infrastructure/KnowledgeResourceTypeRepository.php';
 
 // Processing
+require_once SARAH_AI_SERVER_PATH . 'includes/Processing/KnowledgeFieldSchema.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Processing/KnowledgePolicyFilter.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Processing/KnowledgeTextExtractor.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Processing/KnowledgeChunker.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Processing/EmbeddingService.php';
@@ -98,6 +100,7 @@ require_once SARAH_AI_SERVER_PATH . 'includes/Api/SessionController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/UsageController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/PlatformSettingsController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/KnowledgeProcessingController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/KnowledgeFieldsController.php';
 
 // Core
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Logger.php';

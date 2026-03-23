@@ -11,6 +11,7 @@ import Subscriptions from './pages/Subscriptions.jsx';
 import Usage from './pages/Usage.jsx';
 import Agents from './pages/Agents.jsx';
 import Settings from './pages/Settings.jsx';
+import ApiGuide from './pages/ApiGuide.jsx';
 
 const VIEWS = {
   dashboard:       Dashboard,
@@ -23,6 +24,7 @@ const VIEWS = {
   'usage':         Usage,
   'agents':        Agents,
   'settings':      Settings,
+  'api-guide':     ApiGuide,
 };
 
 const LABELS = {
@@ -36,6 +38,7 @@ const LABELS = {
   'usage':         'Usage',
   'agents':        'Agents',
   'settings':      'Settings',
+  'api-guide':     'API Guide',
 };
 
 function parseHash() {

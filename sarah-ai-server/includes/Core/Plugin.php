@@ -39,6 +39,7 @@ use SarahAiServer\Api\TenantController;
 use SarahAiServer\Api\UserTenantController;
 use SarahAiServer\Api\UsageController;
 use SarahAiServer\Api\PlatformSettingsController;
+use SarahAiServer\Api\KnowledgeFieldsController;
 use SarahAiServer\Api\KnowledgeProcessingController;
 use SarahAiServer\Infrastructure\MenuRepository;
 use SarahAiServer\Infrastructure\SettingsRepository;
@@ -88,6 +89,7 @@ class Plugin
         add_action('rest_api_init', [(new LogController()), 'registerRoutes']);
         add_action('rest_api_init', [(new KnowledgeController()), 'registerRoutes']);
         add_action('rest_api_init', [(new KnowledgeProcessingController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new KnowledgeFieldsController()), 'registerRoutes']);
         add_action('rest_api_init', [(new TenantController()), 'registerRoutes']);
         add_action('rest_api_init', [(new UserTenantController()), 'registerRoutes']);
         add_action('rest_api_init', [(new SiteController()), 'registerRoutes']);

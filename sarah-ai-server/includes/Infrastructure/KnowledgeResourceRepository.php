@@ -141,6 +141,43 @@ class KnowledgeResourceRepository
     }
 
     /**
+     * Returns only active PUBLIC resources for the given site.
+     * This is the safe read path for AI prompt injection and the public widget API —
+     * private resources are excluded so they are never exposed outside admin context.
+     */
+    public function findPublicActiveBySite(int $siteId): array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . KnowledgeResourceTable::TABLE;
+        $rows  = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM {$table} WHERE site_id = %d AND status = %s AND visibility = %s AND deleted_at IS NULL ORDER BY sort_order ASC, created_at DESC",
+                $siteId,
+                KnowledgeResourceTable::STATUS_ACTIVE,
+                KnowledgeResourceTable::VISIBILITY_PUBLIC
+            ),
+            ARRAY_A
+        );
+        return is_array($rows) ? $rows : [];
+    }
+
+    /**
+     * Updates the visibility of a resource (public / private).
+     * Valid values: KnowledgeResourceTable::VISIBILITY_*
+     */
+    public function updateVisibility(int $id, string $visibility): void
+    {
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->prefix . KnowledgeResourceTable::TABLE,
+            ['visibility' => $visibility, 'updated_at' => current_time('mysql')],
+            ['id'         => $id],
+            ['%s', '%s'],
+            ['%d']
+        );
+    }
+
+    /**
      * Returns all non-deleted resources for a site filtered by content_group.
      * Use this for reporting, grouped admin views, or agent scoping by category.
      */

@@ -17,6 +17,7 @@ class MenuRepository
         $this->insertIfMissing('usage',         'Usage',         'usage',         null, false, false);
         $this->insertIfMissing('agents',        'Agents',        'agents',        null, false, false);
         $this->insertIfMissing('settings',      'Settings',      'settings',      null, false, false);
+        $this->insertIfMissing('api-guide',     'API Guide',     'api-guide',     null, false, false);
         $this->removeIfExists('menu-manager');
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SarahAiServer\Runtime;
 
 use SarahAiServer\Infrastructure\SettingsRepository;
+use SarahAiServer\Processing\KnowledgePolicyFilter;
 use SarahAiServer\Processing\SemanticRetriever;
 
 /**
@@ -183,9 +184,10 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
                 $knowledgeSection = "\n\n## Knowledge Base\n\nUse the following information to answer questions. Rely only on what is provided below — do not invent facts.\n\n" . implode("\n\n", $parts);
             }
         } else {
-            // Fallback: raw source_content from all active resources
-            $knowledgeParts = [];
-            foreach ($knowledge as $resource) {
+            // Fallback: raw source_content — public resources only (visibility enforcement)
+            $publicKnowledge = KnowledgePolicyFilter::publicOnly($knowledge);
+            $knowledgeParts  = [];
+            foreach ($publicKnowledge as $resource) {
                 $content = trim((string) ($resource['source_content'] ?? ''));
                 if (! $content) {
                     continue;
@@ -258,8 +260,16 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
      */
     private function buildStructuredOutputInstruction(): string
     {
-        return <<<'PROMPT'
+        $safeResponse = KnowledgePolicyFilter::restrictedDataSafeResponse();
 
+        return <<<PROMPT
+
+
+## Restricted Information Policy
+
+If a user asks for information that is not present in your Knowledge Base, respond with:
+"{$safeResponse}"
+Do not guess, fabricate, or infer restricted details. This response is mandatory — do not improvise.
 
 ## Structured Contact Output
 
@@ -271,7 +281,7 @@ Rules:
 - Only include fields that are actually mentioned in your response text
 - Do not include this block if your response contains no contact information
 - The block must appear on its own line at the very end of your response
-- Canonical key names: contact.phone_admin, contact.phone_marketing, contact.website, contact.email_support, business.address, business.hours
+- Canonical key names: contact.phone_admin, contact.phone_marketing, contact.phone_sales, contact.website, contact.email_support, contact.email_sales, business.address, business.hours, business.name
 PROMPT;
     }
 }
