@@ -287,49 +287,29 @@ function GroupPanel({ group }) {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-export default function ApiGuide() {
-  const [activeTab, setActiveTab] = useState('all');
-
+export default function ApiGuide({ filter = 'all' }) {
   const publicGroups = GROUPS.filter(g => g.badge === 'bg-success');
   const adminGroups  = GROUPS.filter(g => g.badge !== 'bg-success');
 
-  const visibleGroups = activeTab === 'public' ? publicGroups
-                      : activeTab === 'admin'  ? adminGroups
+  const visibleGroups = filter === 'public' ? publicGroups
+                      : filter === 'admin'  ? adminGroups
                       : GROUPS;
 
-  const totalEndpoints = GROUPS.reduce((n, g) => n + g.endpoints.length, 0);
+  const visibleCount = visibleGroups.reduce((n, g) => n + g.endpoints.length, 0);
+
+  const filterLabel = filter === 'public' ? 'Public endpoints only.'
+                    : filter === 'admin'  ? 'Admin endpoints only (require WP login).'
+                    : 'All REST endpoints exposed by sarah-ai-server.';
 
   return (
     <>
       <div className="mb-3">
-        <h1 className="h5 fw-semibold text-dark mb-1">API Guide</h1>
         <p className="text-muted small mb-0">
-          All REST endpoints exposed by sarah-ai-server.
-          Base URL: <code className="small">{'{site_url}'}{BASE}</code> &nbsp;·&nbsp; {totalEndpoints} endpoints total
+          {filterLabel} Base URL: <code className="small">{'{site_url}'}{BASE}</code> &nbsp;·&nbsp; {visibleCount} endpoints
         </p>
       </div>
 
       <div className="card border-0 shadow-sm">
-        <div className="card-header bg-white border-bottom p-0">
-          <ul className="nav nav-tabs border-0 px-2 pt-2">
-            {[
-              { key: 'all',    label: 'All',    count: GROUPS.reduce((n, g) => n + g.endpoints.length, 0) },
-              { key: 'public', label: 'Public', count: publicGroups.reduce((n, g) => n + g.endpoints.length, 0) },
-              { key: 'admin',  label: 'Admin',  count: adminGroups.reduce((n, g) => n + g.endpoints.length, 0) },
-            ].map(t => (
-              <li key={t.key} className="nav-item">
-                <button
-                  className={`nav-link${activeTab === t.key ? ' active' : ''}`}
-                  onClick={() => setActiveTab(t.key)}
-                >
-                  {t.label}
-                  <span className="badge bg-secondary ms-1" style={{ fontSize: '0.6rem' }}>{t.count}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-
         <div className="card-body">
           {visibleGroups.map(g => <GroupPanel key={g.id} group={g} />)}
         </div>

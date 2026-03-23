@@ -15,6 +15,7 @@ const ICONS = {
   'tenant-detail': 'mdi:office-building-outline',
   plans:           'mdi:tag-outline',
   subscriptions:   'mdi:credit-card-outline',
+  'api-guide':     'mdi:book-open-outline',
 };
 
 function LogoBox() {
