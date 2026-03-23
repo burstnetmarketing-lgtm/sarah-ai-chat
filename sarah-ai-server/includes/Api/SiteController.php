@@ -10,6 +10,7 @@ use SarahAiServer\Infrastructure\AgentRepository;
 use SarahAiServer\Infrastructure\AccountKeyRepository;
 use SarahAiServer\Infrastructure\SiteTokenRepository;
 use SarahAiServer\Infrastructure\KnowledgeResourceRepository;
+use SarahAiServer\Infrastructure\PlanRepository;
 
 class SiteController
 {
@@ -19,6 +20,7 @@ class SiteController
     private AccountKeyRepository $accountKeys;
     private SiteTokenRepository $siteTokens;
     private KnowledgeResourceRepository $knowledge;
+    private PlanRepository $plans;
 
     public function __construct()
     {
@@ -28,6 +30,7 @@ class SiteController
         $this->accountKeys = new AccountKeyRepository();
         $this->siteTokens  = new SiteTokenRepository();
         $this->knowledge   = new KnowledgeResourceRepository();
+        $this->plans       = new PlanRepository();
     }
 
     public function isAdmin(): bool
@@ -61,6 +64,12 @@ class SiteController
             'permission_callback' => [$this, 'isAdmin'],
         ]);
 
+        register_rest_route('sarah-ai-server/v1', '/sites/(?P<uuid>[0-9a-f-]{36})/plan', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'updatePlan'],
+            'permission_callback' => [$this, 'isAdmin'],
+        ]);
+
         register_rest_route('sarah-ai-server/v1', '/sites/(?P<uuid>[0-9a-f-]{36})/agent-identity', [
             ['methods' => 'GET',  'callback' => [$this, 'getAgentIdentity'],    'permission_callback' => [$this, 'isAdmin']],
             ['methods' => 'POST', 'callback' => [$this, 'updateAgentIdentity'], 'permission_callback' => [$this, 'isAdmin']],
@@ -84,8 +93,14 @@ class SiteController
         }
 
         $metaArray = is_array($meta) ? $meta : [];
-        $siteId    = $this->sites->create((int) $tenant['id'], $name, $url, $metaArray);
-        $site      = $this->sites->findById($siteId);
+
+        // Auto-assign plan: customer if tenant has WHMCS key, otherwise trial
+        $planSlug  = ! empty($tenant['whmcs_key']) ? 'customer' : 'trial';
+        $plan      = $this->plans->findBySlug($planSlug) ?? $this->plans->findBySlug('trial');
+        $planId    = $plan ? (int) $plan['id'] : null;
+
+        $siteId = $this->sites->create((int) $tenant['id'], $name, $url, $metaArray, $planId);
+        $site   = $this->sites->findById($siteId);
 
         return new \WP_REST_Response(['success' => true, 'data' => $site], 201);
     }
@@ -161,6 +176,24 @@ class SiteController
             'success' => true,
             'data'    => $this->sites->getAgentIdentity((int) $site['id']),
         ], 200);
+    }
+
+    /** POST /sites/{uuid}/plan — change the plan for a site. Body: { plan_slug } */
+    public function updatePlan(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $site = $this->sites->findByUuid((string) $request->get_param('uuid'));
+        if (! $site) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Site not found'], 404);
+        }
+
+        $planSlug = trim((string) ($request->get_param('plan_slug') ?? ''));
+        $plan     = $this->plans->findBySlug($planSlug);
+        if (! $plan) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Plan not found'], 404);
+        }
+
+        $this->sites->updatePlan((int) $site['id'], (int) $plan['id']);
+        return new \WP_REST_Response(['success' => true, 'data' => $this->sites->findById((int) $site['id'])], 200);
     }
 
     public function updateStatus(\WP_REST_Request $request): \WP_REST_Response

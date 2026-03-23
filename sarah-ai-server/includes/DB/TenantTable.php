@@ -20,6 +20,7 @@ class TenantTable
             slug VARCHAR(120) NOT NULL,
             status VARCHAR(30) NOT NULL DEFAULT 'trialing',
             setup_complete TINYINT(1) NOT NULL DEFAULT 0,
+            whmcs_key VARCHAR(255) NULL DEFAULT NULL,
             meta LONGTEXT NULL DEFAULT NULL,
             deleted_at DATETIME NULL DEFAULT NULL,
             created_at DATETIME NOT NULL,

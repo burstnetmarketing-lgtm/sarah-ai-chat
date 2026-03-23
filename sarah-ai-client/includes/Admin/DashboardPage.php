@@ -31,17 +31,24 @@ class DashboardPage
     {
         $userName     = $this->currentUserName();
         $settingsRepo = new \SarahAiClient\Infrastructure\SettingsRepository();
-        $config       = [
-            'apiUrl'          => rest_url('sarah-ai-client/v1'),
-            'nonce'           => wp_create_nonce('wp_rest'),
-            'adminUrl'        => admin_url(),
-            'userName'        => $userName,
-            'initials'        => $this->userInitials($userName),
-            'canManageMenus'  => current_user_can('manage_options'),
-            'connection'      => [
-                'server_url'   => $settingsRepo->get('server_url',   ''),
-                'account_key'  => $settingsRepo->get('account_key',  ''),
-                'site_key'     => $settingsRepo->get('site_key',     ''),
+        $serverUrl  = $settingsRepo->get('server_url',   '');
+        $accountKey = $settingsRepo->get('account_key',  '');
+        $siteKey    = $settingsRepo->get('site_key',     '');
+
+        $config = [
+            'apiUrl'         => rest_url('sarah-ai-client/v1'),
+            'nonce'          => wp_create_nonce('wp_rest'),
+            'adminUrl'       => admin_url(),
+            'userName'       => $userName,
+            'initials'       => $this->userInitials($userName),
+            'canManageMenus' => current_user_can('manage_options'),
+            'siteName'       => get_bloginfo('name'),
+            'siteUrl'        => get_bloginfo('url'),
+            'isConfigured'   => ($serverUrl !== '' && $accountKey !== '' && $siteKey !== ''),
+            'connection'     => [
+                'server_url'   => $serverUrl,
+                'account_key'  => $accountKey,
+                'site_key'     => $siteKey,
                 'platform_key' => $settingsRepo->get('platform_key', ''),
             ],
         ];

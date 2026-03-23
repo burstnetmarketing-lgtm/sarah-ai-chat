@@ -167,33 +167,72 @@ function TenantInfoPanel({ tenant }) {
   );
 }
 
-// ─── Step 1: Subscription Info ────────────────────────────────────────────────
+// ─── Step 1: License (WHMCS Key) ──────────────────────────────────────────────
 
-function SubscriptionPanel({ subscription }) {
-  if (!subscription) return (
-    <div className="card border-0 shadow-sm">
-      <div className="card-body text-center py-4">
-        <p className="text-muted small mb-0">No subscription found. A trial is created automatically with the tenant.</p>
-      </div>
-    </div>
-  );
+function LicensePanel({ tenant, tenantUuid, onReload }) {
+  const [key, setKey]     = useState('');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg]     = useState(null);
+
+  const hasKey = !!(tenant?.whmcs_key);
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true); setMsg(null);
+    try {
+      const res = await fetch(
+        `${window.SarahAiServerConfig?.apiBase ?? ''}/tenants/${tenantUuid}/whmcs-key`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': window.SarahAiServerConfig?.nonce ?? '' },
+          body: JSON.stringify({ whmcs_key: key }),
+        }
+      ).then(r => r.json());
+      if (res.success) { setKey(''); onReload?.(); setMsg({ type: 'success', text: 'WHMCS key saved.' }); }
+      else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
+    } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
+    finally { setSaving(false); }
+  }
+
   return (
     <div className="card border-0 shadow-sm">
-      <div className="card-header">
-        <h6 className="fw-semibold mb-0">Subscription</h6>
-        <p className="text-muted small mb-0">Controls plan features, limits, and trial duration.</p>
+      <div className="card-header bg-white border-bottom">
+        <h6 className="fw-semibold mb-0">License</h6>
+        <p className="text-muted small mb-0">Tenant's WHMCS license key. If set, all sites under this tenant are on the Customer plan.</p>
       </div>
-      <div className="card-body p-0">
-        <table className="table table-sm mb-0">
-          <tbody>
-            <tr>
-              <td className="text-muted small ps-3 w-25">Status</td>
-              <td><StatusBadge status={subscription.status} map={{ trialing: 'info', active: 'success', expired: 'danger', cancelled: 'secondary' }} /></td>
-            </tr>
-            <tr><td className="text-muted small ps-3">Starts</td><td className="text-muted small">{subscription.starts_at ?? '—'}</td></tr>
-            <tr><td className="text-muted small ps-3">Ends</td><td className="text-muted small">{subscription.ends_at ?? 'No expiry'}</td></tr>
-          </tbody>
-        </table>
+      <div className="card-body">
+        <div className="mb-3">
+          <div className="fw-semibold small mb-1">Current Status</div>
+          {hasKey
+            ? <span className="badge bg-success-subtle text-success">Customer — WHMCS key set</span>
+            : <span className="badge bg-info-subtle text-info">Trial — no WHMCS key</span>
+          }
+        </div>
+        <form onSubmit={handleSave}>
+          <div className="mb-2">
+            <label className="form-label fw-semibold small">{hasKey ? 'Update WHMCS Key' : 'Set WHMCS Key'}</label>
+            <input
+              type="password"
+              className="form-control form-control-sm font-monospace"
+              value={key}
+              onChange={e => setKey(e.target.value)}
+              placeholder="Enter WHMCS license key"
+              autoComplete="new-password"
+              disabled={saving}
+            />
+          </div>
+          <button type="submit" className="btn btn-sm btn-primary" disabled={saving || key === ''}>
+            {saving ? 'Saving…' : 'Save Key'}
+          </button>
+          {hasKey && (
+            <button type="button" className="btn btn-sm btn-outline-danger ms-2"
+              disabled={saving}
+              onClick={() => { setKey(''); handleSave({ preventDefault: () => {} }); }}>
+              Remove Key
+            </button>
+          )}
+          {msg && <div className={`alert alert-${msg.type} py-1 px-2 small mt-2 mb-0`}>{msg.text}</div>}
+        </form>
       </div>
     </div>
   );
@@ -1088,7 +1127,6 @@ export default function TenantDetail({ param, onNavigate }) {
   const tenantUuid = param;
 
   const [tenant, setTenant]           = useState(null);
-  const [subscription, setSubscription] = useState(null);
   const [sites, setSites]             = useState([]);
   const [users, setUsers]             = useState([]);
   const [accountKeys, setAccountKeys] = useState([]);
@@ -1114,9 +1152,9 @@ export default function TenantDetail({ param, onNavigate }) {
 
   // Compute wizard steps
   const steps = [
-    { label: 'Tenant',       sub: 'Active',      ok: !!tenant && tenant.status === 'active' },
-    { label: 'Subscription', sub: 'Set',          ok: !!subscription },
-    { label: 'User',         sub: 'Added',        ok: users.length > 0 },
+    { label: 'Tenant',  sub: 'Active', ok: !!tenant && tenant.status === 'active' },
+    { label: 'License', sub: 'Set',   ok: !!(tenant?.whmcs_key) },
+    { label: 'User',    sub: 'Added', ok: users.length > 0 },
     { label: 'Site',         sub: 'Registered',   ok: sites.length > 0 },
     { label: 'Site Status',  sub: 'Active',       ok: firstSite?.status === 'active' },
     { label: 'Account Key',  sub: 'Issued',       ok: accountKeys.length > 0 },
@@ -1141,7 +1179,6 @@ export default function TenantDetail({ param, onNavigate }) {
 
       const loadedSites = tenantRes.data.sites ?? [];
       setTenant(tenantRes.data.tenant);
-      setSubscription(tenantRes.data.subscription);
       setSites(loadedSites);
       setUsers(tenantRes.data.users ?? []);
       if (keysRes.success) setAccountKeys(keysRes.data);
@@ -1193,7 +1230,7 @@ export default function TenantDetail({ param, onNavigate }) {
   if (!tenantUuid) return <p className="text-danger">Invalid tenant.</p>;
 
   const STEP_TITLES = [
-    'Tenant', 'Subscription', 'Users', 'Register Site',
+    'Tenant', 'License', 'Users', 'Register Site',
     'Site Status', 'Account Keys', 'Site Keys', 'Agent', 'Knowledge', 'Launch',
   ];
 
@@ -1201,7 +1238,7 @@ export default function TenantDetail({ param, onNavigate }) {
     if (loading || activeStep === null) return <p className="text-muted small">Loading…</p>;
     switch (activeStep) {
       case 0: return <TenantInfoPanel tenant={tenant} />;
-      case 1: return <SubscriptionPanel subscription={subscription} />;
+      case 1: return <LicensePanel tenant={tenant} tenantUuid={tenantUuid} onReload={load} />;
       case 2: return <UsersSection tenantUuid={tenantUuid} onReload={load} />;
       case 3: return <SiteCreateSection tenantUuid={tenantUuid} sites={sites} agents={agentsList} onReload={load} />;
       case 4: return firstSite
@@ -1254,14 +1291,10 @@ export default function TenantDetail({ param, onNavigate }) {
                   <span className={`badge bg-${tenant?.status === 'active' ? 'success-subtle text-success' : 'secondary-subtle text-secondary'}`}>
                     {tenant?.status}
                   </span>
-                  {subscription && (
-                    <span className={`badge ${
-                      subscription.status === 'trialing'  ? 'bg-primary-subtle text-primary' :
-                      subscription.status === 'active'    ? 'bg-success-subtle text-success' :
-                      subscription.status === 'cancelled' ? 'bg-danger-subtle text-danger' :
-                                                            'bg-secondary-subtle text-secondary'
-                    }`}>{subscription.status}</span>
-                  )}
+                  {tenant?.whmcs_key
+                    ? <span className="badge bg-success-subtle text-success">Customer</span>
+                    : <span className="badge bg-info-subtle text-info">Trial</span>
+                  }
                   {isEditMode && (
                     <span className="badge bg-success-subtle text-success">
                       ✓ Setup Complete

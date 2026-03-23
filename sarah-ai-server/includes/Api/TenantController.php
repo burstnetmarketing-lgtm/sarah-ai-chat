@@ -5,26 +5,20 @@ declare(strict_types=1);
 namespace SarahAiServer\Api;
 
 use SarahAiServer\Infrastructure\TenantRepository;
-use SarahAiServer\Infrastructure\SubscriptionRepository;
-use SarahAiServer\Infrastructure\PlanRepository;
 use SarahAiServer\Infrastructure\SiteRepository;
 use SarahAiServer\Infrastructure\UserTenantRepository;
 
 class TenantController
 {
-    private TenantRepository $tenants;
-    private SubscriptionRepository $subscriptions;
-    private PlanRepository $plans;
-    private SiteRepository $sites;
+    private TenantRepository     $tenants;
+    private SiteRepository       $sites;
     private UserTenantRepository $userTenants;
 
     public function __construct()
     {
-        $this->tenants       = new TenantRepository();
-        $this->subscriptions = new SubscriptionRepository();
-        $this->plans         = new PlanRepository();
-        $this->sites         = new SiteRepository();
-        $this->userTenants   = new UserTenantRepository();
+        $this->tenants     = new TenantRepository();
+        $this->sites       = new SiteRepository();
+        $this->userTenants = new UserTenantRepository();
     }
 
     public function isAdmin(): bool
@@ -63,46 +57,36 @@ class TenantController
             'callback'            => [$this, 'markSetupComplete'],
             'permission_callback' => [$this, 'isAdmin'],
         ]);
+
+        register_rest_route('sarah-ai-server/v1', '/tenants/(?P<uuid>[0-9a-f-]{36})/whmcs-key', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'updateWhmcsKey'],
+            'permission_callback' => [$this, 'isAdmin'],
+        ]);
     }
 
     public function store(\WP_REST_Request $request): \WP_REST_Response
     {
-        $name = trim((string) ($request->get_param('name') ?? ''));
-        $slug = trim((string) ($request->get_param('slug') ?? ''));
-        $meta = $request->get_param('meta');
+        $name     = trim((string) ($request->get_param('name') ?? ''));
+        $slug     = trim((string) ($request->get_param('slug') ?? ''));
+        $whmcsKey = trim((string) ($request->get_param('whmcs_key') ?? ''));
+        $meta     = $request->get_param('meta');
 
         if ($name === '') {
             return new \WP_REST_Response(['success' => false, 'message' => 'name is required'], 400);
         }
 
         $metaArray = is_array($meta) ? $meta : [];
-        $tenantId  = $this->tenants->create($name, $slug ?: $this->slugify($name), 'active', $metaArray);
+        $tenantId  = $this->tenants->create($name, $slug ?: $this->slugify($name), 'active', $metaArray, $whmcsKey);
+        $tenant    = $this->tenants->findById($tenantId);
 
-        $plan = $this->plans->findBySlug('trial');
-        if ($plan) {
-            $startsAt = current_time('mysql');
-            $endsAt   = null;
-            if ((int) $plan['duration_days'] > 0) {
-                $endsAt = date('Y-m-d H:i:s', strtotime($startsAt) + ((int) $plan['duration_days'] * 86400));
-            }
-            $this->subscriptions->create($tenantId, (int) $plan['id'], 'trialing', $startsAt, $endsAt);
-        }
-
-        $tenant       = $this->tenants->findById($tenantId);
-        $subscription = $this->subscriptions->findActiveByTenant($tenantId);
-
-        return new \WP_REST_Response(['success' => true, 'data' => ['tenant' => $tenant, 'subscription' => $subscription]], 201);
+        return new \WP_REST_Response(['success' => true, 'data' => ['tenant' => $tenant]], 201);
     }
 
     public function index(\WP_REST_Request $request): \WP_REST_Response
     {
         $tenants = $this->tenants->all();
-
-        $result = array_map(function (array $tenant) {
-            $subscription = $this->subscriptions->findActiveByTenant((int) $tenant['id']);
-            return ['tenant' => $tenant, 'subscription_status' => $subscription ? $subscription['status'] : null];
-        }, $tenants);
-
+        $result  = array_map(fn($t) => ['tenant' => $t], $tenants);
         return new \WP_REST_Response(['success' => true, 'data' => $result], 200);
     }
 
@@ -119,10 +103,9 @@ class TenantController
         return new \WP_REST_Response([
             'success' => true,
             'data'    => [
-                'tenant'       => $tenant,
-                'subscription' => $this->subscriptions->findActiveByTenant($id),
-                'sites'        => $this->sites->findByTenant($id),
-                'users'        => $this->userTenants->findByTenant($id),
+                'tenant' => $tenant,
+                'sites'  => $this->sites->findByTenant($id),
+                'users'  => $this->userTenants->findByTenant($id),
             ],
         ], 200);
     }
@@ -152,6 +135,20 @@ class TenantController
         }
         $this->tenants->markSetupComplete((int) $tenant['id']);
         return new \WP_REST_Response(['success' => true], 200);
+    }
+
+    /** POST /tenants/{uuid}/whmcs-key — set or update WHMCS license key for a tenant. */
+    public function updateWhmcsKey(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $tenant = $this->tenants->findByUuid((string) $request->get_param('uuid'));
+        if (! $tenant) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Tenant not found'], 404);
+        }
+
+        $whmcsKey = trim((string) ($request->get_param('whmcs_key') ?? ''));
+        $this->tenants->updateWhmcsKey((int) $tenant['id'], $whmcsKey);
+
+        return new \WP_REST_Response(['success' => true, 'data' => $this->tenants->findById((int) $tenant['id'])], 200);
     }
 
     private function slugify(string $name): string

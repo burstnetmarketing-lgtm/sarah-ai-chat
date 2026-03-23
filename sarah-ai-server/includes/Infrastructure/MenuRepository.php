@@ -10,11 +10,11 @@ class MenuRepository
 {
     public function ensureCoreItems(): void
     {
-        $this->insertIfMissing('dashboard',     'Dashboard',     'dashboard',     null, false, false);
-        $this->insertIfMissing('tenants',       'Tenants',       'tenants',       null, false, false);
-        $this->insertIfMissing('plans',         'Plans',         'plans',         null, false, false);
-        $this->insertIfMissing('subscriptions', 'Subscriptions', 'subscriptions', null, false, false);
-        $this->insertIfMissing('usage',         'Usage',         'usage',         null, false, false);
+        $this->insertIfMissing('dashboard', 'Dashboard', 'dashboard', null, false, false);
+        $this->insertIfMissing('tenants',   'Tenants',   'tenants',   null, false, false);
+        $this->insertIfMissing('plans',     'Plans',     'plans',     null, false, false);
+        $this->insertIfMissing('usage',     'Usage',     'usage',     null, false, false);
+        $this->removeIfExists('subscriptions');
         $this->insertIfMissing('agents',        'Agents',        'agents',        null, false, false);
         $this->insertIfMissing('settings',      'Settings',      'settings',      null, false, false);
         $this->insertIfMissing('api-guide',        'API Guide', 'api-guide',        null,       false, true);

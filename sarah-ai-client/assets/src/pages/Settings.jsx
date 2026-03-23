@@ -133,13 +133,14 @@ export default function Settings() {
             <div className="mb-3">
               <label className="form-label fw-semibold small">Platform Key</label>
               <input
-                type="text"
+                type="password"
                 className="form-control form-control-sm font-monospace"
                 name="platform_key"
                 value={form.platform_key}
                 onChange={handleChange}
                 placeholder="Platform secret key provided by your administrator"
                 disabled={saving}
+                autoComplete="new-password"
               />
               <div className="form-text">Used as <code>X-Sarah-Platform-Key</code> header for Knowledge Base sync.</div>
             </div>

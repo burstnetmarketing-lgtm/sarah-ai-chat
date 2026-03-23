@@ -22,8 +22,8 @@ class PlatformSettingsController
         'openai_api_key',
         'platform_api_key',
         'logging_enabled',
-        'trial_duration_days',
         'default_agent_slug',
+        'whmcs_api_url',
     ];
 
     private SettingsRepository $repo;

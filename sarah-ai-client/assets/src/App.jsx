@@ -8,6 +8,7 @@ import QuickQuestions from './pages/QuickQuestions.jsx';
 import AppearanceSettings from './pages/AppearanceSettings.jsx';
 import Settings from './pages/Settings.jsx';
 import KnowledgeBase from './pages/KnowledgeBase.jsx';
+import QuickSetup from './pages/QuickSetup.jsx';
 
 const VIEWS = {
   dashboard:        Dashboard,
@@ -23,6 +24,11 @@ export default function App() {
   const [view, setView] = useState(() => {
     return window.location.hash.replace('#/', '') || 'dashboard';
   });
+
+  // Show Quick Setup wizard if plugin is not yet connected to the server
+  if (!window.SarahAiClientConfig?.isConfigured) {
+    return <QuickSetup />;
+  }
 
   function navigate(v) {
     setView(v);

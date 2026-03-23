@@ -9,7 +9,7 @@ use SarahAiServer\DB\SiteTable;
 class SiteRepository
 {
     /** Creates a new site under a tenant and returns its ID. */
-    public function create(int $tenantId, string $name, string $url, array $meta = []): int
+    public function create(int $tenantId, string $name, string $url, array $meta = [], ?int $planId = null): int
     {
         global $wpdb;
         $table = $wpdb->prefix . SiteTable::TABLE;
@@ -20,11 +20,38 @@ class SiteRepository
             'name'       => $name,
             'url'        => $url,
             'status'     => 'active',
+            'plan_id'    => $planId,
             'meta'       => $meta ? wp_json_encode($meta) : null,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
         return (int) $wpdb->insert_id;
+    }
+
+    /** Updates the plan for a site. */
+    public function updatePlan(int $siteId, int $planId): void
+    {
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->prefix . SiteTable::TABLE,
+            ['plan_id' => $planId, 'updated_at' => current_time('mysql')],
+            ['id'      => $siteId],
+            ['%d', '%s'],
+            ['%d']
+        );
+    }
+
+    /** Stamps whmcs_lastcheck to now (marks WHMCS key as recently validated). */
+    public function updateWhmcsLastcheck(int $siteId): void
+    {
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->prefix . SiteTable::TABLE,
+            ['whmcs_lastcheck' => current_time('mysql'), 'updated_at' => current_time('mysql')],
+            ['id'              => $siteId],
+            ['%s', '%s'],
+            ['%d']
+        );
     }
 
     public function findByUuid(string $uuid): ?array

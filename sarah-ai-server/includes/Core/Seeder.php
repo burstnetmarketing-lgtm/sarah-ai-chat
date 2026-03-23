@@ -65,15 +65,25 @@ class Seeder
     {
         $repo = new PlanRepository();
 
+        // Trial: 30-day free access, basic agent only
         $repo->insertIfMissing(
             'Trial',
             'trial',
-            14,
+            30,
             [
-                'max_sites'     => 1,
                 'max_messages'  => 500,
-                'agents'        => ['gpt-4o-mini'],
                 'support_level' => 'community',
+            ]
+        );
+
+        // Customer: permanent access (duration_days=0), all agents available
+        $repo->insertIfMissing(
+            'Customer',
+            'customer',
+            0,
+            [
+                'max_messages'  => -1,
+                'support_level' => 'standard',
             ]
         );
     }
@@ -84,12 +94,24 @@ class Seeder
         $agentRepo = new AgentRepository();
         $repo      = new PlanAgentRepository();
 
-        $trial = $planRepo->findBySlug('trial');
+        $trial    = $planRepo->findBySlug('trial');
+        $customer = $planRepo->findBySlug('customer');
 
-        foreach (['gpt-4o-mini', 'gpt-4o', 'o1'] as $slug) {
-            $agent = $agentRepo->findBySlug($slug);
-            if ($trial && $agent) {
+        // Trial: basic agent only
+        if ($trial) {
+            $agent = $agentRepo->findBySlug('gpt-4o-mini');
+            if ($agent) {
                 $repo->insertIfMissing((int) $trial['id'], (int) $agent['id']);
+            }
+        }
+
+        // Customer: all active agents
+        if ($customer) {
+            foreach (['gpt-4o-mini', 'gpt-4o', 'o1'] as $slug) {
+                $agent = $agentRepo->findBySlug($slug);
+                if ($agent) {
+                    $repo->insertIfMissing((int) $customer['id'], (int) $agent['id']);
+                }
             }
         }
     }
@@ -115,7 +137,7 @@ class Seeder
         $types = [
             ['text', 'Plain Text',    1, 10],
             ['link', 'Website Link',  1, 20],
-            ['txt',  'Text File URL', 1, 30],
+            ['txt',  'Text File URL', 0, 30],  // disabled — use Plain Text or Website Link instead
             ['pdf',  'PDF File',      0, 40],  // disabled — not production-ready yet
             ['docx', 'Word Document', 0, 50],  // disabled — not production-ready yet
         ];
@@ -131,12 +153,12 @@ class Seeder
 
         // Only set if not already configured — avoids overwriting admin changes.
         $defaults = [
-            'platform_name'       => 'Sarah',
-            'trial_duration_days' => '14',
-            'default_agent_slug'  => 'gpt-4o-mini',
-            'logging_enabled'     => '1',
-            'openai_api_key'      => '',
-            'platform_api_key'    => 'www.BurstNET.com.au',
+            'platform_name'    => 'Sarah',
+            'default_agent_slug' => 'gpt-4o-mini',
+            'logging_enabled'  => '1',
+            'openai_api_key'   => '',
+            'platform_api_key' => 'www.BurstNET.com.au',
+            'whmcs_api_url'    => '',
         ];
 
         foreach ($defaults as $key => $value) {

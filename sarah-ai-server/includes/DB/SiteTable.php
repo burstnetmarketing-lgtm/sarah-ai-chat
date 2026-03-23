@@ -20,6 +20,8 @@ class SiteTable
             name VARCHAR(190) NOT NULL,
             url VARCHAR(500) NOT NULL,
             status VARCHAR(30) NOT NULL DEFAULT 'active',
+            plan_id BIGINT UNSIGNED NULL DEFAULT NULL,
+            whmcs_lastcheck DATETIME NULL DEFAULT NULL,
             active_agent_id BIGINT UNSIGNED NULL DEFAULT NULL,
             agent_display_name VARCHAR(190) NULL DEFAULT NULL,
             greeting_message TEXT NULL DEFAULT NULL,

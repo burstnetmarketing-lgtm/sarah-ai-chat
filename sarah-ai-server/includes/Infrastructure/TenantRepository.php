@@ -9,21 +9,44 @@ use SarahAiServer\DB\TenantTable;
 class TenantRepository
 {
     /** Creates a new tenant and returns its ID. */
-    public function create(string $name, string $slug, string $status = 'active', array $meta = []): int
+    public function create(string $name, string $slug, string $status = 'active', array $meta = [], string $whmcsKey = ''): int
     {
         global $wpdb;
         $table = $wpdb->prefix . TenantTable::TABLE;
         $now   = current_time('mysql');
         $wpdb->insert($table, [
-            'uuid'       => sarah_ai_uuid(),
-            'name'       => $name,
-            'slug'       => $slug,
-            'status'     => $status,
-            'meta'       => $meta ? wp_json_encode($meta) : null,
+            'uuid'      => sarah_ai_uuid(),
+            'name'      => $name,
+            'slug'      => $slug,
+            'status'    => $status,
+            'whmcs_key' => $whmcsKey !== '' ? $whmcsKey : null,
+            'meta'      => $meta ? wp_json_encode($meta) : null,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
         return (int) $wpdb->insert_id;
+    }
+
+    /** Updates the WHMCS key for a tenant and resets lastcheck on all its sites. */
+    public function updateWhmcsKey(int $id, string $whmcsKey): void
+    {
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->prefix . TenantTable::TABLE,
+            ['whmcs_key' => $whmcsKey !== '' ? $whmcsKey : null, 'updated_at' => current_time('mysql')],
+            ['id'        => $id],
+            ['%s', '%s'],
+            ['%d']
+        );
+        // Reset whmcs_lastcheck for all sites of this tenant so they re-validate
+        $siteTable = $wpdb->prefix . 'sarah_ai_server_sites';
+        $wpdb->update(
+            $siteTable,
+            ['whmcs_lastcheck' => null],
+            ['tenant_id'       => $id],
+            ['NULL'],
+            ['%d']
+        );
     }
 
     public function findByUuid(string $uuid): ?array

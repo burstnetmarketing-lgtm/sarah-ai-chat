@@ -7,24 +7,18 @@ namespace SarahAiServer\Api;
 use SarahAiServer\Infrastructure\AgentRepository;
 use SarahAiServer\Infrastructure\PlanAgentRepository;
 use SarahAiServer\Infrastructure\PlanRepository;
-use SarahAiServer\Infrastructure\SubscriptionRepository;
-use SarahAiServer\Infrastructure\TenantRepository;
 
 class PlanController
 {
     private PlanRepository      $plans;
     private AgentRepository     $agents;
     private PlanAgentRepository $planAgents;
-    private SubscriptionRepository $subscriptions;
-    private TenantRepository    $tenants;
 
     public function __construct()
     {
-        $this->plans         = new PlanRepository();
-        $this->agents        = new AgentRepository();
-        $this->planAgents    = new PlanAgentRepository();
-        $this->subscriptions = new SubscriptionRepository();
-        $this->tenants       = new TenantRepository();
+        $this->plans      = new PlanRepository();
+        $this->agents     = new AgentRepository();
+        $this->planAgents = new PlanAgentRepository();
     }
 
     public function isAdmin(): bool
@@ -55,7 +49,7 @@ class PlanController
             'permission_callback' => [$this, 'isAdmin'],
         ]);
 
-        // Agents available to a tenant based on their active subscription plan
+        // All active agents (used by setup wizard for agent assignment)
         register_rest_route('sarah-ai-server/v1', '/tenants/(?P<uuid>[0-9a-f-]{36})/available-agents', [
             'methods'             => 'GET',
             'callback'            => [$this, 'availableAgents'],
@@ -107,28 +101,9 @@ class PlanController
         return new \WP_REST_Response(['success' => true, 'message' => 'Agents updated'], 200);
     }
 
-    /** Return only agents the tenant's active plan allows. Falls back to all active agents if no plan restriction. */
+    /** Returns all active agents — used by the setup wizard for agent assignment. */
     public function availableAgents(\WP_REST_Request $request): \WP_REST_Response
     {
-        $tenant = $this->tenants->findByUuid((string) $request->get_param('uuid'));
-        if (! $tenant) {
-            return new \WP_REST_Response(['success' => false, 'message' => 'Tenant not found'], 404);
-        }
-
-        $subscription = $this->subscriptions->findActiveByTenant((int) $tenant['id']);
-        if (! $subscription) {
-            return new \WP_REST_Response(['success' => true, 'data' => []], 200);
-        }
-
-        $planId   = (int) $subscription['plan_id'];
-        $agentIds = $this->planAgents->getAgentIdsForPlan($planId);
-
-        if (empty($agentIds)) {
-            // Plan has no restrictions yet — return all active agents
-            return new \WP_REST_Response(['success' => true, 'data' => $this->agents->allActive()], 200);
-        }
-
-        $agents = array_values(array_filter($this->agents->allActive(), fn($a) => in_array((int) $a['id'], $agentIds, true)));
-        return new \WP_REST_Response(['success' => true, 'data' => $agents], 200);
+        return new \WP_REST_Response(['success' => true, 'data' => $this->agents->allActive()], 200);
     }
 }

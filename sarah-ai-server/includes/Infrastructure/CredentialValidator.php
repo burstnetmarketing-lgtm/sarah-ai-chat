@@ -25,6 +25,7 @@ class CredentialValidator
     private SiteTokenRepository $siteTokens;
     private TenantRepository $tenants;
     private SiteRepository $sites;
+    private LicenseValidator $license;
 
     public function __construct()
     {
@@ -32,6 +33,7 @@ class CredentialValidator
         $this->siteTokens  = new SiteTokenRepository();
         $this->tenants     = new TenantRepository();
         $this->sites       = new SiteRepository();
+        $this->license     = new LicenseValidator();
     }
 
     /**
@@ -75,6 +77,11 @@ class CredentialValidator
 
         // Step 3: site must belong to the tenant identified by the account key
         if ((int) $site['tenant_id'] !== (int) $tenant['id']) {
+            return null;
+        }
+
+        // Step 4: license check — trial expiry or valid WHMCS key
+        if (! $this->license->isActive($site)) {
             return null;
         }
 

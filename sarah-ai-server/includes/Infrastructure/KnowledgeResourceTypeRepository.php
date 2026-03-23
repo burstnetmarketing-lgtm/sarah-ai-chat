@@ -40,7 +40,9 @@ class KnowledgeResourceTypeRepository
         $wpdb->query(
             $wpdb->prepare(
                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                "INSERT IGNORE INTO {$this->table} (type_key, label, enabled, sort_order) VALUES (%s, %s, %d, %d)",
+                "INSERT INTO {$this->table} (type_key, label, enabled, sort_order)
+                 VALUES (%s, %s, %d, %d)
+                 ON DUPLICATE KEY UPDATE label = VALUES(label), enabled = VALUES(enabled), sort_order = VALUES(sort_order)",
                 $typeKey,
                 $label,
                 $enabled,
