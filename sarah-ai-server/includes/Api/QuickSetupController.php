@@ -92,7 +92,6 @@ class QuickSetupController
         $siteUrl     = trim((string) ($request->get_param('site_url')       ?? ''));
         $whmcsKey    = trim((string) ($request->get_param('whmcs_key')      ?? ''));
         $openAiKey   = trim((string) ($request->get_param('openai_api_key') ?? ''));
-        $kbLink      = trim((string) ($request->get_param('kb_link')        ?? ''));
 
         if ($siteName === '' || $siteUrl === '') {
             return new \WP_REST_Response(['success' => false, 'message' => 'site_name and site_url are required'], 400);
@@ -140,12 +139,21 @@ class QuickSetupController
             $hasOpenAiKey = true;
         }
 
-        // Optional: seed first knowledge base entry from a link
-        $hasKb = false;
-        if ($kbLink !== '' && filter_var($kbLink, FILTER_VALIDATE_URL)) {
-            $this->knowledge->create($siteId, 'link', $siteName, $kbLink);
+        // Auto-seed knowledge base resources.
+        $hasKb    = false;
+        $siteBase = rtrim($siteUrl, '/');
+
+        // KB 1: llms-full.txt — if it exists on the client site
+        $llmsUrl  = $siteBase . '/llms-full.txt';
+        $head     = wp_remote_head($llmsUrl, ['timeout' => 5, 'sslverify' => false]);
+        if (! is_wp_error($head) && (int) wp_remote_retrieve_response_code($head) === 200) {
+            $this->knowledge->create($siteId, 'link', 'LLMs Full Text', $llmsUrl);
             $hasKb = true;
         }
+
+        // KB 2: site URL itself
+        $this->knowledge->create($siteId, 'link', $siteName, $siteBase . '/');
+        $hasKb = true;
 
         return new \WP_REST_Response([
             'success' => true,

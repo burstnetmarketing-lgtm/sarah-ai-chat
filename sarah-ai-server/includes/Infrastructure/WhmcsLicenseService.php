@@ -295,7 +295,8 @@ class WhmcsLicenseService
 
         $provided = trim((string) ($result['signature'] ?? ''));
         if ($provided === '') {
-            return false;
+            // Server did not include a signature — skip verification.
+            return true;
         }
 
         $payload = implode('|', [

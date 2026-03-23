@@ -49,11 +49,15 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         $maxTokens   = (int)   ($config['max_tokens']  ?? 1024);
         $temperature = (float) ($config['temperature'] ?? 0.7);
 
-        // Use site's own OpenAI key if configured, otherwise fall back to platform key.
+        // Use site's own OpenAI key if configured, otherwise fall back to platform key
+        // (only when allow_platform_openai_key is enabled in platform settings).
         $siteId = (int) ($site['id'] ?? 0);
         $apiKey = ($siteId > 0) ? ($this->siteApiKeys->get($siteId, 'openai') ?? '') : '';
         if ($apiKey === '') {
-            $apiKey = $this->settings->get('openai_api_key', '', 'platform');
+            $allowFallback = $this->settings->get('allow_platform_openai_key', '0', 'platform') === '1';
+            if ($allowFallback) {
+                $apiKey = $this->settings->get('openai_api_key', '', 'platform');
+            }
         }
         if (! $apiKey) {
             return [

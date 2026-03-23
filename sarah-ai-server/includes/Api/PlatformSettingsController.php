@@ -25,6 +25,7 @@ class PlatformSettingsController
         'default_agent_slug',
         'whmcs_api_url',
         'whmcs_key_required',
+        'allow_platform_openai_key',
     ];
 
     private SettingsRepository $repo;

@@ -49,7 +49,7 @@ use SarahAiServer\Infrastructure\SettingsRepository;
 class Plugin
 {
     /** Bump this constant whenever a schema change or seed change is made. */
-    private const DB_VERSION = '0.1.22';
+    private const DB_VERSION = '0.1.24';
 
     public static function boot(): void
     {

@@ -23,7 +23,6 @@ export default function QuickSetup() {
     platform_key:    fixedPlatformKey,
     whmcs_key:       '',
     openai_api_key:  '',
-    kb_link:         '',
   });
   const [result, setResult]   = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -56,7 +55,6 @@ export default function QuickSetup() {
           site_url:       cfg.siteUrl  || window.location.origin,
           whmcs_key:      form.whmcs_key      || undefined,
           openai_api_key: form.openai_api_key  || undefined,
-          kb_link:        form.kb_link         || undefined,
         }),
       });
 
@@ -70,7 +68,7 @@ export default function QuickSetup() {
 
       // Step 2: Save credentials to client settings
       await apiFetch('widget-settings', 'POST', {
-        server_url:   form.server_url,
+        server_url:   serverBase + '/sarah-ai-server/v1',
         account_key:  serverData.data.account_key,
         site_key:     serverData.data.site_key,
         platform_key: form.platform_key,
@@ -178,22 +176,6 @@ export default function QuickSetup() {
               </div>
             )}
 
-            {/* Initial Knowledge Base URL (required) */}
-            <div className="mb-3">
-              <label className="form-label fw-semibold small">Initial Knowledge Base URL <span className="text-danger">*</span></label>
-              <input
-                type="url"
-                className="form-control form-control-sm"
-                name="kb_link"
-                value={form.kb_link}
-                onChange={handleChange}
-                placeholder="https://yoursite.com/about"
-                required
-                disabled={step === 'loading'}
-              />
-              <div className="form-text">A webpage the AI will use as its first knowledge source. You can add more later.</div>
-            </div>
-
             {/* WHMCS Key (optional) */}
             <div className="mb-3">
               <label className="form-label fw-semibold small">WHMCS License Key <span className="text-muted">(optional)</span></label>
@@ -229,7 +211,7 @@ export default function QuickSetup() {
             <button
               type="submit"
               className="btn btn-primary w-100"
-              disabled={step === 'loading' || !form.server_url || !form.platform_key || !form.kb_link}
+              disabled={step === 'loading' || !form.server_url || !form.platform_key}
             >
               {step === 'loading' ? (
                 <><span className="spinner-border spinner-border-sm me-2" />Connecting…</>

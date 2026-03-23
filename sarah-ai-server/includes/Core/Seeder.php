@@ -143,8 +143,9 @@ class Seeder
             'logging_enabled'    => '1',
             'openai_api_key'     => '',
             'platform_api_key'   => 'www.BurstNET.com.au',
-            'whmcs_api_url'      => '',
-            'whmcs_key_required' => '0',
+            'whmcs_api_url'             => 'https://burstnet.com.au/admin',
+            'whmcs_key_required'        => '0',
+            'allow_platform_openai_key' => '0',
         ];
 
         foreach ($defaults as $key => $value) {

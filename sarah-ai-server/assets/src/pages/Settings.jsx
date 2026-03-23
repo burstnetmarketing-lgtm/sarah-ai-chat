@@ -167,6 +167,20 @@ export default function Settings() {
                   Require WHMCS key on Quick Setup — rejects provisioning requests without a valid license key
                 </label>
               </div>
+              <div className="form-check form-switch mt-2">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  name="allow_platform_openai_key"
+                  checked={form.allow_platform_openai_key === '1'}
+                  onChange={handleChange}
+                  disabled={saving}
+                  style={{ width: '2.5em', height: '1.25em', cursor: 'pointer' }}
+                />
+                <label className="form-check-label small text-muted">
+                  Allow platform OpenAI key as fallback — sites without their own key will use the platform's shared key
+                </label>
+              </div>
             </div>
           </div>
         </div>
