@@ -76,6 +76,13 @@ class QuickSetupController
             'callback'            => [$this, 'handle'],
             'permission_callback' => '__return_true',
         ]);
+
+        // Client-scoped alias — same handler, grouped under /client/ for consistency
+        register_rest_route('sarah-ai-server/v1', '/client/setup', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'handle'],
+            'permission_callback' => '__return_true',
+        ]);
     }
 
     public function handle(\WP_REST_Request $request): \WP_REST_Response

@@ -1053,13 +1053,21 @@ function KnowledgeSection({ siteUuid, onItemsChange }) {
         ) : (
           <table className="table table-sm mb-0">
             <thead className="table-light">
-              <tr><th>Title</th><th>Type</th><th>Visibility</th><th>Status</th><th>Processing</th><th></th></tr>
+              <tr><th>Title</th><th>Type</th><th>Content</th><th>Visibility</th><th>Status</th><th>Processing</th><th></th></tr>
             </thead>
             <tbody>
               {items.map(item => (
                 <tr key={item.uuid ?? item.id}>
                   <td>{getDisplayTitle(item)}</td>
                   <td className="text-muted small">{item.resource_type}</td>
+                  <td className="text-muted small">
+                    {item.resource_type === 'link'
+                      ? <a href={item.source_content} target="_blank" rel="noreferrer" style={{ fontSize: '0.78rem' }}>link ↗</a>
+                      : item.source_content
+                          ? <span title={item.source_content}>{item.source_content.slice(0, 20)}{item.source_content.length > 20 ? '…' : ''}</span>
+                          : <span className="text-secondary">—</span>
+                    }
+                  </td>
                   <td>
                     <button
                       className={`btn btn-sm py-0 ${item.visibility === 'private' ? 'btn-secondary' : 'btn-outline-success'}`}

@@ -61,15 +61,24 @@ class PublicApiService
      */
     public function setup(array $payload): array
     {
-        $serverUrl   = trim((string) ($payload['server_url']     ?? ''));
-        $platformKey = trim((string) ($payload['platform_key']   ?? ''));
-        $siteName    = trim((string) ($payload['site_name']      ?? '')) ?: (get_bloginfo('name') ?: 'My Site');
-        $siteUrl     = trim((string) ($payload['site_url']       ?? '')) ?: (string) home_url('/');
-        $whmcsKey    = trim((string) ($payload['whmcs_key']      ?? ''));
-        $openAiKey   = trim((string) ($payload['openai_api_key'] ?? ''));
+        // server_url and platform_key come from config.php constants; payload can override.
+        $serverUrl   = trim((string) ($payload['server_url']  ?? ''));
+        $platformKey = trim((string) ($payload['platform_key'] ?? ''));
+
+        if ($serverUrl === '') {
+            $serverUrl = defined('SARAH_AI_CLIENT_SERVER_URL') ? trim((string) SARAH_AI_CLIENT_SERVER_URL) : '';
+        }
+        if ($platformKey === '') {
+            $platformKey = defined('SARAH_AI_CLIENT_PLATFORM_KEY') ? trim((string) SARAH_AI_CLIENT_PLATFORM_KEY) : '';
+        }
+
+        $siteName  = trim((string) ($payload['site_name']      ?? '')) ?: (get_bloginfo('name') ?: 'My Site');
+        $siteUrl   = trim((string) ($payload['site_url']       ?? '')) ?: (string) home_url('/');
+        $whmcsKey  = trim((string) ($payload['whmcs_key']      ?? ''));
+        $openAiKey = trim((string) ($payload['openai_api_key'] ?? ''));
 
         if ($serverUrl === '' || $platformKey === '') {
-            return ['success' => false, 'ready' => false, 'error' => 'server_url and platform_key are required'];
+            return ['success' => false, 'ready' => false, 'error' => 'server_url and platform_key are not configured'];
         }
         if ($whmcsKey === '') {
             return ['success' => false, 'ready' => false, 'error' => 'whmcs_key is required'];
@@ -79,7 +88,7 @@ class PublicApiService
         }
 
         $serverBase = rtrim($serverUrl, '/');
-        $endpoint   = $serverBase . '/sarah-ai-server/v1/quick-setup';
+        $endpoint   = $serverBase . '/sarah-ai-server/v1/client/setup';
 
         $body = ['site_name' => $siteName, 'site_url' => $siteUrl];
         if ($whmcsKey !== '')  $body['whmcs_key']      = $whmcsKey;
@@ -132,7 +141,7 @@ class PublicApiService
         [$serverUrl, $accountKey, $siteKey, $platformKey] = $conn;
         $limit = min((int) ($args['limit'] ?? 20), 100);
 
-        $url = $serverUrl . '/sessions?' . http_build_query([
+        $url = $serverUrl . '/client/sessions?' . http_build_query([
             'account_key' => $accountKey,
             'site_key'    => $siteKey,
             'limit'       => $limit,
@@ -183,8 +192,8 @@ class PublicApiService
         $headers = ['X-Sarah-Platform-Key' => $platformKey];
         $opts    = ['timeout' => 15, 'headers' => $headers];
 
-        $sessionRes  = wp_remote_get($serverUrl . '/sessions/' . $sessionUuid . '?' . $qs, $opts);
-        $messagesRes = wp_remote_get($serverUrl . '/sessions/' . $sessionUuid . '/messages?' . $qs, $opts);
+        $sessionRes  = wp_remote_get($serverUrl . '/client/sessions/' . $sessionUuid . '?' . $qs, $opts);
+        $messagesRes = wp_remote_get($serverUrl . '/client/sessions/' . $sessionUuid . '/messages?' . $qs, $opts);
 
         if (is_wp_error($sessionRes)) {
             return array_merge($empty, ['error' => $sessionRes->get_error_message()]);

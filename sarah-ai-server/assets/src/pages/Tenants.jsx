@@ -8,12 +8,6 @@ const TENANT_STATUS_BADGE = {
   archived:  'bg-dark-subtle text-dark',
 };
 
-const SUB_STATUS_BADGE = {
-  trialing:  'bg-primary-subtle text-primary',
-  active:    'bg-success-subtle text-success',
-  expired:   'bg-secondary-subtle text-secondary',
-  cancelled: 'bg-danger-subtle text-danger',
-};
 
 export default function Tenants({ onNavigate }) {
   const [tenants, setTenants]     = useState([]);
@@ -63,7 +57,6 @@ export default function Tenants({ onNavigate }) {
         <div className="card mb-4">
           <div className="card-header">
             <h4 className="card-title">Create New Tenant</h4>
-            <p className="text-muted fw-semibold mb-0">A trial subscription will be created automatically.</p>
           </div>
           <div className="card-body">
             <form onSubmit={handleCreate}>
@@ -119,7 +112,7 @@ export default function Tenants({ onNavigate }) {
                     <th>Name</th>
                     <th>Slug</th>
                     <th>Status</th>
-                    <th>Subscription</th>
+                    <th>Created</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -144,10 +137,8 @@ export default function Tenants({ onNavigate }) {
                           {row.tenant.status ?? '—'}
                         </span>
                       </td>
-                      <td>
-                        <span className={`badge ${SUB_STATUS_BADGE[row.subscription_status] ?? 'bg-secondary-subtle text-secondary'}`}>
-                          {row.subscription_status ?? 'none'}
-                        </span>
+                      <td className="text-muted small">
+                        {row.tenant.created_at ? row.tenant.created_at.slice(0, 10) : '—'}
                       </td>
                       <td>
                         {row.tenant.setup_complete == 1 ? (

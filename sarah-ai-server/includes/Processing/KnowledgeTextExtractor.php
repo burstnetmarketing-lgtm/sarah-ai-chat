@@ -93,8 +93,51 @@ class KnowledgeTextExtractor
             throw new \RuntimeException("Link resource source_content is not a valid URL: '{$url}'");
         }
 
-        $html = $this->fetchUrl($url);
+        // Fetch the full response so we can inspect Content-Type
+        $response = wp_remote_get($url, [
+            'timeout'    => self::FETCH_TIMEOUT,
+            'user-agent' => 'SarahAI-KnowledgeProcessor/1.0',
+        ]);
 
+        if (is_wp_error($response)) {
+            throw new \RuntimeException("Failed to fetch URL '{$url}': " . $response->get_error_message());
+        }
+
+        $code = wp_remote_retrieve_response_code($response);
+        if ($code !== 200) {
+            throw new \RuntimeException("URL '{$url}' returned HTTP {$code}.");
+        }
+
+        $body        = (string) wp_remote_retrieve_body($response);
+        $contentType = (string) wp_remote_retrieve_header($response, 'content-type');
+
+        // Detect JSON by Content-Type or by inspecting the body start
+        $isJson = strpos($contentType, 'application/json') !== false
+               || strpos($contentType, 'text/json') !== false;
+
+        if (! $isJson) {
+            $firstChar = ltrim($body);
+            $isJson = isset($firstChar[0]) && ($firstChar[0] === '{' || $firstChar[0] === '[');
+        }
+
+        if ($isJson) {
+            $data = json_decode($body, true);
+            if (is_array($data)) {
+                $text = trim($this->jsonToReadableText($data));
+                if ($text !== '') {
+                    return $text;
+                }
+            }
+            // Fallback: store raw JSON as-is
+            $text = trim($body);
+            if ($text !== '') {
+                return $text;
+            }
+            throw new \RuntimeException("No usable text could be extracted from JSON URL: '{$url}'");
+        }
+
+        // HTML processing
+        $html = $body;
         // Remove script, style, nav, footer, header elements
         $html = preg_replace('#<(script|style|nav|footer|header|aside)[^>]*>.*?</\1>#si', '', $html);
         // Strip all remaining tags
@@ -108,6 +151,75 @@ class KnowledgeTextExtractor
             throw new \RuntimeException("No usable text could be extracted from URL: '{$url}'");
         }
         return $text;
+    }
+
+    /**
+     * Recursively convert a decoded JSON array/object into readable plain text.
+     * Each key-value pair becomes a "key: value" line, making the content
+     * semantically accessible for embedding and retrieval.
+     *
+     * @param  array  $data    Decoded JSON (associative or indexed)
+     * @param  string $prefix  Key path prefix for nested values (e.g. "products[1]")
+     * @return string
+     */
+    private function jsonToReadableText(array $data, string $prefix = ''): string
+    {
+        $lines = [];
+
+        // Sequential array of objects — e.g. [{"id":1,...}, {"id":2,...}]
+        $keys      = array_keys($data);
+        $isList    = ! empty($data) && $keys === range(0, count($data) - 1);
+        $firstIsArr = $isList && isset($data[0]) && is_array($data[0]);
+
+        if ($firstIsArr) {
+            foreach ($data as $i => $item) {
+                if (is_array($item)) {
+                    $itemPrefix = $prefix !== '' ? "{$prefix}[" . ($i + 1) . "]" : 'item_' . ($i + 1);
+                    $chunk      = $this->jsonToReadableText($item, $itemPrefix);
+                    if ($chunk !== '') {
+                        $lines[] = $chunk;
+                    }
+                }
+            }
+            return implode("\n", $lines);
+        }
+
+        // Associative object or simple indexed array
+        foreach ($data as $key => $value) {
+            $label     = $prefix !== '' ? "{$prefix}.{$key}" : (string) $key;
+            $valueKeys = is_array($value) ? array_keys($value) : [];
+            $valIsList = is_array($value) && ! empty($value) && $valueKeys === range(0, count($value) - 1);
+
+            if (is_array($value)) {
+                if (empty($value)) {
+                    // Skip empty arrays
+                } elseif ($valIsList && isset($value[0]) && is_array($value[0])) {
+                    // Nested list of objects (e.g. reviews, images with sub-keys)
+                    $chunk = $this->jsonToReadableText($value, $label);
+                    if ($chunk !== '') {
+                        $lines[] = $chunk;
+                    }
+                } elseif ($valIsList) {
+                    // Simple list of scalars (e.g. tags: ["beauty","mascara"])
+                    $scalars = array_filter(array_map('strval', $value), static function ($v) { return $v !== ''; });
+                    if (! empty($scalars)) {
+                        $lines[] = "{$label}: " . implode(', ', $scalars);
+                    }
+                } else {
+                    // Nested object
+                    $chunk = $this->jsonToReadableText($value, $label);
+                    if ($chunk !== '') {
+                        $lines[] = $chunk;
+                    }
+                }
+            } elseif (is_bool($value)) {
+                $lines[] = "{$label}: " . ($value ? 'true' : 'false');
+            } elseif ($value !== null && $value !== '') {
+                $lines[] = "{$label}: {$value}";
+            }
+        }
+
+        return implode("\n", $lines);
     }
 
     private function extractPdf(string $source): string

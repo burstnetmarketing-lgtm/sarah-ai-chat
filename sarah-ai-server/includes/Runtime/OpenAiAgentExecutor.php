@@ -209,6 +209,8 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
             }
             if ($knowledgeParts) {
                 $knowledgeSection = "\n\n## Knowledge Base\n\nUse the following information to answer questions. Rely only on what is provided below — do not invent facts.\n\n" . implode("\n\n", $knowledgeParts);
+            } else {
+                $knowledgeSection = "\n\n## Knowledge Base\n\nNo business-specific information has been provided. Do NOT use your training data or any external knowledge to answer questions about this business (products, prices, contact details, addresses, staff, or any specific facts). If asked about any such details, say you do not have that information and suggest the user contact the business directly.";
             }
         }
 

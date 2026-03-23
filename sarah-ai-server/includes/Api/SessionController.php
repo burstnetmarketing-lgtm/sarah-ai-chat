@@ -59,6 +59,25 @@ class SessionController
             'callback'            => [$this, 'messages'],
             'permission_callback' => '__return_true',
         ]);
+
+        // Client-scoped aliases — same handlers, grouped under /client/ for consistency
+        register_rest_route('sarah-ai-server/v1', '/client/sessions', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'index'],
+            'permission_callback' => '__return_true',
+        ]);
+
+        register_rest_route('sarah-ai-server/v1', '/client/sessions/(?P<uuid>[0-9a-f-]{36})', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'show'],
+            'permission_callback' => '__return_true',
+        ]);
+
+        register_rest_route('sarah-ai-server/v1', '/client/sessions/(?P<uuid>[0-9a-f-]{36})/messages', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'messages'],
+            'permission_callback' => '__return_true',
+        ]);
     }
 
     /**
