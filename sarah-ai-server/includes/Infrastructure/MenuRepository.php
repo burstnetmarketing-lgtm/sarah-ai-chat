@@ -17,6 +17,7 @@ class MenuRepository
         $this->removeIfExists('subscriptions');
         $this->insertIfMissing('agents',        'Agents',        'agents',        null, false, false);
         $this->insertIfMissing('settings',      'Settings',      'settings',      null, false, false);
+        $this->insertIfMissing('whmcs-test',    'WHMCS Test',    'whmcs-test',    null, false, false);
         $this->insertIfMissing('api-guide',        'API Guide', 'api-guide',        null,       false, true);
         $this->insertIfMissing('api-guide-all',    'All',       'api-guide-all',    'api-guide', false, false);
         $this->insertIfMissing('api-guide-public', 'Public',    'api-guide-public', 'api-guide', false, false);

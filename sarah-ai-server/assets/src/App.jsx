@@ -10,6 +10,7 @@ import Plans from './pages/Plans.jsx';
 import Usage from './pages/Usage.jsx';
 import Agents from './pages/Agents.jsx';
 import Settings from './pages/Settings.jsx';
+import WhmcsTest from './pages/WhmcsTest.jsx';
 import ApiGuide from './pages/ApiGuide.jsx';
 const ApiGuideAll    = (p) => <ApiGuide {...p} filter="all" />;
 const ApiGuidePublic = (p) => <ApiGuide {...p} filter="public" />;
@@ -26,6 +27,7 @@ const VIEWS = {
   'usage':            Usage,
   'agents':           Agents,
   'settings':         Settings,
+  'whmcs-test':       WhmcsTest,
   'api-guide':        ApiGuide,
   'api-guide-all':    ApiGuideAll,
   'api-guide-public': ApiGuidePublic,
@@ -43,6 +45,7 @@ const LABELS = {
   'usage':            'Usage',
   'agents':           'Agents',
   'settings':         'Settings',
+  'whmcs-test':       'WHMCS Test',
   'api-guide':        'API Guide',
   'api-guide-all':    'API Guide — All',
   'api-guide-public': 'API Guide — Public',

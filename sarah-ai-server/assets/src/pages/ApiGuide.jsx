@@ -175,8 +175,16 @@ const GROUPS = [
     badge: 'bg-primary',
     description: 'Global platform settings. Requires WordPress admin login.',
     endpoints: [
-      { method: 'GET',  path: '/platform-settings', summary: 'Get all platform settings.',    auth: 'WP Admin', params: [], response: '{ success, data: { openai_api_key, platform_name, ... } }' },
-      { method: 'POST', path: '/platform-settings', summary: 'Update platform settings.',     auth: 'WP Admin', params: [{ name: '...', type: 'object', req: false, desc: 'Key-value setting pairs' }], response: '{ success }' },
+      { method: 'GET',  path: '/platform-settings', summary: 'Get all platform settings.',    auth: 'WP Admin', params: [], response: '{ success, data: { platform_name, openai_api_key, platform_api_key, logging_enabled, default_agent_slug, whmcs_api_url, whmcs_key_required } }' },
+      { method: 'POST', path: '/platform-settings', summary: 'Update one or more platform settings.', auth: 'WP Admin', params: [
+        { name: 'platform_name',      type: 'string', req: false, desc: 'Display name for the platform' },
+        { name: 'openai_api_key',     type: 'string', req: false, desc: 'Shared OpenAI API key (masked on GET)' },
+        { name: 'platform_api_key',   type: 'string', req: false, desc: 'Static key used on X-Sarah-Platform-Key header' },
+        { name: 'default_agent_slug', type: 'string', req: false, desc: 'Slug of agent assigned to new sites' },
+        { name: 'whmcs_api_url',      type: 'string', req: false, desc: 'WHMCS API URL for license validation' },
+        { name: 'whmcs_key_required', type: 'string', req: false, desc: '"1" to require WHMCS key on /quick-setup; "0" to allow trial without a key' },
+        { name: 'logging_enabled',    type: 'string', req: false, desc: '"1" to enable system logging, "0" to disable' },
+      ], response: '{ success, saved: [...keys] }' },
     ],
   },
   {
@@ -200,10 +208,33 @@ const GROUPS = [
     ],
   },
   {
+    id: 'quick-setup',
+    label: 'Quick Setup',
+    badge: 'bg-warning',
+    description: 'One-call provisioning endpoint. Creates tenant, site, account key, and site key in a single request. Auth: X-Sarah-Platform-Key header.',
+    endpoints: [
+      {
+        method: 'POST',
+        path: '/quick-setup',
+        summary: 'Provision a full tenant + site in one call. Used by the sarah-ai-client Quick Setup wizard and headless integration partners.',
+        auth: 'X-Sarah-Platform-Key header',
+        params: [
+          { name: 'site_name',      type: 'string', req: true,  desc: 'Display name for the new site' },
+          { name: 'site_url',       type: 'string', req: true,  desc: 'URL of the client WordPress site' },
+          { name: 'whmcs_key',      type: 'string', req: false, desc: 'WHMCS license key — activates Customer plan. Required when whmcs_key_required platform setting is ON.' },
+          { name: 'openai_api_key', type: 'string', req: false, desc: 'Site-level OpenAI key — falls back to platform key if omitted' },
+          { name: 'kb_link',        type: 'string', req: false, desc: 'URL to seed as the first KB entry' },
+        ],
+        response: '{ success, data: { account_key, site_key, agent_slug, plan, site_uuid, has_openai_key, has_kb } }',
+        note: 'Returns 422 if whmcs_key is absent and the platform setting whmcs_key_required is enabled.',
+      },
+    ],
+  },
+  {
     id: 'client-site',
     label: 'Client Site Settings',
     badge: 'bg-info',
-    description: 'Per-site AI provider key management from the sarah-ai-client plugin. Auth: account_key + site_key + X-Sarah-Platform-Key header.',
+    description: 'Per-site AI provider key management and KB sync from the sarah-ai-client plugin. Auth: account_key + site_key + X-Sarah-Platform-Key header.',
     endpoints: [
       {
         method: 'GET',
@@ -229,6 +260,18 @@ const GROUPS = [
           { name: 'api_key',     type: 'string', req: true,  desc: 'API key value — empty string clears the key' },
         ],
         response: '{ success, data: { providers: [...] } }',
+      },
+      {
+        method: 'POST',
+        path: '/client/update-kb',
+        summary: 'Trigger async re-processing of all active KB resources for the site. Returns immediately — processing runs in background via WP Cron.',
+        auth: 'account_key + site_key + X-Sarah-Platform-Key',
+        params: [
+          { name: 'account_key', type: 'string', req: true, desc: 'Tenant account key' },
+          { name: 'site_key',    type: 'string', req: true, desc: 'Site key' },
+        ],
+        response: '{ success, data: { queued: 3, message: "KB sync queued for 3 resource(s)..." } }',
+        note: 'Returns queued: 0 if no active KB resources exist for the site. Safe to call multiple times — duplicate events are de-duplicated by WP Cron.',
       },
     ],
   },
@@ -331,6 +374,7 @@ const BADGE_LABEL = {
   'bg-success': 'public',
   'bg-primary': 'admin',
   'bg-info':    'client',
+  'bg-warning': 'setup',
 };
 
 function GroupPanel({ group }) {

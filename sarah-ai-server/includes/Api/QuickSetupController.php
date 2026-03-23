@@ -98,6 +98,12 @@ class QuickSetupController
             return new \WP_REST_Response(['success' => false, 'message' => 'site_name and site_url are required'], 400);
         }
 
+        // Enforce WHMCS key if platform requires it
+        $whmcsRequired = $this->settings->get('whmcs_key_required', '0', 'platform') === '1';
+        if ($whmcsRequired && $whmcsKey === '') {
+            return new \WP_REST_Response(['success' => false, 'message' => 'A valid WHMCS license key is required to activate this service.'], 422);
+        }
+
         // Determine plan based on WHMCS key presence
         $planSlug = $whmcsKey !== '' ? 'customer' : 'trial';
         $plan     = $this->plans->findBySlug($planSlug) ?? $this->plans->findBySlug('trial');

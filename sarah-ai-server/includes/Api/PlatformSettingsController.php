@@ -24,6 +24,7 @@ class PlatformSettingsController
         'logging_enabled',
         'default_agent_slug',
         'whmcs_api_url',
+        'whmcs_key_required',
     ];
 
     private SettingsRepository $repo;

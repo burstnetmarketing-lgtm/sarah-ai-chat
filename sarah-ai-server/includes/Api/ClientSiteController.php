@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SarahAiServer\Api;
 
+use SarahAiServer\Core\KbSyncJob;
 use SarahAiServer\Infrastructure\CredentialValidator;
 use SarahAiServer\Infrastructure\SiteApiKeyRepository;
 use SarahAiServer\Infrastructure\SettingsRepository;
@@ -22,6 +23,7 @@ use SarahAiServer\Infrastructure\SettingsRepository;
  * Routes:
  *   GET  /client/api-keys          — list providers that have a key set (keys NOT returned)
  *   POST /client/api-key           — set or clear a provider key
+ *   POST /client/update-kb         — trigger async re-processing of all KB resources for the site
  */
 class ClientSiteController
 {
@@ -52,6 +54,12 @@ class ClientSiteController
         register_rest_route('sarah-ai-server/v1', '/client/api-key', [
             'methods'             => 'POST',
             'callback'            => [$this, 'setKey'],
+            'permission_callback' => '__return_true',
+        ]);
+
+        register_rest_route('sarah-ai-server/v1', '/client/update-kb', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'updateKb'],
             'permission_callback' => '__return_true',
         ]);
     }
@@ -117,6 +125,34 @@ class ClientSiteController
         return new \WP_REST_Response([
             'success' => true,
             'data'    => ['providers' => $this->siteApiKeys->listProviders($siteId)],
+        ], 200);
+    }
+
+    /**
+     * POST /client/update-kb
+     * Body: { account_key, site_key }
+     *
+     * Queues async re-processing of all active KB resources for the site.
+     * Returns immediately — processing happens in background via WP Cron.
+     */
+    public function updateKb(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $ctx = $this->resolveAuth($request);
+        if (! $ctx) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $siteId = (int) $ctx['site']['id'];
+        $queued = KbSyncJob::dispatch($siteId);
+
+        return new \WP_REST_Response([
+            'success' => true,
+            'data'    => [
+                'queued'  => $queued,
+                'message' => $queued > 0
+                    ? "KB sync queued for {$queued} resource(s). Processing in background."
+                    : 'No active KB resources found for this site.',
+            ],
         ], 200);
     }
 }

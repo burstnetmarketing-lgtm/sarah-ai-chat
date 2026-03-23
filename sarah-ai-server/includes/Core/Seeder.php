@@ -138,12 +138,13 @@ class Seeder
 
         // Only set if not already configured — avoids overwriting admin changes.
         $defaults = [
-            'platform_name'    => 'Sarah',
+            'platform_name'      => 'Sarah',
             'default_agent_slug' => 'gpt-4o-mini',
-            'logging_enabled'  => '1',
-            'openai_api_key'   => '',
-            'platform_api_key' => 'www.BurstNET.com.au',
-            'whmcs_api_url'    => '',
+            'logging_enabled'    => '1',
+            'openai_api_key'     => '',
+            'platform_api_key'   => 'www.BurstNET.com.au',
+            'whmcs_api_url'      => '',
+            'whmcs_key_required' => '0',
         ];
 
         foreach ($defaults as $key => $value) {

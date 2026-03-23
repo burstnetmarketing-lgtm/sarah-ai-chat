@@ -18,6 +18,7 @@ define('SARAH_AI_SERVER_FILE', __FILE__);
 define('SARAH_AI_SERVER_PATH', plugin_dir_path(__FILE__));
 define('SARAH_AI_SERVER_URL', plugin_dir_url(__FILE__));
 
+require_once SARAH_AI_SERVER_PATH . 'config.php';
 require_once SARAH_AI_SERVER_PATH . 'update.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Helpers.php';
 
@@ -105,9 +106,11 @@ require_once SARAH_AI_SERVER_PATH . 'includes/Api/KnowledgeProcessingController.
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/KnowledgeFieldsController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/ClientKnowledgeController.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Api/ClientSiteController.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Api/WhmcsTestController.php';
 
 // Core
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Logger.php';
+require_once SARAH_AI_SERVER_PATH . 'includes/Core/KbSyncJob.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Seeder.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Activator.php';
 require_once SARAH_AI_SERVER_PATH . 'includes/Core/Plugin.php';

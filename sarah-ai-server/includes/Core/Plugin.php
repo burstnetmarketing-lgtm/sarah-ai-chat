@@ -42,13 +42,14 @@ use SarahAiServer\Api\KnowledgeProcessingController;
 use SarahAiServer\Api\ClientKnowledgeController;
 use SarahAiServer\Api\ClientSiteController;
 use SarahAiServer\DB\SiteApiKeyTable;
+use SarahAiServer\Core\KbSyncJob;
 use SarahAiServer\Infrastructure\MenuRepository;
 use SarahAiServer\Infrastructure\SettingsRepository;
 
 class Plugin
 {
     /** Bump this constant whenever a schema change or seed change is made. */
-    private const DB_VERSION = '0.1.21';
+    private const DB_VERSION = '0.1.22';
 
     public static function boot(): void
     {
@@ -59,6 +60,9 @@ class Plugin
             Seeder::run();
             update_option('sarah_ai_server_db_version', self::DB_VERSION, false);
         }
+
+        // Register background job hooks (must run on every boot so cron callbacks are found).
+        KbSyncJob::register();
 
         // Wire logger on/off from DB setting and register PHP error hooks
         $settingsRepo   = new SettingsRepository();
@@ -87,6 +91,7 @@ class Plugin
         add_action('rest_api_init', [(new PlatformSettingsController()), 'registerRoutes']);
         add_action('rest_api_init', [(new ClientKnowledgeController()), 'registerRoutes']);
         add_action('rest_api_init', [(new ClientSiteController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new \SarahAiServer\Api\WhmcsTestController()), 'registerRoutes']);
 
         if (! is_admin()) {
             return;

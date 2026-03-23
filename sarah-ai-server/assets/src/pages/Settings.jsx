@@ -135,7 +135,7 @@ export default function Settings() {
               </div>
             ))}
 
-            <div className="mb-0">
+            <div className="mb-3">
               <label className="form-label small fw-semibold">Logging</label>
               <div className="form-check form-switch">
                 <input
@@ -148,6 +148,24 @@ export default function Settings() {
                   style={{ width: '2.5em', height: '1.25em', cursor: 'pointer' }}
                 />
                 <label className="form-check-label small text-muted">Enable system logging</label>
+              </div>
+            </div>
+
+            <div className="mb-0">
+              <label className="form-label small fw-semibold">WHMCS License Key</label>
+              <div className="form-check form-switch">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  name="whmcs_key_required"
+                  checked={form.whmcs_key_required === '1'}
+                  onChange={handleChange}
+                  disabled={saving}
+                  style={{ width: '2.5em', height: '1.25em', cursor: 'pointer' }}
+                />
+                <label className="form-check-label small text-muted">
+                  Require WHMCS key on Quick Setup — rejects provisioning requests without a valid license key
+                </label>
               </div>
             </div>
           </div>
