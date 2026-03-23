@@ -16,6 +16,7 @@ function nextId() { return ++_id; }
 // TODO: support tenant-specific business data source
 
 const SARAH_CARD_RE = /<sarah_card>([\s\S]*?)<\/sarah_card>/i;
+const SARAH_META_RE = /<sarah_meta>([\s\S]*?)<\/sarah_meta>/i;
 
 // ─── RTL / LTR direction detection ───────────────────────────────────────────
 // Strips HTML tags and checks whether the first meaningful characters are
@@ -69,23 +70,36 @@ function markdownToHtml(text) {
 }
 
 function parseAiResponse(rawText) {
-  const match = rawText.match(SARAH_CARD_RE);
-
-  if (!match) {
-    const text = markdownToHtml(rawText);
-    return { text, cardData: null, dir: detectDir(text) };
+  // ── 1. Extract <sarah_meta> for lang/dir (strip from display text) ─────
+  let working = rawText;
+  let dir = null;
+  const metaMatch = working.match(SARAH_META_RE);
+  if (metaMatch) {
+    try {
+      const meta = JSON.parse(metaMatch[1]);
+      dir = meta.dir === 'rtl' ? 'rtl' : 'ltr';
+    } catch { /* malformed — fall through to detectDir */ }
+    working = working.replace(SARAH_META_RE, '').trim();
   }
 
-  const text = markdownToHtml(rawText.replace(SARAH_CARD_RE, '').trim());
-  try {
-    const cardData = JSON.parse(match[1]);
-    if (cardData && Array.isArray(cardData.fields)) {
-      return { text, cardData, dir: detectDir(text) };
-    }
-  } catch { /* malformed JSON — discard tag */ }
+  // ── 2. Extract <sarah_card> for contact card ───────────────────────────
+  const cardMatch = working.match(SARAH_CARD_RE);
+  let cardData = null;
+  if (cardMatch) {
+    try {
+      const parsed = JSON.parse(cardMatch[1]);
+      if (parsed && Array.isArray(parsed.fields)) cardData = parsed;
+    } catch { /* malformed */ }
+    working = working.replace(SARAH_CARD_RE, '').trim();
+  }
 
-  const fallback = markdownToHtml(rawText);
-  return { text: fallback, cardData: null, dir: detectDir(fallback) };
+  // ── 3. Markdown → HTML safety net ─────────────────────────────────────
+  const text = markdownToHtml(working);
+
+  // ── 4. Direction: from AI meta tag, or fallback to char detection ──────
+  if (dir === null) dir = detectDir(text);
+
+  return { text, cardData, dir };
 }
 
 // ─── localStorage helpers ────────────────────────────────────────────────────

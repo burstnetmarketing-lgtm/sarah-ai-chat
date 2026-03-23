@@ -3,10 +3,38 @@ import { getSessions, getSessionHistory } from '../api/sessionsApi.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const RTL_RE = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/;
+const SARAH_META_RE = /<sarah_meta>([\s\S]*?)<\/sarah_meta>/i;
+const SARAH_CARD_RE = /<sarah_card>[\s\S]*?<\/sarah_card>/i;
+const RTL_RE        = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/;
+
 function detectDir(text) {
   const plain = (text || '').replace(/<[^>]+>/g, '').trimStart();
   return RTL_RE.test(plain.slice(0, 120)) ? 'rtl' : 'ltr';
+}
+
+/**
+ * Parses AI message content stored in the DB.
+ * Strips sarah_meta / sarah_card tags and extracts direction.
+ * Falls back to detectDir for old messages that predate the meta tag.
+ */
+function parseStoredContent(content) {
+  let text = content || '';
+  let dir  = null;
+
+  const metaMatch = text.match(SARAH_META_RE);
+  if (metaMatch) {
+    try {
+      const meta = JSON.parse(metaMatch[1]);
+      dir = meta.dir === 'rtl' ? 'rtl' : 'ltr';
+    } catch { /* malformed */ }
+    text = text.replace(SARAH_META_RE, '').trim();
+  }
+
+  text = text.replace(SARAH_CARD_RE, '').trim();
+
+  if (dir === null) dir = detectDir(text); // fallback for old messages
+
+  return { html: text, dir };
 }
 
 function formatDate(str) {
@@ -51,8 +79,10 @@ function SessionCard({ session, active, onClick }) {
 // ─── Message bubble ──────────────────────────────────────────────────────────
 
 function MessageBubble({ msg }) {
-  const isAi  = msg.role !== 'customer';
-  const dir   = detectDir(msg.content);
+  const isAi = msg.role !== 'customer';
+  const { html, dir } = isAi
+    ? parseStoredContent(msg.content)
+    : { html: msg.content, dir: detectDir(msg.content) };
   const isRtl = dir === 'rtl';
 
   return (
@@ -75,8 +105,8 @@ function MessageBubble({ msg }) {
         }}
       >
         {isAi
-          ? <div dangerouslySetInnerHTML={{ __html: msg.content }} />
-          : msg.content}
+          ? <div dangerouslySetInnerHTML={{ __html: html }} />
+          : html}
         <div
           className="text-muted mt-1"
           style={{ fontSize: 10, textAlign: isRtl ? 'left' : 'right' }}

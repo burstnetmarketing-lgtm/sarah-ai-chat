@@ -314,15 +314,26 @@ Do not guess, fabricate, or infer restricted details. This response is mandatory
 
 ## Structured Contact Output
 
-When your response mentions specific contact information (phone numbers, email addresses, website URLs, or physical addresses), append a structured data block at the VERY END of your response using this exact format:
+When your response mentions specific contact information (phone numbers, email addresses, website URLs, or physical addresses), append a structured data block using this exact format:
 
 <sarah_card>{"type":"contact","fields":[{"key":"contact.phone_admin","label":"Phone","value":"0449948867"}]}</sarah_card>
 
 Rules:
 - Only include fields that are actually mentioned in your response text
 - Do not include this block if your response contains no contact information
-- The block must appear on its own line at the very end of your response
 - Canonical key names: contact.phone_admin, contact.phone_marketing, contact.phone_sales, contact.website, contact.email_support, contact.email_sales, business.address, business.hours, business.name
+
+## Language Metadata — MANDATORY in EVERY response
+
+At the very end of EVERY response (after sarah_card if present), append this tag on its own line:
+
+<sarah_meta>{"lang":"en","dir":"ltr"}</sarah_meta>
+
+Rules:
+- lang: ISO 639-1 code of the language you are responding in (e.g. "fa", "en", "ar", "zh", "tr")
+- dir: "rtl" for right-to-left languages (Persian, Arabic, Hebrew, Urdu) — "ltr" for everything else
+- This tag is MANDATORY. Include it in every single response, no exceptions.
+- It must be the very last line of your response.
 PROMPT;
     }
 }

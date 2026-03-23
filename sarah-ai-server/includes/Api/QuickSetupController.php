@@ -123,9 +123,11 @@ class QuickSetupController
         $plan     = $this->plans->findBySlug($planSlug) ?? $this->plans->findBySlug('trial');
         $planId   = $plan ? (int) $plan['id'] : null;
 
-        // Create tenant (slug derived from site name)
-        $slug     = $this->slugify($siteName);
-        $slug     = $this->uniqueSlug($slug);
+        // Create tenant slug: domain label + creation timestamp
+        // e.g. https://my-shop.com.au → "my-shop-202603241100"
+        $slug = ($this->slugifyFromUrl($siteUrl) ?: $this->slugify($siteName))
+              . '-' . date('YmdHi');
+        $slug = $this->uniqueSlug($slug);
         $tenantId = $this->tenants->create($siteName, $slug, 'active', [], $whmcsKey);
 
         // Create site
@@ -187,6 +189,15 @@ class QuickSetupController
     private function generateKey(): string
     {
         return bin2hex(random_bytes(32));
+    }
+
+    private function slugifyFromUrl(string $url): string
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $host = preg_replace('/^www\./', '', $host);
+        $name = explode('.', $host)[0] ?? '';
+        $slug = preg_replace('/[^a-z0-9-]+/', '', $name);
+        return trim($slug, '-');
     }
 
     private function slugify(string $name): string
