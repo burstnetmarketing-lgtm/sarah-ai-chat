@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Sarah AI Client
  * Description: AI-powered chat widget for client websites.
- * Version: 0.3.9
+ * Version: 0.3.10
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Author: Sarah AI
