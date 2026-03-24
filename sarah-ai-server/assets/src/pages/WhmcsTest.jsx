@@ -98,6 +98,11 @@ export default function WhmcsTest() {
             {!isActive && status && <span className="text-danger small">✗ Not active</span>}
           </div>
           <div className="card-body p-0">
+            {result.http_error && (
+              <div className="alert alert-danger m-3 mb-0 small py-2">
+                <strong>HTTP Error:</strong> {result.http_error}
+              </div>
+            )}
             {resultRows.length > 0 ? (
               <table className="table table-sm table-bordered mb-0" style={{ fontSize: '0.8rem' }}>
                 <tbody>
@@ -115,6 +120,14 @@ export default function WhmcsTest() {
               </table>
             ) : (
               <p className="text-muted small p-3 mb-0">No additional fields returned.</p>
+            )}
+            {result.raw_response && (
+              <details className="border-top">
+                <summary className="px-3 py-2 small text-muted" style={{ cursor: 'pointer' }}>Raw response</summary>
+                <pre className="m-0 px-3 py-2 bg-light" style={{ fontSize: '0.75rem', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                  {result.raw_response}
+                </pre>
+              </details>
             )}
           </div>
         </div>

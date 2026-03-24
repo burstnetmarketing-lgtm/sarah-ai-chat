@@ -49,7 +49,8 @@ class WhmcsTestController
 
         $status = strtolower(trim((string) ($result['status'] ?? '')));
 
-        // Remove internal debug keys from the response.
+        $raw   = $result['_raw']   ?? null;
+        $error = $result['_error'] ?? null;
         unset($result['_raw'], $result['_error']);
 
         return new \WP_REST_Response([
@@ -58,6 +59,8 @@ class WhmcsTestController
                 'is_active'      => ($status === 'active'),
                 'whmcs_api_url'  => $apiUrl,
                 'result'         => $result,
+                'raw_response'   => $raw,
+                'http_error'     => $error,
             ],
         ], 200);
     }

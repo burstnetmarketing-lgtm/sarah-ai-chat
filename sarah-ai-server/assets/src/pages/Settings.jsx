@@ -151,8 +151,30 @@ export default function Settings() {
               </div>
             </div>
 
+            <div className="mb-3">
+              <label className="form-label small fw-semibold">WHMCS API URL</label>
+              <input
+                type="url"
+                className="form-control form-control-sm"
+                name="whmcs_api_url"
+                value={form.whmcs_api_url ?? ''}
+                onChange={handleChange}
+                disabled={saving}
+                placeholder="https://yourdomain.com"
+              />
+              <div className="form-text">
+                Base URL of your WHMCS installation — e.g. <code>https://burstnet.com.au</code>. The licensing endpoint is appended automatically. Leave blank to skip license validation (grace mode).
+              </div>
+            </div>
+
             <div className="mb-0">
               <label className="form-label small fw-semibold">WHMCS License Key</label>
+              <div className="form-text mb-2">
+                To enable HMAC signature verification, add the following to your <code>wp-config.php</code> (before the <em>"That's all, stop editing!"</em> line):
+              </div>
+              <pre className="bg-light border rounded px-3 py-2 mb-2" style={{ fontSize: '0.78rem' }}>
+                {`define( 'SARAH_AI_WHMCS_LICENSE_SECRET', 'your-secret-key-here' );`}
+              </pre>
               <div className="form-check form-switch">
                 <input
                   className="form-check-input"

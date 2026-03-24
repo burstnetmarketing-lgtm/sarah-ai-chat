@@ -63,15 +63,15 @@ function findPlugins() {
     });
 }
 
-// ── Read version from plugin PHP header ────────
+// ── Read version from package.json ─────────────
 function readVersion(slug) {
-  const phpFile = path.join(ROOT, slug, `${slug}.php`);
-  const match   = fs.readFileSync(phpFile, 'utf8').match(/^\s*\*\s*Version:\s*(\d+\.\d+\.\d+)/m);
-  if (!match) {
-    console.error(`Could not find version in: ${phpFile}`);
+  const pkgFile = path.join(ROOT, slug, 'package.json');
+  const pkg     = JSON.parse(fs.readFileSync(pkgFile, 'utf8'));
+  if (!pkg.version) {
+    console.error(`Could not find version in: ${pkgFile}`);
     process.exit(1);
   }
-  return match[1];
+  return pkg.version;
 }
 
 // ── Copy directory recursively ──────────────────
