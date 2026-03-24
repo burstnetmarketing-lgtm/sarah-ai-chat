@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Sarah AI Server
  * Description: Server-side management for Sarah AI — plans, access control, and client usage accounting.
- * Version: 0.3.2
+ * Version: 0.3.3
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Author: Sarah AI
@@ -10,6 +10,18 @@
  */
 
 if (! defined('ABSPATH')) {
+    exit;
+}
+
+// Handle CORS preflight immediately — runs before any WordPress hook
+if (isset($_SERVER['REQUEST_METHOD']) && strtoupper((string) $_SERVER['REQUEST_METHOD']) === 'OPTIONS') {
+    $origin = isset($_SERVER['HTTP_ORIGIN']) ? (string) $_SERVER['HTTP_ORIGIN'] : '*';
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-WP-Nonce, X-Sarah-Platform-Key');
+    header('Access-Control-Max-Age: 3600');
+    header('Vary: Origin');
+    http_response_code(200);
     exit;
 }
 

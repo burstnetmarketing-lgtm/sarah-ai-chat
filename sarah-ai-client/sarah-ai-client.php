@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Sarah AI Client
  * Description: AI-powered chat widget for client websites.
- * Version: 0.3.0
+ * Version: 0.3.3
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Author: Sarah AI
@@ -35,6 +35,7 @@ require_once SARAH_AI_CLIENT_PATH . 'includes/Api/SettingsController.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Api/QuickQuestionsController.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Api/AppearanceController.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Api/ChatHistoryController.php';
+require_once SARAH_AI_CLIENT_PATH . 'includes/Api/ConnectController.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Logger.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Activator.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Core/Deactivator.php';

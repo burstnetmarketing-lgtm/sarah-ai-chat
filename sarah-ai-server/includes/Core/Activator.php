@@ -47,5 +47,31 @@ class Activator
         // Seed core menu items and baseline data
         (new MenuRepository())->ensureCoreItems();
         Seeder::run();
+
+        // Inject CORS rules into WordPress root .htaccess
+        self::insertHtaccessRules();
+    }
+
+    public static function insertHtaccessRules(): void
+    {
+        $htaccess = get_home_path() . '.htaccess';
+        if (! file_exists($htaccess) || ! is_writable($htaccess)) {
+            return;
+        }
+
+        $rules = [
+            '<IfModule mod_headers.c>',
+            '    Header always set Access-Control-Allow-Origin "*"',
+            '    Header always set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"',
+            '    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-WP-Nonce, X-Sarah-Platform-Key"',
+            '</IfModule>',
+            '<IfModule mod_rewrite.c>',
+            '    RewriteEngine On',
+            '    RewriteCond %{REQUEST_METHOD} OPTIONS',
+            '    RewriteRule .* - [R=200,L]',
+            '</IfModule>',
+        ];
+
+        insert_with_markers($htaccess, 'Sarah AI Server CORS', $rules);
     }
 }

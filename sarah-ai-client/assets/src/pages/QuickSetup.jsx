@@ -40,25 +40,17 @@ export default function QuickSetup() {
     setErrorMsg('');
 
     try {
-      // Step 1: Call server /quick-setup
       const serverBase = form.server_url.replace(/\/$/, '');
-      const endpoint   = `${serverBase}/sarah-ai-server/v1/quick-setup`;
 
-      const serverRes = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type':        'application/json',
-          'X-Sarah-Platform-Key': form.platform_key,
-        },
-        body: JSON.stringify({
-          site_name:      cfg.siteName || 'My Site',
-          site_url:       cfg.siteUrl  || window.location.origin,
-          whmcs_key:      form.whmcs_key,
-          openai_api_key: form.openai_api_key,
-        }),
+      // Step 1: Call server via local PHP proxy (avoids CORS)
+      const serverData = await apiFetch('connect', 'POST', {
+        server_url:     serverBase,
+        platform_key:   form.platform_key,
+        site_name:      cfg.siteName || 'My Site',
+        site_url:       cfg.siteUrl  || window.location.origin,
+        whmcs_key:      form.whmcs_key,
+        openai_api_key: form.openai_api_key,
       });
-
-      const serverData = await serverRes.json();
 
       if (!serverData.success) {
         setErrorMsg(serverData.message || 'Server returned an error. Check your Server URL and Platform Key.');

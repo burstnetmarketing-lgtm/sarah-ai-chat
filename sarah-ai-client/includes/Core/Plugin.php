@@ -8,6 +8,7 @@ use SarahAiClient\Admin\AdminMenu;
 use SarahAiClient\Admin\DashboardPage;
 use SarahAiClient\Api\AppearanceController;
 use SarahAiClient\Api\ChatHistoryController;
+use SarahAiClient\Api\ConnectController;
 use SarahAiClient\Api\LogController;
 use SarahAiClient\Api\MenuItemsController;
 use SarahAiClient\Api\QuickQuestionsController;
@@ -40,6 +41,7 @@ class Plugin
         add_action('rest_api_init', [(new QuickQuestionsController($quickQuestionsRepo)), 'registerRoutes']);
         add_action('rest_api_init', [(new AppearanceController($settingsRepo)), 'registerRoutes']);
         add_action('rest_api_init', [(new ChatHistoryController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new ConnectController()), 'registerRoutes']);
 
         if ($settingsRepo->get('widget_enabled', '1') === '1') {
             add_action('wp_enqueue_scripts', [self::class, 'enqueueWidget']);
