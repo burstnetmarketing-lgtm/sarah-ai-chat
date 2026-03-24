@@ -13,6 +13,7 @@ use SarahAiServer\Infrastructure\PlanRepository;
 use SarahAiServer\Infrastructure\SettingsRepository;
 use SarahAiServer\Infrastructure\SiteApiKeyRepository;
 use SarahAiServer\Infrastructure\KnowledgeResourceRepository;
+use SarahAiServer\Infrastructure\WhmcsLicenseService;
 
 /**
  * One-call provisioning endpoint for the sarah-ai-client Quick Setup wizard.
@@ -118,6 +119,20 @@ class QuickSetupController
             return new \WP_REST_Response(['success' => false, 'message' => 'A valid WHMCS license key is required to activate this service.'], 422);
         }
 
+        // Validate WHMCS key against licensing server before provisioning
+        if ($whmcsKey !== '') {
+            $whmcs  = new WhmcsLicenseService();
+            $result = $whmcs->test($whmcsKey);
+            $status = strtolower(trim((string) ($result['status'] ?? '')));
+            if ($status !== 'active') {
+                $desc = trim((string) ($result['description'] ?? ''));
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => 'WHMCS license key is not active' . ($desc !== '' ? ': ' . $desc : '.'),
+                ], 422);
+            }
+        }
+
         // Determine plan based on WHMCS key presence
         $planSlug = $whmcsKey !== '' ? 'customer' : 'trial';
         $plan     = $this->plans->findBySlug($planSlug) ?? $this->plans->findBySlug('trial');
@@ -156,13 +171,13 @@ class QuickSetupController
             $hasOpenAiKey = true;
         }
 
-        // Auto-seed knowledge base resources.
+        // Auto-seed knowledge base resources (created only — processing is triggered by the admin UI).
         $hasKb    = false;
         $siteBase = rtrim($siteUrl, '/');
 
         // KB 1: llms-full.txt — if it exists on the client site
-        $llmsUrl  = $siteBase . '/llms-full.txt';
-        $head     = wp_remote_head($llmsUrl, ['timeout' => 5, 'sslverify' => false]);
+        $llmsUrl = $siteBase . '/llms-full.txt';
+        $head    = wp_remote_head($llmsUrl, ['timeout' => 5, 'sslverify' => false]);
         if (! is_wp_error($head) && (int) wp_remote_retrieve_response_code($head) === 200) {
             $this->knowledge->create($siteId, 'link', 'LLMs Full Text', $llmsUrl);
             $hasKb = true;

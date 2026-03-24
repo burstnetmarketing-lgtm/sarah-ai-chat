@@ -208,7 +208,29 @@ class ClientKnowledgeController
             return new \WP_REST_Response(['success' => false, 'message' => 'Failed to create resource.'], 500);
         }
 
-        return new \WP_REST_Response(['success' => true, 'data' => $this->resources->findById($id)], 201);
+        $resource = $this->resources->findById($id);
+
+        // Fire-and-forget: trigger processing in the background without blocking this response
+        if ($resource) {
+            $platformKey = trim((string) $request->get_header('X-Sarah-Platform-Key'));
+            $accountKey  = trim((string) ($request->get_param('account_key') ?? ''));
+            $siteKey     = trim((string) ($request->get_param('site_key')    ?? ''));
+            wp_remote_post(
+                rest_url('sarah-ai-server/v1/client/knowledge-resources/' . $resource['uuid'] . '/process'),
+                [
+                    'timeout'   => 1,
+                    'blocking'  => false,
+                    'sslverify' => false,
+                    'headers'   => [
+                        'Content-Type'          => 'application/json',
+                        'X-Sarah-Platform-Key'  => $platformKey,
+                    ],
+                    'body'      => wp_json_encode(['account_key' => $accountKey, 'site_key' => $siteKey]),
+                ]
+            );
+        }
+
+        return new \WP_REST_Response(['success' => true, 'data' => $resource], 201);
     }
 
     /**

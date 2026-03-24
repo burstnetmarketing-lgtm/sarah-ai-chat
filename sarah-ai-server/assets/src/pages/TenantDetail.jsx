@@ -12,6 +12,7 @@ import {
   processKnowledge, uploadKnowledgeFile, getKnowledgeResourceTypes,
   updateKnowledgeVisibility,
   markTenantSetupComplete,
+  deleteTenant,
 } from '../api/provisioning.js';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -251,6 +252,7 @@ function UsersSection({ tenantUuid, onReload }) {
     setLoading(true);
     listTenantUsers(tenantUuid)
       .then(res => { if (res.success) setUsers(res.data); })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [tenantUuid]);
 
@@ -483,6 +485,7 @@ function AccountKeysSection({ tenantUuid, onKeysChange }) {
     setLoading(true);
     listAccountKeys(tenantUuid)
       .then(res => { if (res.success) { setKeys(res.data); onKeysChange?.(res.data); } })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [tenantUuid]);
 
@@ -593,6 +596,7 @@ function SiteKeysSection({ sites = [], onKeysChange }) {
     setLoading(true);
     listSiteKeys(selectedUuid)
       .then(res => { if (res.success) { setKeys(res.data); onKeysChange?.(res.data); } })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [selectedUuid]);
 
@@ -935,13 +939,14 @@ function KnowledgeSection({ siteUuid, onItemsChange }) {
   const [resourceTypes, setResourceTypes] = useState([]);
 
   useEffect(() => {
-    getKnowledgeResourceTypes().then(res => { if (res.success) setResourceTypes(res.types); });
+    getKnowledgeResourceTypes().then(res => { if (res.success) setResourceTypes(res.types); }).catch(() => {});
   }, []);
 
   const load = useCallback(() => {
     setLoading(true);
     listKnowledge(siteUuid)
       .then(res => { if (res.success) { setItems(res.data); onItemsChange?.(res.data); } })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [siteUuid]);
 
@@ -966,8 +971,14 @@ function KnowledgeSection({ siteUuid, onItemsChange }) {
           source_content: form.source_content,
         });
       }
-      if (res.success) { setForm(EMPTY_FORM); setExpanded(false); load(); }
-      else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
+      if (res.success) {
+        setForm(EMPTY_FORM); setExpanded(false); load();
+        // Auto-process immediately after creation
+        const newUuid = res.data?.uuid;
+        if (newUuid) {
+          processKnowledge(newUuid).then(() => load()).catch(() => load());
+        }
+      } else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
     } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
     finally { setSaving(false); }
   }
@@ -1174,6 +1185,8 @@ export default function TenantDetail({ param, onNavigate }) {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(null);
   const [activeStep, setActiveStep]   = useState(null);
+  const [deleting, setDeleting]       = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
   // First-site sub-data — updated as wizard steps mount
   const [firstSiteKeys, setFirstSiteKeys]               = useState([]);
@@ -1242,6 +1255,21 @@ export default function TenantDetail({ param, onNavigate }) {
   }, [tenantUuid]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleDelete = useCallback(async () => {
+    if (!window.confirm(`Delete tenant "${tenant?.name}" and ALL related data? This cannot be undone.`)) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await deleteTenant(tenantUuid);
+      if (res.success) { onNavigate('tenants'); return; }
+      setDeleteError(res.message ?? 'Delete failed.');
+    } catch {
+      setDeleteError('Delete failed.');
+    } finally {
+      setDeleting(false);
+    }
+  }, [tenant, tenantUuid, onNavigate]);
 
   // Auto-mark setup complete when all steps ok (fire-and-forget)
   const allOk = steps[9].ok;
@@ -1344,8 +1372,16 @@ export default function TenantDetail({ param, onNavigate }) {
               </>
             )}
           </div>
-          <button className="btn btn-sm btn-outline-secondary"
-            onClick={() => onNavigate('tenants')}>← Tenants</button>
+          <div className="d-flex gap-2">
+            <button className="btn btn-sm btn-outline-secondary"
+              onClick={() => onNavigate('tenants')}>← Tenants</button>
+            {tenant && (
+              <button className="btn btn-sm btn-outline-danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? 'Deleting…' : 'Delete Tenant'}
+              </button>
+            )}
+          </div>
+          {deleteError && <div className="text-danger small mt-1">{deleteError}</div>}
         </div>
 
         {!loading && !error && (

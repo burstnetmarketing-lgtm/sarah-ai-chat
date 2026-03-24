@@ -21,6 +21,7 @@ export default function Tenants({ onNavigate }) {
     setLoading(true);
     listTenants()
       .then(res => { if (res.success) setTenants(res.data); })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }
 

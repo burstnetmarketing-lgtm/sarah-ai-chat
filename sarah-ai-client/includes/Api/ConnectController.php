@@ -72,17 +72,20 @@ class ConnectController
             return new WP_REST_Response([
                 'success' => false,
                 'message' => 'Could not reach the server: ' . $response->get_error_message(),
-            ], 502);
+            ], 200);
         }
 
-        $code = (int) wp_remote_retrieve_response_code($response);
         $raw  = wp_remote_retrieve_body($response);
         $data = json_decode($raw, true);
 
         if (! is_array($data)) {
-            return new WP_REST_Response(['success' => false, 'message' => 'Invalid response from server.'], 502);
+            $code = (int) wp_remote_retrieve_response_code($response);
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => 'HTTP ' . $code . ' from: ' . $endpoint . ' — ' . substr(strip_tags($raw), 0, 200),
+            ], 200);
         }
 
-        return new WP_REST_Response($data, $code);
+        return new WP_REST_Response($data, 200);
     }
 }

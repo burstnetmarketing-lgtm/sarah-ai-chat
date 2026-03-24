@@ -6,6 +6,7 @@ export const createTenant       = (data)               => apiFetch('tenants', 'P
 export const getTenant          = (uuid)               => apiFetch(`tenants/${uuid}`);
 export const updateTenantStatus      = (uuid, status)  => apiFetch(`tenants/${uuid}/status`, 'POST', { status });
 export const markTenantSetupComplete = (uuid)          => apiFetch(`tenants/${uuid}/setup-complete`, 'POST');
+export const deleteTenant            = (uuid)          => apiFetch(`tenants/${uuid}`, 'DELETE');
 
 // Users
 export const listTenantUsers  = (tenantUuid)              => apiFetch(`tenants/${tenantUuid}/users`);

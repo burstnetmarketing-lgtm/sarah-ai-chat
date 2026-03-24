@@ -63,6 +63,12 @@ class TenantController
             'callback'            => [$this, 'updateWhmcsKey'],
             'permission_callback' => [$this, 'isAdmin'],
         ]);
+
+        register_rest_route('sarah-ai-server/v1', '/tenants/(?P<uuid>[0-9a-f-]{36})', [
+            'methods'             => 'DELETE',
+            'callback'            => [$this, 'destroy'],
+            'permission_callback' => [$this, 'isAdmin'],
+        ]);
     }
 
     public function store(\WP_REST_Request $request): \WP_REST_Response
@@ -149,6 +155,19 @@ class TenantController
         $this->tenants->updateWhmcsKey((int) $tenant['id'], $whmcsKey);
 
         return new \WP_REST_Response(['success' => true, 'data' => $this->tenants->findById((int) $tenant['id'])], 200);
+    }
+
+    /** DELETE /tenants/{uuid} — hard-delete tenant and all related data. */
+    public function destroy(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $tenant = $this->tenants->findByUuid((string) $request->get_param('uuid'));
+        if (! $tenant) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Tenant not found'], 404);
+        }
+
+        $this->tenants->purge((int) $tenant['id']);
+
+        return new \WP_REST_Response(['success' => true, 'message' => 'Tenant and all related data deleted.'], 200);
     }
 
     private function slugify(string $name): string

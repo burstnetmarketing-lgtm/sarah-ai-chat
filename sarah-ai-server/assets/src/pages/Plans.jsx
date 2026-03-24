@@ -15,6 +15,7 @@ export default function Plans() {
         if (plansRes.success)  setPlans(plansRes.data);
         if (agentsRes.success) setAgents(agentsRes.data);
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
