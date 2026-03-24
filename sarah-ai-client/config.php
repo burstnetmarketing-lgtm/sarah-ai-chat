@@ -14,7 +14,7 @@ if (! defined('ABSPATH')) {
 }
 
 if (! defined('SARAH_AI_CLIENT_SERVER_URL')) {
-    define('SARAH_AI_CLIENT_SERVER_URL', 'http://sarah.burstpartners.com.au/wp-json');
+    define('SARAH_AI_CLIENT_SERVER_URL', 'http://burstpartners.com.au/sarah/wp-json');
 }
 
 if (! defined('SARAH_AI_CLIENT_PLATFORM_KEY')) {
