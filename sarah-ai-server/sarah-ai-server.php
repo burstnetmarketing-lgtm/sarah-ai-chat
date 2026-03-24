@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Sarah AI Server
  * Description: Server-side management for Sarah AI — plans, access control, and client usage accounting.
- * Version: 0.3.1
+ * Version: 0.3.2
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Author: Sarah AI
