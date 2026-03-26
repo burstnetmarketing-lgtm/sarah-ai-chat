@@ -10,19 +10,22 @@ const welcomeMessage       = window.SarahAiWidget?.settings?.welcomeMessage || '
 // quick questions. Clicking one triggers handleLanguageSelect in ChatWindow,
 // which shows the label as the user bubble and sends the instruction message
 // to the API so the AI responds in the selected language from that point on.
-const LANGUAGE_OPTIONS = [
-  { label: '🇦🇺 English',  message: 'Hi! Please respond to me in English.',            language: 'en' },
-  { label: '🇮🇷 فارسی',    message: 'سلام! لطفاً از این لحظه فقط به فارسی پاسخ بده.', language: 'fa' },
-  { label: '🇸🇦 العربية',  message: 'مرحباً! تحدث معي باللغة العربية من فضلك.',       language: 'ar' },
-  { label: '🇨🇳 中文',     message: 'Hi! Please respond to me in Mandarin Chinese.',   language: 'zh' },
-];
+// Languages are loaded from the DB via wp_localize_script (SarahAiWidget.languages).
+// Each row: { code, label, message }
+export const LANGUAGE_OPTIONS = (window.SarahAiWidget?.languages || []).map(row => ({
+  label:    row.label,
+  message:  row.message,
+  language: row.code,
+}));
 
-export default function MessageArea({ messages, isTyping, onQuickQuestion, onLanguageSelect, onRetry }) {
+export default function MessageArea({ messages, isTyping, language, onQuickQuestion, onLanguageSelect, onRetry }) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
+
+  const showLangPicker = language === null;
 
   if (messages.length === 0) {
     return (
@@ -34,26 +37,11 @@ export default function MessageArea({ messages, isTyping, onQuickQuestion, onLan
             <p className="sac-welcome-sub">{welcomeMessage}</p>
           </div>
 
-          {customQuickQuestions.length > 0 ? (
-            // Custom quick questions configured by the site owner
+          {customQuickQuestions.length > 0 && (
             <div className="sac-quick-questions">
               {customQuickQuestions.map((q, i) => (
                 <button key={i} className="sac-quick-btn" onClick={() => onQuickQuestion(q)}>
                   {q}
-                </button>
-              ))}
-            </div>
-          ) : (
-            // Default seed: language selection
-            <div className="sac-quick-questions sac-lang-questions">
-              <p className="sac-lang-hint">Choose your language / زبان خود را انتخاب کنید</p>
-              {LANGUAGE_OPTIONS.map((opt, i) => (
-                <button
-                  key={i}
-                  className="sac-quick-btn sac-lang-btn"
-                  onClick={() => onLanguageSelect(opt)}
-                >
-                  {opt.label}
                 </button>
               ))}
             </div>
@@ -87,6 +75,7 @@ export default function MessageArea({ messages, isTyping, onQuickQuestion, onLan
         </div>
       ))}
       {isTyping && <TypingIndicator />}
+
       <div ref={bottomRef} />
     </div>
   );

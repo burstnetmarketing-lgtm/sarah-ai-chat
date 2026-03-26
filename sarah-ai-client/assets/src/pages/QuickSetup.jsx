@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../api/client.js';
+import sarahImg from '../images/sarah.webp';
 
 /**
  * QuickSetup — full-page wizard shown when the plugin is not yet configured.
@@ -114,129 +115,151 @@ export default function QuickSetup() {
   }
 
   return (
-    <div className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh', background: '#f4f6fb' }}>
-      <div className="card border-0 shadow" style={{ maxWidth: 480, width: '100%' }}>
+    <div className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh', background: '#f4f6fb', padding: '0 16px' }}>
 
-        {/* Header */}
-        <div className="card-header bg-dark text-white py-4 text-center border-0">
-          <h4 className="fw-bold mb-1">Sarah AI — Quick Setup</h4>
+      <div className="card border-0 shadow" style={{ maxWidth: 860, width: '100%', overflow: 'hidden' }}>
+
+        {/* Header — full width */}
+        <div className="bg-dark text-white py-4 text-center">
+          <h4 className="fw-bold mb-1" style={{ color: '#ffc107' }}>Sarah AI — Quick Setup</h4>
           <p className="text-white-50 small mb-0">Connect this site to the Sarah AI platform in one step.</p>
         </div>
 
-        <div className="card-body p-4">
+        {/* Body — image left + form right */}
+        <div className="d-flex" style={{ alignItems: 'stretch' }}>
 
-          {step === 'error' && (
-            <div className="alert alert-danger small py-2 px-3 mb-3">{errorMsg}</div>
-          )}
+          {/* Image */}
+          <div className="d-none d-lg-block" style={{ width: 400, flexShrink: 0 }}>
+            <img
+              src={sarahImg}
+              alt="Sarah AI"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
+            />
+          </div>
 
-          <form onSubmit={handleSubmit}>
+          {/* Form */}
+          <div className="p-4 flex-grow-1">
 
-            {/* Server URL — hidden when pre-configured via config.php */}
-            {!fixedServerUrl && (
-              <div className="mb-3">
-                <label className="form-label fw-semibold small">Server URL <span className="text-danger">*</span></label>
-                <input
-                  type="url"
-                  className="form-control form-control-sm"
-                  name="server_url"
-                  value={form.server_url}
-                  onChange={handleChange}
-                  placeholder="https://your-server.example.com/wp-json"
-                  required
-                  disabled={step === 'loading'}
-                />
-                <div className="form-text">Base WordPress REST API URL of the sarah-ai-server installation.</div>
-              </div>
+            {step === 'error' && (
+              <div className="alert alert-danger small py-2 px-3 mb-3">{errorMsg}</div>
             )}
 
-            {/* Platform Key — hidden when pre-configured via config.php */}
-            {!fixedPlatformKey && (
-              <div className="mb-3">
-                <label className="form-label fw-semibold small">Platform Key <span className="text-danger">*</span></label>
+            <form onSubmit={handleSubmit}>
+
+              {/* Server URL — hidden when pre-configured via config.php */}
+              {!fixedServerUrl && (
+                <div className="form-floating mb-3">
+                  <input
+                    type="url"
+                    className="form-control"
+                    id="server_url"
+                    name="server_url"
+                    value={form.server_url}
+                    onChange={handleChange}
+                    placeholder="https://your-server.example.com/wp-json"
+                    required
+                    disabled={step === 'loading'}
+                  />
+                  <label htmlFor="server_url">Server URL <span className="text-danger">*</span></label>
+                </div>
+              )}
+
+              {/* Platform Key — hidden when pre-configured via config.php */}
+              {!fixedPlatformKey && (
+                <div className="form-floating mb-3">
+                  <input
+                    type="password"
+                    className="form-control font-monospace"
+                    id="platform_key"
+                    name="platform_key"
+                    value={form.platform_key}
+                    onChange={handleChange}
+                    placeholder="Provided by your platform administrator"
+                    autoComplete="new-password"
+                    required
+                    disabled={step === 'loading'}
+                  />
+                  <label htmlFor="platform_key">Platform Key <span className="text-danger">*</span></label>
+                </div>
+              )}
+
+              {/* Site Name — display only */}
+              <div className="form-floating mb-1">
+                <input
+                  type="text"
+                  className="form-control bg-light"
+                  id="siteName"
+                  value={cfg.siteName || window.location.hostname}
+                  placeholder="Site Name"
+                  readOnly
+                  tabIndex={-1}
+                />
+                <label htmlFor="siteName">Site Name</label>
+              </div>
+              <div className="form-text ps-1 mb-3">Your WordPress site name, detected automatically.</div>
+
+              {/* Sarah License Key (required) */}
+              <div className="form-floating mb-1">
                 <input
                   type="password"
-                  className="form-control form-control-sm font-monospace"
-                  name="platform_key"
-                  value={form.platform_key}
+                  className="form-control font-monospace"
+                  id="whmcs_key"
+                  name="whmcs_key"
+                  value={form.whmcs_key}
                   onChange={handleChange}
-                  placeholder="Provided by your platform administrator"
+                  placeholder="Your Sarah license key"
                   autoComplete="new-password"
                   required
                   disabled={step === 'loading'}
                 />
-                <div className="form-text">Used to authenticate this setup request with the server.</div>
+                <label htmlFor="whmcs_key">Sarah License Key <span className="text-danger">*</span></label>
               </div>
-            )}
+              <div className="form-text ps-1 mb-3">Required to activate your service.</div>
 
-            {/* Site Name — display only, value is always taken from internal cfg */}
-            <div className="mb-3">
-              <label className="form-label fw-semibold small">Site Name</label>
-              <input
-                type="text"
-                className="form-control form-control-sm bg-light"
-                value={cfg.siteName || window.location.hostname}
-                readOnly
-                tabIndex={-1}
-              />
-            </div>
+              {/* OpenAI API Key (required) */}
+              <div className="form-floating mb-1">
+                <input
+                  type="password"
+                  className="form-control font-monospace"
+                  id="openai_api_key"
+                  name="openai_api_key"
+                  value={form.openai_api_key}
+                  onChange={handleChange}
+                  placeholder="sk-…"
+                  autoComplete="new-password"
+                  required
+                  disabled={step === 'loading'}
+                />
+                <label htmlFor="openai_api_key">OpenAI API Key <span className="text-danger">*</span></label>
+              </div>
+              <div className="form-text ps-1 mb-4">Billed to your own OpenAI account.</div>
 
-            {/* Sarah License Key (required) */}
-            <div className="mb-3">
-              <label className="form-label fw-semibold small">Sarah License Key <span className="text-danger">*</span></label>
-              <input
-                type="password"
-                className="form-control form-control-sm font-monospace"
-                name="whmcs_key"
-                value={form.whmcs_key}
-                onChange={handleChange}
-                placeholder="Your Sarah license key"
-                autoComplete="new-password"
-                required
-                disabled={step === 'loading'}
-              />
-              <div className="form-text">Required to activate your service.</div>
-            </div>
+              <button
+                type="submit"
+                className="btn btn-primary w-100"
+                disabled={step === 'loading' || !form.server_url || !form.platform_key || !form.whmcs_key || !form.openai_api_key}
+              >
+                {step === 'loading' ? (
+                  <><span className="spinner-border spinner-border-sm me-2" />Connecting…</>
+                ) : (
+                  'Connect & Activate'
+                )}
+              </button>
 
-            {/* OpenAI API Key (required) */}
-            <div className="mb-4">
-              <label className="form-label fw-semibold small">OpenAI API Key <span className="text-danger">*</span></label>
-              <input
-                type="password"
-                className="form-control form-control-sm font-monospace"
-                name="openai_api_key"
-                value={form.openai_api_key}
-                onChange={handleChange}
-                placeholder="sk-…"
-                autoComplete="new-password"
-                required
-                disabled={step === 'loading'}
-              />
-              <div className="form-text">Chat messages will be billed to this key.</div>
-            </div>
-
-            <button
-              type="submit"
-              className="btn btn-primary w-100"
-              disabled={step === 'loading' || !form.server_url || !form.platform_key || !form.whmcs_key || !form.openai_api_key}
-            >
-              {step === 'loading' ? (
-                <><span className="spinner-border spinner-border-sm me-2" />Connecting…</>
-              ) : (
-                'Connect & Activate'
-              )}
-            </button>
-
-          </form>
+            </form>
+          </div>
         </div>
 
-        <div className="card-footer bg-transparent border-top text-center py-3">
+        {/* Footer — full width */}
+        <div className="border-top text-center py-3 bg-transparent">
           <span className="text-muted small">
             Provided by{' '}
-            <a href="https://burstpartners.com.au/" target="_blank" rel="noopener noreferrer" className="text-decoration-none">
+            <a href="https://burstnet.com.au/" target="_blank" rel="noopener noreferrer" className="text-decoration-none">
               BurstNET
             </a>
           </span>
         </div>
+
       </div>
     </div>
   );

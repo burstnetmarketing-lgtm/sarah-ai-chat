@@ -450,6 +450,49 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+/* ── Language Bar (input area replacement) ── */
+
+.sac-lang-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #e8edf2;
+  background: #fff;
+}
+
+/* ── Language Chip Picker ────────────────── */
+
+.sac-lang-picker {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.sac-lang-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sac-lang-chip {
+  background: none;
+  border: 1px solid var(--sac-header-bg, #1e3a5f);
+  color: var(--sac-header-bg, #1e3a5f);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sac-lang-chip:hover {
+  background: var(--sac-header-bg, #1e3a5f);
+  color: #fff;
+}
+
 /* ── Contact Card ────────────────────────── */
 
 .sac-contact-card {
@@ -508,10 +551,11 @@
 }
 
 .sac-lang-hint {
-  margin: 0 0 6px;
-  font-size: 12px;
-  color: #94a3b8;
+  margin: 6px 0 10px;
+  font-size: 13px;
+  color: #64748b;
   text-align: center;
+  direction: rtl;
 }
 
 .sac-lang-btn {

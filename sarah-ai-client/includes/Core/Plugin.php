@@ -13,9 +13,11 @@ use SarahAiClient\Api\LogController;
 use SarahAiClient\Api\MenuItemsController;
 use SarahAiClient\Api\QuickQuestionsController;
 use SarahAiClient\Api\SettingsController;
+use SarahAiClient\DB\LanguagesTable;
 use SarahAiClient\DB\MenuTable;
 use SarahAiClient\DB\QuickQuestionsTable;
 use SarahAiClient\DB\SettingsTable;
+use SarahAiClient\Infrastructure\LanguagesRepository;
 use SarahAiClient\Infrastructure\MenuRepository;
 use SarahAiClient\Infrastructure\QuickQuestionsRepository;
 use SarahAiClient\Infrastructure\SettingsRepository;
@@ -27,10 +29,14 @@ class Plugin
         SettingsTable::create();
         MenuTable::create();
         QuickQuestionsTable::create();
+        LanguagesTable::create();
 
         $menuRepo           = new MenuRepository();
         $settingsRepo       = new SettingsRepository();
         $quickQuestionsRepo = new QuickQuestionsRepository();
+        $languagesRepo      = new LanguagesRepository();
+
+        $languagesRepo->seedDefaults();
 
         $menuRepo->ensureCoreItems();
         $settingsRepo->ensureAppearanceDefaults();
@@ -73,9 +79,11 @@ class Plugin
         add_filter('script_loader_tag', [self::class, 'addModuleType'], 10, 2);
 
         $quickQuestionsRepo = new QuickQuestionsRepository();
+        $languagesRepo      = new LanguagesRepository();
         $settingsRepo       = new SettingsRepository();
         wp_localize_script('sarah-ai-client-widget', 'SarahAiWidget', [
             'quickQuestions' => $quickQuestionsRepo->allEnabled(),
+            'languages'      => $languagesRepo->allEnabled(),
             'settings'       => $settingsRepo->getPublishedSettings(),
             'connection'     => [
                 'server_url'       => $settingsRepo->get('server_url', ''),

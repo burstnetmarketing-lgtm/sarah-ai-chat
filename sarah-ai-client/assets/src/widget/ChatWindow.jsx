@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Header from './Header.jsx';
-import MessageArea from './MessageArea.jsx';
+import MessageArea, { LANGUAGE_OPTIONS } from './MessageArea.jsx';
 import InputBox from './InputBox.jsx';
 import { sendChatMessage, fetchChatHistory } from './chatApi.js';
 
@@ -147,7 +147,7 @@ export default function ChatWindow({ onClose }) {
   const [sessionUuid, setSessionUuid] = useState(null);
   const [lastFailed, setLastFailed]   = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [language, setLanguage]       = useState(null); // ISO 639-1 code selected by user
+  const [language, setLanguage]       = useState(() => loadStoredSession() ? 'en' : null); // ISO 639-1 code selected by user
 
   // ── On mount: restore session + history, or show greeting ────────────────
   useEffect(() => {
@@ -169,6 +169,7 @@ export default function ChatWindow({ onClose }) {
           // Session no longer valid on server — discard and start fresh
           clearStoredSession();
           setSessionUuid(null);
+          setLanguage(null);
           setMessages(greetingMessage());
         } else if (history.length === 0) {
           // Valid session but no messages yet — show greeting
@@ -277,11 +278,26 @@ export default function ChatWindow({ onClose }) {
       <MessageArea
         messages={messages}
         isTyping={isTyping || historyLoading}
+        language={language}
         onQuickQuestion={sendMessage}
         onLanguageSelect={handleLanguageSelect}
         onRetry={handleRetry}
       />
-      <InputBox onSend={sendMessage} disabled={isTyping || historyLoading} />
+      {language === null ? (
+        <div className="sac-lang-bar">
+          {LANGUAGE_OPTIONS.map((opt, i) => (
+            <button
+              key={i}
+              className="sac-lang-chip"
+              onClick={() => handleLanguageSelect(opt)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <InputBox onSend={sendMessage} disabled={isTyping || historyLoading} />
+      )}
     </div>
   );
 }

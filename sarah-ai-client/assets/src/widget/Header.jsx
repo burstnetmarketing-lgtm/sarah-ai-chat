@@ -17,7 +17,7 @@ export default function Header({ onClose, onReset }) {
       <div className="sac-header-actions">
         {onReset && (
           <button
-            className="sac-reset"
+            className="sac-close"
             onClick={onReset}
             aria-label="New chat"
             title="Start a new conversation"
