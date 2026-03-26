@@ -168,16 +168,28 @@ export default function QuickSetup() {
               </div>
             )}
 
-            {/* WHMCS Key (required) */}
+            {/* Site Name — display only, value is always taken from internal cfg */}
             <div className="mb-3">
-              <label className="form-label fw-semibold small">WHMCS License Key <span className="text-danger">*</span></label>
+              <label className="form-label fw-semibold small">Site Name</label>
+              <input
+                type="text"
+                className="form-control form-control-sm bg-light"
+                value={cfg.siteName || window.location.hostname}
+                readOnly
+                tabIndex={-1}
+              />
+            </div>
+
+            {/* Sarah License Key (required) */}
+            <div className="mb-3">
+              <label className="form-label fw-semibold small">Sarah License Key <span className="text-danger">*</span></label>
               <input
                 type="password"
                 className="form-control form-control-sm font-monospace"
                 name="whmcs_key"
                 value={form.whmcs_key}
                 onChange={handleChange}
-                placeholder="Your WHMCS license key"
+                placeholder="Your Sarah license key"
                 autoComplete="new-password"
                 required
                 disabled={step === 'loading'}
@@ -219,7 +231,10 @@ export default function QuickSetup() {
 
         <div className="card-footer bg-transparent border-top text-center py-3">
           <span className="text-muted small">
-            Site: <strong>{cfg.siteName || window.location.hostname}</strong>
+            Provided by{' '}
+            <a href="https://burstpartners.com.au/" target="_blank" rel="noopener noreferrer" className="text-decoration-none">
+              BurstNET
+            </a>
           </span>
         </div>
       </div>
