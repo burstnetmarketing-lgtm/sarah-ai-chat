@@ -3,6 +3,7 @@ import { apiFetch } from './client.js';
 // Tenants
 export const listTenants        = ()                   => apiFetch('tenants');
 export const createTenant       = (data)               => apiFetch('tenants', 'POST', data);
+export const quickCreateTenant  = (data)               => apiFetch('tenants/quick-create', 'POST', data);
 export const getTenant          = (uuid)               => apiFetch(`tenants/${uuid}`);
 export const updateTenantStatus      = (uuid, status)  => apiFetch(`tenants/${uuid}/status`, 'POST', { status });
 export const markTenantSetupComplete = (uuid)          => apiFetch(`tenants/${uuid}/setup-complete`, 'POST');
@@ -35,6 +36,8 @@ export const unassignAgent        = (siteUuid)              => apiFetch(`sites/$
 export const updateAgentBehavior  = (agentId, data)         => apiFetch(`agents/${agentId}/behavior`, 'PUT', data);
 export const getAgentIdentity     = (siteUuid)              => apiFetch(`sites/${siteUuid}/agent-identity`);
 export const updateAgentIdentity  = (siteUuid, data)        => apiFetch(`sites/${siteUuid}/agent-identity`, 'POST', data);
+export const getSiteAgentConfig   = (siteUuid)              => apiFetch(`sites/${siteUuid}/agent-config`);
+export const updateSiteAgentConfig = (siteUuid, data)       => apiFetch(`sites/${siteUuid}/agent-config`, 'POST', data);
 export const listAvailableAgents  = (tenantUuid)            => apiFetch(`tenants/${tenantUuid}/available-agents`);
 
 // Plans

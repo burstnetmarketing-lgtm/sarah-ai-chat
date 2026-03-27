@@ -26,6 +26,7 @@ class SiteTable
             agent_display_name VARCHAR(190) NULL DEFAULT NULL,
             greeting_message TEXT NULL DEFAULT NULL,
             intro_message TEXT NULL DEFAULT NULL,
+            agent_config LONGTEXT NULL DEFAULT NULL,
             meta LONGTEXT NULL DEFAULT NULL,
             deleted_at DATETIME NULL DEFAULT NULL,
             created_at DATETIME NOT NULL,

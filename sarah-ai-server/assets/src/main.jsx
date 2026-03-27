@@ -1,6 +1,8 @@
 import '../scss/app.scss';
 import './styles/custom/logo.css';
 import './styles/custom/background.css';
+import './styles/custom/fieldbox.css';
+import './styles/custom/orange.css';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';

@@ -1,0 +1,50 @@
+/* ─── FieldBox — fieldset/legend-style input wrapper ─────────────────────────
+   Overrides Bootstrap's legend reset so the label sits on the border line.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.field-box {
+  border: 1px solid silver;
+  border-radius: 0.4rem;
+  padding: 14px 14px;
+  margin-bottom: 1rem;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.field-box:focus-within {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+}
+
+/* Override Bootstrap's float:left / width:100% reset on legend */
+.field-box legend {
+  float: none !important;
+  width: auto !important;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6c757d;
+  padding: 0 4px;
+  margin-bottom: 2px;
+  line-height: 1;
+  /* Pulls the legend back up onto the border */
+  margin-top: -0.5em;
+  background: #fff;
+}
+
+.field-box:focus-within legend {
+  color: #0d6efd;
+}
+
+.field-box-control {
+  width: 100%;
+  display: block;
+}
+
+.field-box-hint {
+  font-size: 0.72rem;
+  color: #adb5bd;
+  margin: 5px 0 0;
+  line-height: 1.4;
+}

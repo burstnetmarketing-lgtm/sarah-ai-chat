@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { listTenants, createTenant } from '../api/provisioning.js';
+import { listTenants } from '../api/provisioning.js';
 
 const TENANT_STATUS_BADGE = {
   active:    'bg-success-subtle text-success',
@@ -8,14 +8,10 @@ const TENANT_STATUS_BADGE = {
   archived:  'bg-dark-subtle text-dark',
 };
 
-
 export default function Tenants({ onNavigate }) {
-  const [tenants, setTenants]     = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [saving, setSaving]       = useState(false);
-  const [form, setForm]           = useState({ name: '', slug: '' });
-  const [formError, setFormError] = useState(null);
-  const [search, setSearch]       = useState('');
+  const [tenants, setTenants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch]   = useState('');
 
   function load() {
     setLoading(true);
@@ -26,22 +22,6 @@ export default function Tenants({ onNavigate }) {
   }
 
   useEffect(() => { load(); }, []);
-
-  async function handleCreate(e) {
-    e.preventDefault();
-    if (!form.name.trim()) return;
-    setSaving(true);
-    setFormError(null);
-    try {
-      const res = await createTenant({ name: form.name.trim(), slug: form.slug.trim() || undefined });
-      if (res.success) { setForm({ name: '', slug: '' }); load(); }
-      else setFormError(res.message ?? 'Failed to create tenant.');
-    } catch {
-      setFormError('Request failed.');
-    } finally {
-      setSaving(false);
-    }
-  }
 
   const visible = tenants.filter(row => {
     if (!search) return true;
@@ -54,36 +34,6 @@ export default function Tenants({ onNavigate }) {
     <div className="row">
       <div className="col-12">
 
-        {/* Create New Tenant */}
-        <div className="card mb-4">
-          <div className="card-header">
-            <h4 className="card-title">Create New Tenant</h4>
-          </div>
-          <div className="card-body">
-            <form onSubmit={handleCreate}>
-              <div className="row g-2 align-items-end">
-                <div className="col-md-5 form-group">
-                  <label className="form-label">Name *</label>
-                  <input className="form-control" placeholder="Acme Corp"
-                    value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
-                </div>
-                <div className="col-md-4 form-group">
-                  <label className="form-label">Slug <span className="text-muted">(optional)</span></label>
-                  <input className="form-control" placeholder="acme-corp"
-                    value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} />
-                </div>
-                <div className="col-md-3">
-                  <button className="btn btn-primary w-100" type="submit" disabled={saving}>
-                    {saving ? 'Creating…' : '+ Create Tenant'}
-                  </button>
-                </div>
-              </div>
-              {formError && <div className="alert alert-danger py-2 mt-2 mb-0">{formError}</div>}
-            </form>
-          </div>
-        </div>
-
-        {/* Tenant List */}
         <div className="card">
           <div className="d-flex justify-content-between flex-wrap align-items-center card-header">
             <div>
@@ -91,6 +41,12 @@ export default function Tenants({ onNavigate }) {
               <p className="text-muted fw-semibold mb-0">All registered tenants.</p>
             </div>
             <div className="d-flex align-items-center gap-2">
+              <button
+                className="btn btn-primary btn-sm orange-bg"
+                onClick={() => onNavigate('create-tenant')}
+              >
+                + New Tenant
+              </button>
               <input
                 type="text"
                 className="form-control form-control-sm"
@@ -154,7 +110,7 @@ export default function Tenants({ onNavigate }) {
                             className="btn btn-outline-primary btn-sm"
                             onClick={() => onNavigate('tenant-detail', row.tenant.uuid)}
                           >
-                            Setup →
+                            Manage →
                           </button>
                         )}
                       </td>

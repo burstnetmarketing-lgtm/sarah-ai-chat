@@ -9,6 +9,7 @@ use SarahAiServer\Infrastructure\ChatMessageRepository;
 use SarahAiServer\Infrastructure\ChatSessionRepository;
 use SarahAiServer\Infrastructure\CredentialValidator;
 use SarahAiServer\Infrastructure\KnowledgeResourceRepository;
+use SarahAiServer\Infrastructure\SiteRepository;
 use SarahAiServer\Infrastructure\UsageLogRepository;
 
 /**
@@ -37,6 +38,7 @@ class ChatRuntime
     private ChatMessageRepository $messages;
     private KnowledgeResourceRepository $knowledge;
     private UsageLogRepository $usageLog;
+    private SiteRepository $sitesRepo;
 
     public function __construct()
     {
@@ -46,6 +48,7 @@ class ChatRuntime
         $this->messages    = new ChatMessageRepository();
         $this->knowledge   = new KnowledgeResourceRepository();
         $this->usageLog    = new UsageLogRepository();
+        $this->sitesRepo   = new SiteRepository();
     }
 
     /**
@@ -135,6 +138,9 @@ class ChatRuntime
             'intro_message'      => $site['intro_message']      ?? null,
         ];
 
+        // ── Step 5c: Load per-site agent config overrides ─────────────────────
+        $siteAgentConfig = $this->sitesRepo->getAgentConfig((int) $site['id']);
+
         // ── Step 6: Load prior history (last 20 messages for context window) ──
         $allHistory = $this->messages->findBySession((int) $session['id']);
         // Exclude the message we just inserted (last item); pass the rest as history
@@ -150,15 +156,16 @@ class ChatRuntime
         $executor = $this->resolveExecutor($agent);
 
         $result = $executor->execute([
-            'agent'         => $agent,
-            'tenant'        => $tenant,
-            'site'          => $site,
-            'site_identity' => $siteIdentity,
-            'session'       => $session,
-            'message'       => $message,
-            'history'       => $history,
-            'knowledge'     => $knowledge,
-            'language'      => $language,
+            'agent'            => $agent,
+            'tenant'           => $tenant,
+            'site'             => $site,
+            'site_identity'    => $siteIdentity,
+            'site_agent_config'=> $siteAgentConfig,
+            'session'          => $session,
+            'message'          => $message,
+            'history'          => $history,
+            'knowledge'        => $knowledge,
+            'language'         => $language,
         ]);
 
         // ── Step 8: Persist assistant response ───────────────────────────────

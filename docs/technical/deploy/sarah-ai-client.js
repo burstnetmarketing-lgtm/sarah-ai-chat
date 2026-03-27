@@ -26,7 +26,7 @@ module.exports = {
     },
     darwin: {
       // Example: /Users/youruser/Local Sites/mysite/app/public/wp-content/plugins
-      localWpPluginsPath: '/Users/youruser/Local Sites/sarah-client/app/public/wp-content/plugins',
+      localWpPluginsPath: '/Users/amirhosseinbozorgkian/Local Sites/sarah-client/app/public/wp-content/plugins',
     },
   },
 };

@@ -69,6 +69,13 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
             ];
         }
 
+        // ── Merge site-level agent config overrides ────────────────────────────
+        $siteOverrides = $context['site_agent_config'] ?? [];
+        if (! empty($siteOverrides)) {
+            $base = is_array($agent['config']) ? $agent['config'] : [];
+            $agent['config'] = $this->mergeAgentConfig($base, $siteOverrides);
+        }
+
         // ── RAG retrieval ──────────────────────────────────────────────────────
         // Retrieve the most relevant chunks for this message via semantic search.
         // SemanticRetriever returns [] when no embeddings exist or key is missing,
@@ -331,6 +338,32 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
      *   contact.website, contact.email_support,
      *   business.address, business.hours
      */
+    /**
+     * Merges site-level overrides on top of agent defaults.
+     * String fields: site value wins if non-null and non-empty.
+     * Boolean fields: site value wins if non-null.
+     */
+    private function mergeAgentConfig(array $agentConfig, array $siteOverrides): array
+    {
+        $stringFields = ['tone', 'tone_custom', 'system_prompt', 'custom_rules', 'knowledge_instruction', 'knowledge_fallback', 'restricted_response'];
+        $boolFields   = ['allow_general_knowledge', 'no_closing_question', 'handle_vague_queries'];
+
+        $merged = $agentConfig;
+
+        foreach ($stringFields as $key) {
+            if (array_key_exists($key, $siteOverrides) && $siteOverrides[$key] !== null && $siteOverrides[$key] !== '') {
+                $merged[$key] = $siteOverrides[$key];
+            }
+        }
+        foreach ($boolFields as $key) {
+            if (array_key_exists($key, $siteOverrides) && $siteOverrides[$key] !== null) {
+                $merged[$key] = (bool) $siteOverrides[$key];
+            }
+        }
+
+        return $merged;
+    }
+
     private function buildStructuredOutputInstruction(string $restrictedResponse = ''): string
     {
         $safeResponse = $restrictedResponse ?: KnowledgePolicyFilter::restrictedDataSafeResponse();

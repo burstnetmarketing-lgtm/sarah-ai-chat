@@ -8,6 +8,7 @@ import {
   listSiteKeys, createSiteKey, deleteSiteKey,
   listAvailableAgents, assignAgent, unassignAgent,
   getAgentIdentity, updateAgentIdentity,
+  getSiteAgentConfig, updateSiteAgentConfig,
   listKnowledge, createKnowledge, deleteKnowledge,
   processKnowledge, uploadKnowledgeFile, getKnowledgeResourceTypes,
   updateKnowledgeVisibility,
@@ -49,36 +50,19 @@ function PrereqCard({ msg }) {
 // ─── Readiness Stepper (clickable wizard nav) ─────────────────────────────────
 
 function ReadinessCheck({ steps, activeStep, onStepClick }) {
-  const completed  = steps.filter(s => s.ok).length;
-  const percentage = completed * 10;
-  const allOk      = percentage === 100;
-  const nextIdx    = steps.findIndex(s => !s.ok);
+  const completed = steps.filter(s => s.ok).length;
+  const allOk     = completed === steps.length;
+  const nextIdx   = steps.findIndex(s => !s.ok);
 
   return (
     <div className="card shadow-sm mb-4">
       {/* Header */}
       <div className="card-header bg-dark text-white py-3">
-        <div className="d-flex justify-content-between align-items-center">
-          <div>
-            <div className="fw-bold">Setup Progress</div>
-            <div className="text-white-50 small mt-1">
-              {allOk
-                ? 'All steps complete — ready to launch'
-                : `${10 - completed} step${10 - completed !== 1 ? 's' : ''} remaining`}
-            </div>
-          </div>
-          <div className="text-end">
-            <div className={`fw-bold fs-3 ${allOk ? 'text-success' : 'text-warning'}`}>
-              {percentage}%
-            </div>
-            <div className="text-white-50 small">{completed} / 10 steps</div>
-          </div>
-        </div>
-        <div className="progress mt-3" style={{ height: '5px' }}>
-          <div
-            className={`progress-bar ${allOk ? 'bg-success' : 'bg-warning'}`}
-            style={{ width: `${percentage}%`, transition: 'width 0.6s ease' }}
-          />
+        <div className="fw-bold">Setup Progress</div>
+        <div className="text-white-50 small mt-1">
+          {allOk
+            ? 'All steps complete — ready to launch'
+            : `${steps.length - completed} step${steps.length - completed !== 1 ? 's' : ''} remaining`}
         </div>
       </div>
 
@@ -197,7 +181,7 @@ function LicensePanel({ tenant, tenantUuid, onReload }) {
 
   return (
     <div className="card border-0 shadow-sm">
-      <div className="card-header bg-white border-bottom">
+      <div className="card-header">
         <h6 className="fw-semibold mb-0">License</h6>
         <p className="text-muted small mb-0">Tenant's WHMCS license key. If set, all sites under this tenant are on the Customer plan.</p>
       </div>
@@ -354,10 +338,11 @@ function UsersSection({ tenantUuid, onReload }) {
 
 // ─── Step 3: Register Site ────────────────────────────────────────────────────
 
-function SiteCreateSection({ tenantUuid, sites, agents, onReload }) {
-  const [form, setForm]     = useState({ name: '', url: '' });
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg]       = useState(null);
+function SiteCreateSection({ tenantUuid, sites, agents, onReload, onNavigate }) {
+  const [form, setForm]         = useState({ name: '', url: '' });
+  const [saving, setSaving]     = useState(false);
+  const [msg, setMsg]           = useState(null);
+  const [togglingUuid, setTog]  = useState(null);
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -369,6 +354,16 @@ function SiteCreateSection({ tenantUuid, sites, agents, onReload }) {
       else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
     } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
     finally { setSaving(false); }
+  }
+
+  async function handleToggleStatus(site) {
+    const next = site.status === 'active' ? 'inactive' : 'active';
+    setTog(site.uuid);
+    try {
+      const res = await updateSiteStatus(site.uuid, next);
+      if (res.success) onReload();
+    } catch {}
+    finally { setTog(null); }
   }
 
   return (
@@ -409,12 +404,31 @@ function SiteCreateSection({ tenantUuid, sites, agents, onReload }) {
             <tbody>
               {sites.map(site => {
                 const agent = agents.find(a => a.id == site.active_agent_id);
+                const isToggling = togglingUuid === site.uuid;
                 return (
                   <tr key={site.uuid ?? site.id}>
                     <td className="fw-semibold">{site.name}</td>
                     <td className="text-muted small">{site.url}</td>
-                    <td><StatusBadge status={site.status} map={{ active: 'success', inactive: 'secondary', suspended: 'warning' }} /></td>
-                    <td>{agent ? <span className="badge bg-success-subtle text-success">{agent.name}</span> : <span className="text-muted">—</span>}</td>
+                    <td>
+                      <button
+                        className={`btn btn-sm py-0 ${site.status === 'active' ? 'btn-success' : 'btn-outline-secondary'}`}
+                        style={{ fontSize: '0.75rem' }}
+                        onClick={() => handleToggleStatus(site)}
+                        disabled={isToggling}
+                        title={site.status === 'active' ? 'Click to deactivate' : 'Click to activate'}
+                      >
+                        {isToggling ? '…' : site.status}
+                      </button>
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-sm btn-outline-primary py-0"
+                        style={{ fontSize: '0.75rem' }}
+                        onClick={() => onNavigate('site-agent', `${tenantUuid}/${site.uuid}`)}
+                      >
+                        {agent ? agent.name : '— assign'}
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -426,52 +440,7 @@ function SiteCreateSection({ tenantUuid, sites, agents, onReload }) {
   );
 }
 
-// ─── Step 4: Site Status ──────────────────────────────────────────────────────
-
-function SiteStatusPanel({ site, onReload }) {
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg]       = useState(null);
-
-  async function handleSetStatus(status) {
-    setSaving(true); setMsg(null);
-    try {
-      const res = await updateSiteStatus(site.uuid, status);
-      if (res.success) { setMsg({ type: 'success', text: `Site is now ${status}.` }); onReload(); }
-      else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
-    } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
-    finally { setSaving(false); }
-  }
-
-  return (
-    <div className="card border-0 shadow-sm">
-      <div className="card-header">
-        <h6 className="fw-semibold mb-0">Site Status — <span className="fw-normal text-muted">{site.name}</span></h6>
-        <p className="text-muted small mb-0">Activate the site to make it operational for API access.</p>
-      </div>
-      <div className="card-body">
-        <div className="d-flex align-items-center gap-3 mb-2">
-          <span className="text-muted small">Current status:</span>
-          <StatusBadge status={site.status} map={{ active: 'success', inactive: 'secondary', suspended: 'warning' }} />
-        </div>
-        {site.status !== 'active' ? (
-          <button className="btn btn-success btn-sm" onClick={() => handleSetStatus('active')} disabled={saving}>
-            {saving ? 'Activating…' : 'Activate Site'}
-          </button>
-        ) : (
-          <div className="d-flex align-items-center gap-2">
-            <span className="text-success small fw-semibold">Site is active and ready.</span>
-            <button className="btn btn-outline-secondary btn-sm" onClick={() => handleSetStatus('inactive')} disabled={saving}>
-              Deactivate
-            </button>
-          </div>
-        )}
-        {msg && <Alert type={msg.type} msg={msg.text} />}
-      </div>
-    </div>
-  );
-}
-
-// ─── Step 5: Account Keys ─────────────────────────────────────────────────────
+// ─── Step 4: Account Keys ─────────────────────────────────────────────────────
 
 function AccountKeysSection({ tenantUuid, onKeysChange }) {
   const [keys, setKeys]       = useState([]);
@@ -705,217 +674,6 @@ function SiteKeysSection({ sites = [], onKeysChange }) {
               ))}
             </tbody>
           </table>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Step 7: Agent ────────────────────────────────────────────────────────────
-
-function AgentSection({ sites = [], agents = [], onAgentChange }) {
-  const [editing, setEditing]       = useState(null); // siteUuid being edited
-  const [editSelected, setEditSel]  = useState('');
-  const [saving, setSaving]         = useState(null); // siteUuid being saved
-
-  function startEdit(site) {
-    setEditing(site.uuid);
-    setEditSel(site.active_agent_id ? String(site.active_agent_id) : '');
-  }
-
-  async function handleAssign(siteUuid) {
-    if (!editSelected) return;
-    setSaving(siteUuid);
-    try {
-      const res = await assignAgent(siteUuid, parseInt(editSelected, 10));
-      if (res.success) { setEditing(null); onAgentChange?.(siteUuid, parseInt(editSelected, 10)); }
-    } catch {} finally { setSaving(null); }
-  }
-
-  async function handleUnassign(siteUuid) {
-    if (!confirm('Remove agent from this site?')) return;
-    setSaving(siteUuid);
-    try {
-      const res = await unassignAgent(siteUuid);
-      if (res.success) { setEditing(null); onAgentChange?.(siteUuid, null); }
-    } catch {} finally { setSaving(null); }
-  }
-
-  return (
-    <div className="card border-0 shadow-sm">
-      <div className="card-header">
-        <h6 className="fw-semibold mb-0">Agent Assignment</h6>
-        <p className="text-muted small mb-0">Assign the AI agent that will handle chat for each site.</p>
-      </div>
-      {sites.length === 0 ? (
-        <div className="card-body"><p className="text-muted small mb-0">No sites registered yet.</p></div>
-      ) : (
-        <table className="table align-middle mb-0">
-          <thead className="table-light text-capitalize">
-            <tr><th>Site</th><th>URL</th><th>Agent</th><th></th></tr>
-          </thead>
-          <tbody>
-            {sites.map(site => {
-              const agent     = agents.find(a => a.id == site.active_agent_id);
-              const isEditing = editing === site.uuid;
-              const isSaving  = saving  === site.uuid;
-              return (
-                <tr key={site.uuid}>
-                  <td className="fw-semibold">{site.name}</td>
-                  <td className="text-muted small">{site.url}</td>
-                  <td>
-                    {isEditing ? (
-                      <select className="form-select form-select-sm" style={{ minWidth: 180 }}
-                        value={editSelected} onChange={e => setEditSel(e.target.value)}>
-                        <option value="">— select agent —</option>
-                        {agents.map(a => (
-                          <option key={a.id} value={a.id}>{a.name} ({a.slug})</option>
-                        ))}
-                      </select>
-                    ) : agent ? (
-                      <span className="badge bg-success-subtle text-success">{agent.name}</span>
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                  <td className="text-end" style={{ whiteSpace: 'nowrap' }}>
-                    {isEditing ? (
-                      <div className="d-flex gap-1 justify-content-end">
-                        <button className="btn btn-primary btn-sm"
-                          onClick={() => handleAssign(site.uuid)}
-                          disabled={isSaving || !editSelected}>
-                          {isSaving ? '…' : 'Save'}
-                        </button>
-                        <button className="btn btn-outline-secondary btn-sm"
-                          onClick={() => setEditing(null)} disabled={isSaving}>
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="d-flex gap-1 justify-content-end">
-                        <button className="btn btn-outline-primary btn-sm"
-                          onClick={() => startEdit(site)}>
-                          {agent ? 'Change' : 'Assign'}
-                        </button>
-                        {agent && (
-                          <button className="btn btn-outline-danger btn-sm"
-                            onClick={() => handleUnassign(site.uuid)}
-                            disabled={isSaving}>
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
-// ─── Step 7b: Agent Identity (per-site) ──────────────────────────────────────
-
-function AgentIdentitySection({ sites = [] }) {
-  const [selectedUuid, setSelectedUuid] = useState(sites.length === 1 ? sites[0].uuid : '');
-  const [form, setForm]   = useState({ agent_display_name: '', greeting_message: '', intro_message: '' });
-  const [loading, setLoading] = useState(false);
-  const [saving,  setSaving]  = useState(false);
-  const [saved,   setSaved]   = useState(false);
-  const [error,   setError]   = useState(null);
-
-  useEffect(() => {
-    if (!selectedUuid) return;
-    setLoading(true);
-    setSaved(false);
-    getAgentIdentity(selectedUuid)
-      .then(res => {
-        if (res.success) setForm({
-          agent_display_name: res.data.agent_display_name ?? '',
-          greeting_message:   res.data.greeting_message   ?? '',
-          intro_message:      res.data.intro_message      ?? '',
-        });
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [selectedUuid]);
-
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
-  }
-
-  function handleSave(e) {
-    e.preventDefault();
-    setSaving(true);
-    setSaved(false);
-    setError(null);
-    updateAgentIdentity(selectedUuid, form)
-      .then(res => { if (!res.success) throw new Error('Save failed.'); setSaved(true); })
-      .catch(err => setError(err.message))
-      .finally(() => setSaving(false));
-  }
-
-  return (
-    <div className="card border-0 shadow-sm mt-3">
-      <div className="card-header bg-white border-bottom">
-        <h6 className="mb-0 fw-semibold">Agent Identity</h6>
-        <p className="text-muted small mb-0 mt-1">
-          How the agent presents itself on this site — name, greeting, introduction.
-        </p>
-      </div>
-      <div className="card-body">
-        {sites.length > 1 && (
-          <div className="mb-3">
-            <label className="form-label small fw-semibold">Site</label>
-            <select className="form-select form-select-sm" value={selectedUuid}
-              onChange={e => { setSelectedUuid(e.target.value); setSaved(false); }}>
-              <option value="">— select site —</option>
-              {sites.map(s => <option key={s.uuid} value={s.uuid}>{s.name}</option>)}
-            </select>
-          </div>
-        )}
-
-        {!selectedUuid && (
-          <p className="text-muted small">Select a site to configure identity.</p>
-        )}
-
-        {selectedUuid && loading && <p className="text-muted small">Loading…</p>}
-
-        {selectedUuid && !loading && (
-          <form onSubmit={handleSave}>
-            <div className="mb-3">
-              <label className="form-label small fw-semibold">Agent Display Name</label>
-              <input type="text" name="agent_display_name" className="form-control form-control-sm"
-                value={form.agent_display_name} onChange={handleChange}
-                placeholder="e.g. Sarah" disabled={saving} />
-              <div className="form-text">Name injected into the system prompt: "Your name is {'{name}'}."</div>
-            </div>
-            <div className="mb-3">
-              <label className="form-label small fw-semibold">Intro Message</label>
-              <input type="text" name="intro_message" className="form-control form-control-sm"
-                value={form.intro_message} onChange={handleChange}
-                placeholder='e.g. I am Sarah, your assistant.' disabled={saving} />
-              <div className="form-text">Injected into the system prompt as the agent's self-introduction.</div>
-            </div>
-            <div className="mb-3">
-              <label className="form-label small fw-semibold">Greeting Message</label>
-              <input type="text" name="greeting_message" className="form-control form-control-sm"
-                value={form.greeting_message} onChange={handleChange}
-                placeholder='e.g. Hi 👋 How can I help you today?' disabled={saving} />
-              <div className="form-text">Shown instantly when the widget opens. Not injected into the prompt.</div>
-            </div>
-            <div className="d-flex align-items-center gap-2">
-              <button type="submit" className="btn btn-sm btn-primary" disabled={saving || !selectedUuid}>
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-              {saved  && <span className="text-success small">Saved.</span>}
-              {error  && <span className="text-danger small">{error}</span>}
-            </div>
-          </form>
         )}
       </div>
     </div>
@@ -1190,7 +948,6 @@ export default function TenantDetail({ param, onNavigate }) {
 
   // First-site sub-data — updated as wizard steps mount
   const [firstSiteKeys, setFirstSiteKeys]               = useState([]);
-  const [firstSiteAgentId, setFirstSiteAgentId]         = useState(null);
   const [firstSiteKnowledgeCount, setFirstSiteKnowledgeCount] = useState(0);
 
   const stepInitialized   = useRef(false);
@@ -1198,25 +955,18 @@ export default function TenantDetail({ param, onNavigate }) {
   const firstSite     = sites[0] ?? null;
   const firstSiteUuid = firstSite?.uuid ?? null;
 
-  // Sync agent ID when sites array refreshes
-  useEffect(() => {
-    setFirstSiteAgentId(firstSite?.active_agent_id ?? null);
-  }, [firstSite?.active_agent_id]);
-
   // Compute wizard steps
   const steps = [
-    { label: 'Tenant',  sub: 'Active', ok: !!tenant && tenant.status === 'active' },
-    { label: 'License', sub: 'Set',   ok: !!(tenant?.whmcs_key) },
-    { label: 'User',    sub: 'Added', ok: users.length > 0 },
-    { label: 'Site',         sub: 'Registered',   ok: sites.length > 0 },
-    { label: 'Site Status',  sub: 'Active',       ok: firstSite?.status === 'active' },
-    { label: 'Account Key',  sub: 'Issued',       ok: accountKeys.length > 0 },
-    { label: 'Site Key',     sub: 'Issued',       ok: firstSiteKeys.length > 0 },
-    { label: 'Agent',        sub: 'Assigned',     ok: !!firstSiteAgentId },
-    { label: 'Knowledge',    sub: 'Added',        ok: firstSiteKnowledgeCount > 0 },
-    { label: 'Launch',       sub: 'Ready',        ok: false },
+    { label: 'Tenant',      sub: 'Active',     ok: !!tenant && tenant.status === 'active' },
+    { label: 'License',     sub: 'Set',        ok: !!(tenant?.whmcs_key) },
+    { label: 'User',        sub: 'Added',      ok: users.length > 0 },
+    { label: 'Site',        sub: 'Registered', ok: sites.length > 0 },
+    { label: 'Account Key', sub: 'Issued',     ok: accountKeys.length > 0 },
+    { label: 'Site Key',    sub: 'Issued',     ok: firstSiteKeys.length > 0 },
+    { label: 'Knowledge',   sub: 'Added',      ok: firstSiteKnowledgeCount > 0 },
+    { label: 'Launch',      sub: 'Ready',      ok: false },
   ];
-  steps[9].ok = steps.slice(0, 9).every(s => s.ok);
+  steps[7].ok = steps.slice(0, 7).every(s => s.ok);
 
   const load = useCallback(async () => {
     if (!tenantUuid) return;
@@ -1272,7 +1022,7 @@ export default function TenantDetail({ param, onNavigate }) {
   }, [tenant, tenantUuid, onNavigate]);
 
   // Auto-mark setup complete when all steps ok (fire-and-forget)
-  const allOk = steps[9].ok;
+  const allOk = steps[7].ok;
   useEffect(() => {
     if (allOk && tenant && !tenant.setup_complete && !setupMarkedRef.current) {
       setupMarkedRef.current = true;
@@ -1287,7 +1037,7 @@ export default function TenantDetail({ param, onNavigate }) {
     if (!loading && !stepInitialized.current && !isEditMode) {
       stepInitialized.current = true;
       const firstIncomplete = steps.findIndex(s => !s.ok);
-      setActiveStep(firstIncomplete >= 0 ? firstIncomplete : 9);
+      setActiveStep(firstIncomplete >= 0 ? firstIncomplete : 7);
     }
     if (!loading && !stepInitialized.current && isEditMode) {
       stepInitialized.current = true;
@@ -1299,7 +1049,7 @@ export default function TenantDetail({ param, onNavigate }) {
 
   const STEP_TITLES = [
     'Tenant', 'License', 'Users', 'Register Site',
-    'Site Status', 'Account Keys', 'Site Keys', 'Agent', 'Knowledge', 'Launch',
+    'Account Keys', 'Site Keys', 'Knowledge', 'Launch',
   ];
 
   function renderStepContent() {
@@ -1308,34 +1058,18 @@ export default function TenantDetail({ param, onNavigate }) {
       case 0: return <TenantInfoPanel tenant={tenant} />;
       case 1: return <LicensePanel tenant={tenant} tenantUuid={tenantUuid} onReload={load} />;
       case 2: return <UsersSection tenantUuid={tenantUuid} onReload={load} />;
-      case 3: return <SiteCreateSection tenantUuid={tenantUuid} sites={sites} agents={agentsList} onReload={load} />;
-      case 4: return firstSite
-        ? <SiteStatusPanel site={firstSite} onReload={load} />
-        : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
-      case 5: return <AccountKeysSection tenantUuid={tenantUuid} onKeysChange={keys => setAccountKeys(keys)} />;
-      case 6: return sites.length > 0
+      case 3: return <SiteCreateSection tenantUuid={tenantUuid} sites={sites} agents={agentsList} onReload={load} onNavigate={onNavigate} />;
+      case 4: return <AccountKeysSection tenantUuid={tenantUuid} onKeysChange={keys => setAccountKeys(keys)} />;
+      case 5: return sites.length > 0
         ? <SiteKeysSection sites={sites} onKeysChange={keys => setFirstSiteKeys(keys)} />
         : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
-      case 7: return sites.length > 0
-        ? <>
-            <AgentSection
-              sites={sites}
-              agents={agentsList}
-              onAgentChange={(siteUuid, agentId) => {
-                setSites(prev => prev.map(s => s.uuid === siteUuid ? { ...s, active_agent_id: agentId } : s));
-                if (siteUuid === firstSiteUuid) setFirstSiteAgentId(agentId);
-              }}
-            />
-            <AgentIdentitySection sites={sites} />
-          </>
-        : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
-      case 8: return firstSiteUuid
+      case 6: return firstSiteUuid
         ? <KnowledgeSection
             siteUuid={firstSiteUuid}
             onItemsChange={items => setFirstSiteKnowledgeCount(items.length)}
           />
         : <PrereqCard msg="Register a site in Step 4 (Site) first." />;
-      case 9: return <LaunchPanel allOk={steps[9].ok} />;
+      case 7: return <LaunchPanel allOk={steps[7].ok} />;
       default: return null;
     }
   }

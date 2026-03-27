@@ -65,6 +65,18 @@ class SiteRepository
         return $row ?: null;
     }
 
+    /** Returns any (non-deleted) site whose url matches, for uniqueness enforcement. */
+    public function findByUrl(string $url): ?array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . SiteTable::TABLE;
+        $row   = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$table} WHERE url = %s AND deleted_at IS NULL LIMIT 1", $url),
+            ARRAY_A
+        );
+        return $row ?: null;
+    }
+
     public function findById(int $id): ?array
     {
         global $wpdb;
@@ -155,6 +167,55 @@ class SiteRepository
             'greeting_message'   => $row['greeting_message']   ?? null,
             'intro_message'      => $row['intro_message']      ?? null,
         ];
+    }
+
+    /**
+     * Saves per-site agent behavior overrides.
+     * Only fields with non-null values in $data are written.
+     * Pass null for any field to clear its override (revert to agent default).
+     */
+    public function updateAgentConfig(int $siteId, array $data): void
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . SiteTable::TABLE;
+
+        $existing = $wpdb->get_var($wpdb->prepare("SELECT agent_config FROM {$table} WHERE id = %d", $siteId));
+        $config   = $existing ? (json_decode($existing, true) ?? []) : [];
+
+        $allowed = [
+            'tone', 'tone_custom', 'system_prompt',
+            'allow_general_knowledge', 'no_closing_question', 'handle_vague_queries',
+            'custom_rules', 'knowledge_instruction', 'knowledge_fallback', 'restricted_response',
+        ];
+        foreach ($allowed as $key) {
+            if (array_key_exists($key, $data)) {
+                if ($data[$key] === null) {
+                    unset($config[$key]);
+                } else {
+                    $config[$key] = $data[$key];
+                }
+            }
+        }
+
+        $wpdb->update(
+            $table,
+            ['agent_config' => empty($config) ? null : wp_json_encode($config), 'updated_at' => current_time('mysql')],
+            ['id'           => $siteId],
+            ['%s', '%s'],
+            ['%d']
+        );
+    }
+
+    /**
+     * Returns per-site agent behavior overrides.
+     * Returns an empty array if no overrides are set.
+     */
+    public function getAgentConfig(int $siteId): array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . SiteTable::TABLE;
+        $raw   = $wpdb->get_var($wpdb->prepare("SELECT agent_config FROM {$table} WHERE id = %d", $siteId));
+        return $raw ? (json_decode($raw, true) ?? []) : [];
     }
 
     /** Soft-deletes a site. Records remain in the database. */

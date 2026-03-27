@@ -1,0 +1,50 @@
+/* ─── Orange Brand Utilities ─────────────────────────────────────────────────
+   --sarah-orange: primary brand accent colour.
+
+   Utility classes (add to any element):
+     .orange-text  — text colour
+     .orange-bg    — background + text colour (for buttons, badges, etc.)
+
+   Direct overrides (cannot be done with a class):
+     .side-nav .menuitem-active > .side-nav-link
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --sarah-orange: #f07c00;
+  --sarah-orange-dark: #d66e00;
+}
+
+/* ── Utility classes ─────────────────────────────────────────────────────── */
+
+.orange-text {
+  color: var(--sarah-orange) !important;
+}
+
+.orange-bg {
+  background-color: var(--sarah-orange) !important;
+  border-color: var(--sarah-orange) !important;
+  color: #fff !important;
+}
+
+.orange-bg:hover,
+.orange-bg:focus,
+.orange-bg:active {
+  background-color: var(--sarah-orange-dark) !important;
+  border-color: var(--sarah-orange-dark) !important;
+  color: #fff !important;
+}
+
+/* ── Sidebar active menu item ────────────────────────────────────────────── */
+
+.side-nav .menuitem-active > .side-nav-link,
+.side-nav .menuitem-active > .side-nav-link:hover {
+  color: var(--sarah-orange) !important;
+}
+
+/* ── Nav-link active ─────────────────────────────────────────────────────── */
+
+.nav-link.active {
+  background-color: var(--sarah-orange) !important;
+  color: #fff !important;
+  border-color: var(--sarah-orange) !important;
+}

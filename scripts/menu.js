@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
+const os = require('os');
+const { spawn, execFileSync } = require('child_process');
 
 const scriptsDir = __dirname;
 
@@ -42,12 +43,24 @@ function readKey(prompt, callback) {
 
 function runScript(file) {
   const rootDir = path.join(scriptsDir, '..');
-  spawn('cmd', ['/c', 'start', '/MAX', 'cmd', '/k', `node scripts\\${file}`], {
-    cwd: rootDir,
-    shell: false,
-    detached: true,
-    stdio: 'ignore'
-  }).unref();
+  if (os.platform() === 'win32') {
+    spawn('cmd', ['/c', 'start', '/MAX', 'cmd', '/k', `node scripts\\${file}`], {
+      cwd: rootDir,
+      shell: false,
+      detached: true,
+      stdio: 'ignore',
+    }).unref();
+  } else {
+    // On macOS/Linux: run inline in the same terminal, wait for completion
+    try {
+      execFileSync(process.execPath, [path.join('scripts', file)], {
+        cwd: rootDir,
+        stdio: 'inherit',
+      });
+    } catch {
+      // script exited with non-zero — already printed its own error
+    }
+  }
 }
 
 function showMenu() {

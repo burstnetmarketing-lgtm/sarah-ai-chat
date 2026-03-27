@@ -82,6 +82,11 @@ class SiteController
             ['methods' => 'GET',  'callback' => [$this, 'getAgentIdentity'],    'permission_callback' => [$this, 'isAdmin']],
             ['methods' => 'POST', 'callback' => [$this, 'updateAgentIdentity'], 'permission_callback' => [$this, 'isAdmin']],
         ]);
+
+        register_rest_route('sarah-ai-server/v1', '/sites/(?P<uuid>[0-9a-f-]{36})/agent-config', [
+            ['methods' => 'GET',  'callback' => [$this, 'getAgentConfig'],    'permission_callback' => [$this, 'isAdmin']],
+            ['methods' => 'POST', 'callback' => [$this, 'updateAgentConfig'], 'permission_callback' => [$this, 'isAdmin']],
+        ]);
     }
 
     public function store(\WP_REST_Request $request): \WP_REST_Response
@@ -183,6 +188,56 @@ class SiteController
         return new \WP_REST_Response([
             'success' => true,
             'data'    => $this->sites->getAgentIdentity((int) $site['id']),
+        ], 200);
+    }
+
+    /** GET /sites/{uuid}/agent-config */
+    public function getAgentConfig(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $site = $this->sites->findByUuid((string) $request->get_param('uuid'));
+        if (! $site) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Site not found.'], 404);
+        }
+
+        return new \WP_REST_Response([
+            'success' => true,
+            'data'    => $this->sites->getAgentConfig((int) $site['id']),
+        ], 200);
+    }
+
+    /**
+     * POST /sites/{uuid}/agent-config
+     * Body: any subset of behavior fields. Pass null to clear an override.
+     */
+    public function updateAgentConfig(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $site = $this->sites->findByUuid((string) $request->get_param('uuid'));
+        if (! $site) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Site not found.'], 404);
+        }
+
+        $stringFields  = ['tone', 'tone_custom', 'system_prompt', 'custom_rules', 'knowledge_instruction', 'knowledge_fallback', 'restricted_response'];
+        $boolFields    = ['allow_general_knowledge', 'no_closing_question', 'handle_vague_queries'];
+        $data          = [];
+
+        foreach ($stringFields as $key) {
+            if ($request->has_param($key)) {
+                $val = $request->get_param($key);
+                $data[$key] = $val === null ? null : trim((string) $val);
+            }
+        }
+        foreach ($boolFields as $key) {
+            if ($request->has_param($key)) {
+                $val = $request->get_param($key);
+                $data[$key] = $val === null ? null : (bool) $val;
+            }
+        }
+
+        $this->sites->updateAgentConfig((int) $site['id'], $data);
+
+        return new \WP_REST_Response([
+            'success' => true,
+            'data'    => $this->sites->getAgentConfig((int) $site['id']),
         ], 200);
     }
 

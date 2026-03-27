@@ -6,6 +6,8 @@ import MenuManager from './pages/MenuManager.jsx';
 import Log from './pages/Log.jsx';
 import Tenants from './pages/Tenants.jsx';
 import TenantDetail from './pages/TenantDetail.jsx';
+import CreateTenant from './pages/CreateTenant.jsx';
+import SiteAgent from './pages/SiteAgent.jsx';
 import Plans from './pages/Plans.jsx';
 import Usage from './pages/Usage.jsx';
 import Agents from './pages/Agents.jsx';
@@ -22,7 +24,9 @@ const VIEWS = {
   'menu-manager':     MenuManager,
   'log':              Log,
   'tenants':          Tenants,
+  'create-tenant':    CreateTenant,
   'tenant-detail':    TenantDetail,
+  'site-agent':       SiteAgent,
   'plans':            Plans,
   'usage':            Usage,
   'agents':           Agents,
@@ -40,7 +44,9 @@ const LABELS = {
   'menu-manager':     'Menu Manager',
   'log':              'System Log',
   'tenants':          'Tenants',
+  'create-tenant':    'Create Tenant',
   'tenant-detail':    'Tenant Setup',
+  'site-agent':       'Site Agent',
   'plans':            'Plans',
   'usage':            'Usage',
   'agents':           'Agents',
@@ -56,7 +62,8 @@ const LABELS = {
 function parseHash() {
   const raw   = window.location.hash.replace(/^#\//, '');
   const parts = raw.split('/');
-  return { view: parts[0] || 'dashboard', param: parts[1] || null };
+  // view is parts[0]; param is everything after (supports multi-segment params)
+  return { view: parts[0] || 'dashboard', param: parts.slice(1).join('/') || null };
 }
 
 export default function App() {
