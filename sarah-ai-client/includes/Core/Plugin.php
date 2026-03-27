@@ -40,6 +40,7 @@ class Plugin
 
         $menuRepo->ensureCoreItems();
         $settingsRepo->ensureAppearanceDefaults();
+        $settingsRepo->ensureBlacklistDefaults();
 
         add_action('rest_api_init', [(new MenuItemsController($menuRepo)), 'registerRoutes']);
         add_action('rest_api_init', [(new LogController()), 'registerRoutes']);
@@ -49,7 +50,7 @@ class Plugin
         add_action('rest_api_init', [(new ChatHistoryController()), 'registerRoutes']);
         add_action('rest_api_init', [(new ConnectController()), 'registerRoutes']);
 
-        if ($settingsRepo->get('widget_enabled', '1') === '1') {
+        if ($settingsRepo->get('widget_enabled', '1') === '1' && ! self::isUrlBlacklisted($settingsRepo)) {
             add_action('wp_enqueue_scripts', [self::class, 'enqueueWidget']);
             add_action('wp_footer', [self::class, 'renderRoot']);
         }
@@ -59,6 +60,23 @@ class Plugin
         }
 
         (new AdminMenu(new DashboardPage()))->register();
+    }
+
+    private static function isUrlBlacklisted(SettingsRepository $repo): bool
+    {
+        $raw = trim($repo->get('widget_blacklist', ''));
+        if ($raw === '') {
+            return false;
+        }
+        $uri      = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '/';
+        $path     = strtok($uri, '?');
+        $patterns = array_filter(array_map('trim', explode("\n", $raw)));
+        foreach ($patterns as $pattern) {
+            if (fnmatch($pattern, $path)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static function enqueueWidget(): void

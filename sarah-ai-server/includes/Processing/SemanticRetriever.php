@@ -32,7 +32,7 @@ use SarahAiServer\Infrastructure\KnowledgeChunkRepository;
  */
 class SemanticRetriever
 {
-    private const DEFAULT_TOP_K = 5;
+    private const DEFAULT_TOP_K = 12;
 
     private KnowledgeChunkRepository $chunks;
     private EmbeddingService         $embedding;

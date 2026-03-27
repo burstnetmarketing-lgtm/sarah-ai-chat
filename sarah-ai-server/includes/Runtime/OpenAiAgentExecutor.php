@@ -195,7 +195,7 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
                 $parts[] = $title ? "### {$title}\n{$text}" : $text;
             }
             if ($parts) {
-                $knowledgeSection = "\n\n## Knowledge Base\n\nUse the following information to answer questions. Rely only on what is provided below — do not invent facts.\n\n" . implode("\n\n", $parts);
+                $knowledgeSection = "\n\n## Knowledge Base\n\nPresent this information in a clear, helpful, and organized way. Use it to answer questions accurately.\n\n" . implode("\n\n", $parts);
             }
         } else {
             // Fallback: raw source_content — public resources only (visibility enforcement)
@@ -210,7 +210,7 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
                 $knowledgeParts[] = $title ? "### {$title}\n{$content}" : $content;
             }
             if ($knowledgeParts) {
-                $knowledgeSection = "\n\n## Knowledge Base\n\nUse the following information to answer questions. Rely only on what is provided below — do not invent facts.\n\n" . implode("\n\n", $knowledgeParts);
+                $knowledgeSection = "\n\n## Knowledge Base\n\nPresent this information in a clear, helpful, and organized way. Use it to answer questions accurately.\n\n" . implode("\n\n", $knowledgeParts);
             } else {
                 $knowledgeSection = "\n\n## Knowledge Base\n\nNo business-specific information has been provided. Do NOT use your training data or any external knowledge to answer questions about this business (products, prices, contact details, addresses, staff, or any specific facts). If asked about any such details, say you do not have that information and suggest the user contact the business directly.";
             }
@@ -257,7 +257,7 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
 
         if ($tone) {
             $toneMap = [
-                'friendly'     => 'Be warm, approachable, and friendly in your responses.',
+                'friendly'     => 'Be genuinely warm, caring, and enthusiastic. Show real interest in helping the user. Use a conversational and inviting tone, as if talking to a friend. Express positivity and encouragement naturally.',
                 'professional' => 'Maintain a professional and formal tone at all times.',
                 'concise'      => 'Be brief and to the point. Avoid unnecessary filler.',
                 'formal'       => 'Use formal language. Avoid contractions and casual expressions.',
@@ -275,10 +275,11 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
 
         $lines[] = '';
         $lines[] = '## Behaviour Rules';
-        $lines[] = '- Answer only what you know. If you are unsure, say so clearly rather than guessing.';
-        $lines[] = '- Do not make up facts, names, prices, dates, or any information not provided to you.';
-        $lines[] = '- Stay within your defined role and domain. Do not provide advice outside your area.';
-        $lines[] = '- If a question is outside your scope, politely say you cannot help with that.';
+        $lines[] = '- Use your general knowledge freely to answer questions about products, brands, models, categories, or any publicly known information.';
+        $lines[] = '- For business-specific details (prices, availability, stock, promotions, contact info), rely only on your Knowledge Base. Do not fabricate these.';
+        $lines[] = '- If a business-specific detail is not in your Knowledge Base, acknowledge it and suggest the user contact the business directly.';
+        $lines[] = '- When a user sends a short or vague message (e.g. a brand name or single word), treat it as a broad question and provide a helpful, informative overview.';
+        $lines[] = '- Do not end your response with closing phrases like "Is there anything else I can help you with?" or similar follow-up questions.';
         $lines[] = '- Do not generate harmful, misleading, or offensive content.';
 
         return implode("\n", $lines) . $identitySection . $languageSection . $knowledgeSection . $this->buildStructuredOutputInstruction();

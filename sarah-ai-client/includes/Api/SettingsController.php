@@ -40,7 +40,8 @@ class SettingsController
                 'account_key'     => $this->repo->get('account_key', ''),
                 'site_key'        => $this->repo->get('site_key', ''),
                 'platform_key'    => $this->repo->get('platform_key', ''),
-                'greeting_message'=> $this->repo->get('greeting_message', ''),
+                'greeting_message' => $this->repo->get('greeting_message', ''),
+                'widget_blacklist' => $this->repo->get('widget_blacklist', ''),
             ],
         ], 200);
     }
@@ -65,6 +66,9 @@ class SettingsController
         }
         if (isset($request['greeting_message'])) {
             $this->repo->set('greeting_message', trim((string) $request['greeting_message']));
+        }
+        if (isset($request['widget_blacklist'])) {
+            $this->repo->set('widget_blacklist', (string) $request['widget_blacklist']);
         }
         return new WP_REST_Response(['success' => true], 200);
     }

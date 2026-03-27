@@ -11,6 +11,7 @@ import KnowledgeBase from './pages/KnowledgeBase.jsx';
 import QuickSetup from './pages/QuickSetup.jsx';
 import PublicApi from './pages/PublicApi.jsx';
 import ChatHistory from './pages/ChatHistory.jsx';
+import UrlBlacklist from './pages/UrlBlacklist.jsx';
 
 const VIEWS = {
   dashboard:         Dashboard,
@@ -22,6 +23,7 @@ const VIEWS = {
   'knowledge-base':  KnowledgeBase,
   'chat-history':    ChatHistory,
   'public-api':      PublicApi,
+  'url-blacklist':   UrlBlacklist,
 };
 
 export default function App() {

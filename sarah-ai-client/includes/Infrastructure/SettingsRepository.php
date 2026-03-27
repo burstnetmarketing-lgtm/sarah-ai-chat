@@ -52,6 +52,8 @@ class SettingsRepository
         'qq_border_radius'   => '20',
     ];
 
+    private const BLACKLIST_DEFAULTS = "/dashboard\n/dashboard/*\n/wp-admin*";
+
     /* ── Generic get/set (used for widget_enabled etc.) ───────── */
 
     public function get(string $key, string $default = ''): string
@@ -76,6 +78,22 @@ class SettingsRepository
     }
 
     /* ── Appearance (draft / publish) ─────────────────────────── */
+
+    public function ensureBlacklistDefaults(): void
+    {
+        global $wpdb;
+        $table  = $wpdb->prefix . SettingsTable::TABLE;
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE setting_key = %s", 'widget_blacklist'));
+        if (! $exists) {
+            $now = current_time('mysql');
+            $wpdb->insert($table, [
+                'setting_key'   => 'widget_blacklist',
+                'setting_value' => self::BLACKLIST_DEFAULTS,
+                'created_at'    => $now,
+                'updated_at'    => $now,
+            ]);
+        }
+    }
 
     public function ensureAppearanceDefaults(): void
     {

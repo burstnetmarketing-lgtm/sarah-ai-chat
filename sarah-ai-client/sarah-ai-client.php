@@ -5,7 +5,8 @@
  * Version: 0.3.24
  * Requires at least: 6.0
  * Requires PHP: 7.4
- * Author: Sarah AI
+ * Author: BurstNET
+ * Author URI: https://burstnet.com.au
  * Text Domain: sarah-ai-client
  */
 
