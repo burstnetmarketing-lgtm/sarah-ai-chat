@@ -33,13 +33,25 @@ class Seeder
         $repo->upsertBySlug('Sarah Basic (Legacy)', 'sarah-basic', 'dummy', 'Legacy placeholder — replaced by OpenAI agents.', [], 'inactive');
         $repo->upsertBySlug('Sarah Pro (Legacy)',   'sarah-pro',   'dummy', 'Legacy placeholder — replaced by OpenAI agents.', [], 'inactive');
 
+        $behaviorDefaults = [
+            'system_prompt'           => '',
+            'tone_custom'             => '',
+            'allow_general_knowledge' => true,
+            'no_closing_question'     => true,
+            'handle_vague_queries'    => true,
+            'custom_rules'            => '',
+            'knowledge_instruction'   => '',
+            'knowledge_fallback'      => '',
+            'restricted_response'     => '',
+        ];
+
         // OpenAI agents — ordered cheapest to most powerful
         $repo->upsertBySlug(
             'GPT-4o Mini',
             'gpt-4o-mini',
             'openai',
             'Fast and affordable. Best for simple Q&A and cost-sensitive deployments.',
-            ['model' => 'gpt-4o-mini', 'max_tokens' => 1024, 'temperature' => 0.7, 'role' => 'customer support assistant', 'tone' => 'friendly', 'system_prompt' => '']
+            array_merge($behaviorDefaults, ['model' => 'gpt-4o-mini', 'max_tokens' => 1024, 'temperature' => 0.7, 'role' => 'customer support assistant', 'tone' => 'friendly'])
         );
 
         $repo->upsertBySlug(
@@ -47,7 +59,7 @@ class Seeder
             'gpt-4o',
             'openai',
             'Balanced and powerful. Recommended for most production sites.',
-            ['model' => 'gpt-4o', 'max_tokens' => 2048, 'temperature' => 0.7, 'role' => 'customer support assistant', 'tone' => 'professional', 'system_prompt' => '']
+            array_merge($behaviorDefaults, ['model' => 'gpt-4o', 'max_tokens' => 2048, 'temperature' => 0.7, 'role' => 'customer support assistant', 'tone' => 'professional'])
         );
 
         $repo->upsertBySlug(
@@ -55,7 +67,7 @@ class Seeder
             'o1',
             'openai',
             'Most capable reasoning model. Best for complex tasks and high-demand scenarios.',
-            ['model' => 'o1', 'max_tokens' => 4096, 'temperature' => 1.0, 'role' => 'customer support assistant', 'tone' => 'professional', 'system_prompt' => '']
+            array_merge($behaviorDefaults, ['model' => 'o1', 'max_tokens' => 4096, 'temperature' => 1.0, 'role' => 'customer support assistant', 'tone' => 'professional'])
         );
     }
 

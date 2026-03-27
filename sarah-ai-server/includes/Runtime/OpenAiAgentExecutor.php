@@ -177,12 +177,24 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         $customPrompt      = trim((string) ($config['system_prompt'] ?? ''));
         $role              = trim((string) ($config['role']          ?? ''));
         $tone              = trim((string) ($config['tone']          ?? ''));
+        $toneCustom        = trim((string) ($config['tone_custom']   ?? ''));
+
+        $allowGeneralKnowledge = (bool) ($config['allow_general_knowledge'] ?? true);
+        $noClosingQuestion     = (bool) ($config['no_closing_question']     ?? true);
+        $handleVagueQueries    = (bool) ($config['handle_vague_queries']    ?? true);
+        $customRules           = trim((string) ($config['custom_rules']           ?? ''));
+        $knowledgeInstruction  = trim((string) ($config['knowledge_instruction']  ?? ''));
+        $knowledgeFallback     = trim((string) ($config['knowledge_fallback']     ?? ''));
+        $restrictedResponse    = trim((string) ($config['restricted_response']    ?? ''));
         $description       = trim((string) ($agent['description']   ?? ''));
         $agentDisplayName  = trim((string) ($siteIdentity['agent_display_name'] ?? ''));
         $introMessage      = trim((string) ($siteIdentity['intro_message']      ?? ''));
 
         // ── Knowledge section (RAG or raw fallback) ────────────────────────
         $knowledgeSection = '';
+        $kbInstruction = $knowledgeInstruction ?: 'Present this information in a clear, helpful, and organized way. Use it to answer questions accurately.';
+        $kbFallback    = $knowledgeFallback    ?: 'No business-specific information has been provided. Do NOT use your training data or any external knowledge to answer questions about this business (products, prices, contact details, addresses, staff, or any specific facts). If asked about any such details, say you do not have that information and suggest the user contact the business directly.';
+
         if (! empty($retrievedChunks)) {
             // Phase 6.2: inject semantically retrieved chunks
             $parts = [];
@@ -195,7 +207,7 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
                 $parts[] = $title ? "### {$title}\n{$text}" : $text;
             }
             if ($parts) {
-                $knowledgeSection = "\n\n## Knowledge Base\n\nPresent this information in a clear, helpful, and organized way. Use it to answer questions accurately.\n\n" . implode("\n\n", $parts);
+                $knowledgeSection = "\n\n## Knowledge Base\n\n{$kbInstruction}\n\n" . implode("\n\n", $parts);
             }
         } else {
             // Fallback: raw source_content — public resources only (visibility enforcement)
@@ -210,9 +222,9 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
                 $knowledgeParts[] = $title ? "### {$title}\n{$content}" : $content;
             }
             if ($knowledgeParts) {
-                $knowledgeSection = "\n\n## Knowledge Base\n\nPresent this information in a clear, helpful, and organized way. Use it to answer questions accurately.\n\n" . implode("\n\n", $knowledgeParts);
+                $knowledgeSection = "\n\n## Knowledge Base\n\n{$kbInstruction}\n\n" . implode("\n\n", $knowledgeParts);
             } else {
-                $knowledgeSection = "\n\n## Knowledge Base\n\nNo business-specific information has been provided. Do NOT use your training data or any external knowledge to answer questions about this business (products, prices, contact details, addresses, staff, or any specific facts). If asked about any such details, say you do not have that information and suggest the user contact the business directly.";
+                $knowledgeSection = "\n\n## Knowledge Base\n\n{$kbFallback}";
             }
         }
 
@@ -244,7 +256,7 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
 
         // ── Custom override ────────────────────────────────────────────────
         if ($customPrompt) {
-            return $customPrompt . $identitySection . $languageSection . $knowledgeSection . $this->buildStructuredOutputInstruction();
+            return $customPrompt . $identitySection . $languageSection . $knowledgeSection . $this->buildStructuredOutputInstruction($restrictedResponse);
         }
 
         // ── Composed prompt ────────────────────────────────────────────────
@@ -256,13 +268,17 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         }
 
         if ($tone) {
-            $toneMap = [
-                'friendly'     => 'Be genuinely warm, caring, and enthusiastic. Show real interest in helping the user. Use a conversational and inviting tone, as if talking to a friend. Express positivity and encouragement naturally.',
-                'professional' => 'Maintain a professional and formal tone at all times.',
-                'concise'      => 'Be brief and to the point. Avoid unnecessary filler.',
-                'formal'       => 'Use formal language. Avoid contractions and casual expressions.',
-            ];
-            $lines[] = $toneMap[$tone] ?? "Tone: {$tone}.";
+            if ($toneCustom) {
+                $lines[] = $toneCustom;
+            } else {
+                $toneMap = [
+                    'friendly'     => 'Be genuinely warm, caring, and enthusiastic. Show real interest in helping the user. Use a conversational and inviting tone, as if talking to a friend. Express positivity and encouragement naturally.',
+                    'professional' => 'Maintain a professional and formal tone at all times.',
+                    'concise'      => 'Be brief and to the point. Avoid unnecessary filler.',
+                    'formal'       => 'Use formal language. Avoid contractions and casual expressions.',
+                ];
+                $lines[] = $toneMap[$tone] ?? "Tone: {$tone}.";
+            }
         }
 
         $lines[] = '';
@@ -275,14 +291,29 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
 
         $lines[] = '';
         $lines[] = '## Behaviour Rules';
-        $lines[] = '- Use your general knowledge freely to answer questions about products, brands, models, categories, or any publicly known information.';
-        $lines[] = '- For business-specific details (prices, availability, stock, promotions, contact info), rely only on your Knowledge Base. Do not fabricate these.';
-        $lines[] = '- If a business-specific detail is not in your Knowledge Base, acknowledge it and suggest the user contact the business directly.';
-        $lines[] = '- When a user sends a short or vague message (e.g. a brand name or single word), treat it as a broad question and provide a helpful, informative overview.';
-        $lines[] = '- Do not end your response with closing phrases like "Is there anything else I can help you with?" or similar follow-up questions.';
+        if ($allowGeneralKnowledge) {
+            $lines[] = '- Use your general knowledge freely to answer questions about products, brands, models, categories, or any publicly known information.';
+            $lines[] = '- For business-specific details (prices, availability, stock, promotions, contact info), rely only on your Knowledge Base. Do not fabricate these.';
+            $lines[] = '- If a business-specific detail is not in your Knowledge Base, acknowledge it and suggest the user contact the business directly.';
+        } else {
+            $lines[] = '- Answer only what you know from your Knowledge Base. Do not use general knowledge or training data.';
+            $lines[] = '- If the answer is not in your Knowledge Base, say you do not have that information.';
+        }
+        if ($handleVagueQueries) {
+            $lines[] = '- When a user sends a short or vague message (e.g. a brand name or single word), treat it as a broad question and provide a helpful, informative overview.';
+        }
+        if ($noClosingQuestion) {
+            $lines[] = '- Do not end your response with closing phrases like "Is there anything else I can help you with?" or similar follow-up questions.';
+        }
         $lines[] = '- Do not generate harmful, misleading, or offensive content.';
 
-        return implode("\n", $lines) . $identitySection . $languageSection . $knowledgeSection . $this->buildStructuredOutputInstruction();
+        if ($customRules) {
+            foreach (array_filter(array_map('trim', explode("\n", $customRules))) as $rule) {
+                $lines[] = '- ' . $rule;
+            }
+        }
+
+        return implode("\n", $lines) . $identitySection . $languageSection . $knowledgeSection . $this->buildStructuredOutputInstruction($restrictedResponse);
     }
 
     /**
@@ -300,9 +331,9 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
      *   contact.website, contact.email_support,
      *   business.address, business.hours
      */
-    private function buildStructuredOutputInstruction(): string
+    private function buildStructuredOutputInstruction(string $restrictedResponse = ''): string
     {
-        $safeResponse = KnowledgePolicyFilter::restrictedDataSafeResponse();
+        $safeResponse = $restrictedResponse ?: KnowledgePolicyFilter::restrictedDataSafeResponse();
 
         return <<<PROMPT
 

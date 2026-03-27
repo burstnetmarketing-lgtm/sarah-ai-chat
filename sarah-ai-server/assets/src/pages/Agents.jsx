@@ -15,19 +15,40 @@ function AgentPanel({ agent, onSaved }) {
     catch { return {}; }
   })();
 
-  const [role,         setRole]         = useState(config.role          ?? '');
-  const [tone,         setTone]         = useState(config.tone          ?? '');
-  const [systemPrompt, setSystemPrompt] = useState(config.system_prompt ?? '');
-  const [saving,       setSaving]       = useState(false);
-  const [saved,        setSaved]        = useState(false);
-  const [error,        setError]        = useState(null);
+  const [role,                  setRole]                 = useState(config.role                    ?? '');
+  const [tone,                  setTone]                 = useState(config.tone                    ?? '');
+  const [toneCustom,            setToneCustom]           = useState(config.tone_custom             ?? '');
+  const [systemPrompt,          setSystemPrompt]         = useState(config.system_prompt           ?? '');
+  const [allowGeneral,          setAllowGeneral]         = useState(config.allow_general_knowledge ?? true);
+  const [noClosing,             setNoClosing]            = useState(config.no_closing_question     ?? true);
+  const [handleVague,           setHandleVague]          = useState(config.handle_vague_queries    ?? true);
+  const [customRules,           setCustomRules]          = useState(config.custom_rules            ?? '');
+  const [knowledgeInstruction,  setKnowledgeInstruction] = useState(config.knowledge_instruction  ?? '');
+  const [knowledgeFallback,     setKnowledgeFallback]    = useState(config.knowledge_fallback      ?? '');
+  const [restrictedResponse,    setRestrictedResponse]   = useState(config.restricted_response     ?? '');
+
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
+  const [error,  setError]  = useState(null);
 
   function handleSave(e) {
     e.preventDefault();
     setSaving(true);
     setSaved(false);
     setError(null);
-    updateAgentBehavior(agent.id, { role, tone, system_prompt: systemPrompt })
+    updateAgentBehavior(agent.id, {
+      role,
+      tone,
+      tone_custom:             toneCustom,
+      system_prompt:           systemPrompt,
+      allow_general_knowledge: allowGeneral,
+      no_closing_question:     noClosing,
+      handle_vague_queries:    handleVague,
+      custom_rules:            customRules,
+      knowledge_instruction:   knowledgeInstruction,
+      knowledge_fallback:      knowledgeFallback,
+      restricted_response:     restrictedResponse,
+    })
       .then(res => {
         if (!res.success) throw new Error('Save failed.');
         setSaved(true);
@@ -37,10 +58,6 @@ function AgentPanel({ agent, onSaved }) {
       .finally(() => setSaving(false));
   }
 
-  const promptPreview = systemPrompt.trim()
-    ? <span className="badge bg-success">Custom prompt active</span>
-    : <span className="text-muted small">Composed from role + tone + guardrails</span>;
-
   return (
     <div className="p-3">
       {agent.description && (
@@ -48,7 +65,10 @@ function AgentPanel({ agent, onSaved }) {
       )}
 
       <form onSubmit={handleSave}>
-        <div className="row g-3 mb-3">
+
+        {/* ── Identity & Role ─────────────────────────────── */}
+        <h6 className="fw-semibold text-secondary small text-uppercase mb-2">Identity &amp; Role</h6>
+        <div className="row g-3 mb-4">
           <div className="col-md-5">
             <label className="form-label small fw-semibold">Role</label>
             <input
@@ -59,10 +79,10 @@ function AgentPanel({ agent, onSaved }) {
               placeholder="e.g. customer support assistant, sales agent"
               disabled={saving}
             />
-            <div className="form-text">Defines what the agent does. Used in the system prompt.</div>
+            <div className="form-text">Defines what the agent does.</div>
           </div>
           <div className="col-md-3">
-            <label className="form-label small fw-semibold">Tone</label>
+            <label className="form-label small fw-semibold">Tone Preset</label>
             <select
               className="form-select form-select-sm"
               value={tone}
@@ -74,22 +94,124 @@ function AgentPanel({ agent, onSaved }) {
               ))}
             </select>
           </div>
+          <div className="col-md-12">
+            <label className="form-label small fw-semibold">
+              Custom Tone Text
+              <span className="text-muted fw-normal ms-2">(overrides preset)</span>
+            </label>
+            <input
+              type="text"
+              className="form-control form-control-sm"
+              value={toneCustom}
+              onChange={e => setToneCustom(e.target.value)}
+              placeholder="e.g. Speak in a fun, energetic tone suitable for a youth brand."
+              disabled={saving}
+            />
+          </div>
         </div>
 
+        {/* ── Behaviour Rules ──────────────────────────────── */}
+        <h6 className="fw-semibold text-secondary small text-uppercase mb-2">Behaviour Rules</h6>
+        <div className="mb-3">
+          <div className="form-check mb-1">
+            <input className="form-check-input" type="checkbox" id="chk-general"
+              checked={allowGeneral} onChange={e => setAllowGeneral(e.target.checked)} disabled={saving} />
+            <label className="form-check-label small" htmlFor="chk-general">
+              Allow general knowledge — AI can answer using world knowledge, not only the Knowledge Base
+            </label>
+          </div>
+          <div className="form-check mb-1">
+            <input className="form-check-input" type="checkbox" id="chk-vague"
+              checked={handleVague} onChange={e => setHandleVague(e.target.checked)} disabled={saving} />
+            <label className="form-check-label small" htmlFor="chk-vague">
+              Handle vague queries — treat single-word or short messages as broad questions
+            </label>
+          </div>
+          <div className="form-check mb-2">
+            <input className="form-check-input" type="checkbox" id="chk-closing"
+              checked={noClosing} onChange={e => setNoClosing(e.target.checked)} disabled={saving} />
+            <label className="form-check-label small" htmlFor="chk-closing">
+              No closing question — do not end responses with "Is there anything else…"
+            </label>
+          </div>
+          <label className="form-label small fw-semibold">Custom Rules</label>
+          <textarea
+            className="form-control form-control-sm"
+            rows={3}
+            value={customRules}
+            onChange={e => setCustomRules(e.target.value)}
+            placeholder={"One rule per line. Each line is added as a bullet point to the Behaviour Rules section.\ne.g. Always recommend booking an appointment for complex questions."}
+            disabled={saving}
+          />
+        </div>
+
+        {/* ── Knowledge Base ───────────────────────────────── */}
+        <h6 className="fw-semibold text-secondary small text-uppercase mb-2">Knowledge Base</h6>
+        <div className="row g-3 mb-4">
+          <div className="col-md-6">
+            <label className="form-label small fw-semibold">
+              Knowledge Instruction
+              <span className="text-muted fw-normal ms-2">(how to present KB content)</span>
+            </label>
+            <textarea
+              className="form-control form-control-sm"
+              rows={2}
+              value={knowledgeInstruction}
+              onChange={e => setKnowledgeInstruction(e.target.value)}
+              placeholder="Present this information in a clear, helpful, and organized way. Use it to answer questions accurately."
+              disabled={saving}
+            />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label small fw-semibold">
+              Knowledge Fallback
+              <span className="text-muted fw-normal ms-2">(when KB is empty)</span>
+            </label>
+            <textarea
+              className="form-control form-control-sm"
+              rows={2}
+              value={knowledgeFallback}
+              onChange={e => setKnowledgeFallback(e.target.value)}
+              placeholder="No business-specific information has been provided…"
+              disabled={saving}
+            />
+          </div>
+          <div className="col-md-12">
+            <label className="form-label small fw-semibold">
+              Restricted Info Response
+              <span className="text-muted fw-normal ms-2">(when user asks for info not in KB)</span>
+            </label>
+            <input
+              type="text"
+              className="form-control form-control-sm"
+              value={restrictedResponse}
+              onChange={e => setRestrictedResponse(e.target.value)}
+              placeholder="I'm sorry, I don't have that information available right now…"
+              disabled={saving}
+            />
+          </div>
+        </div>
+
+        {/* ── Full Override ────────────────────────────────── */}
+        <h6 className="fw-semibold text-secondary small text-uppercase mb-2">Full Prompt Override</h6>
         <div className="mb-3">
           <label className="form-label small fw-semibold">
             Custom System Prompt
-            <span className="text-muted fw-normal ms-2">(optional override)</span>
+            <span className="text-muted fw-normal ms-2">(replaces everything above)</span>
           </label>
           <textarea
             className="form-control form-control-sm font-monospace"
-            rows={6}
+            rows={5}
             value={systemPrompt}
             onChange={e => setSystemPrompt(e.target.value)}
             placeholder={"If set, this replaces the auto-composed prompt entirely.\nLeave blank to use role + tone + guardrails."}
             disabled={saving}
           />
-          <div className="form-text mt-1">{promptPreview}</div>
+          <div className="form-text mt-1">
+            {systemPrompt.trim()
+              ? <span className="badge bg-warning text-dark">Custom prompt active — all sections above are ignored</span>
+              : <span className="text-muted small">Composed from sections above</span>}
+          </div>
         </div>
 
         <div className="d-flex align-items-center gap-2">

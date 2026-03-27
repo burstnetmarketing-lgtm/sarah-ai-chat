@@ -102,7 +102,9 @@ class AgentController
 
     /**
      * PUT /agents/{id}/behavior
-     * Body: { role, tone, system_prompt }
+     * Body: role, tone, tone_custom, system_prompt,
+     *       allow_general_knowledge, no_closing_question, handle_vague_queries,
+     *       custom_rules, knowledge_instruction, knowledge_fallback, restricted_response
      */
     public function updateBehavior(\WP_REST_Request $request): \WP_REST_Response
     {
@@ -113,11 +115,21 @@ class AgentController
             return new \WP_REST_Response(['success' => false, 'message' => 'Agent not found.'], 404);
         }
 
-        $role         = trim((string) ($request->get_param('role')          ?? ''));
-        $tone         = trim((string) ($request->get_param('tone')          ?? ''));
-        $systemPrompt = trim((string) ($request->get_param('system_prompt') ?? ''));
+        $fields = [
+            'role'                    => trim((string) ($request->get_param('role')          ?? '')),
+            'tone'                    => trim((string) ($request->get_param('tone')          ?? '')),
+            'tone_custom'             => trim((string) ($request->get_param('tone_custom')   ?? '')),
+            'system_prompt'           => trim((string) ($request->get_param('system_prompt') ?? '')),
+            'allow_general_knowledge' => (bool) ($request->get_param('allow_general_knowledge') ?? true),
+            'no_closing_question'     => (bool) ($request->get_param('no_closing_question')     ?? true),
+            'handle_vague_queries'    => (bool) ($request->get_param('handle_vague_queries')    ?? true),
+            'custom_rules'            => trim((string) ($request->get_param('custom_rules')            ?? '')),
+            'knowledge_instruction'   => trim((string) ($request->get_param('knowledge_instruction')   ?? '')),
+            'knowledge_fallback'      => trim((string) ($request->get_param('knowledge_fallback')      ?? '')),
+            'restricted_response'     => trim((string) ($request->get_param('restricted_response')     ?? '')),
+        ];
 
-        $this->agents->updateBehavior($id, $role, $tone, $systemPrompt);
+        $this->agents->updateBehavior($id, $fields);
 
         return new \WP_REST_Response([
             'success' => true,

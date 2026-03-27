@@ -105,10 +105,15 @@ class AgentRepository
     }
 
     /**
-     * Merges behavior fields (role, tone, system_prompt) into the agent's config JSON.
+     * Merges behavior fields into the agent's config JSON.
      * Existing config keys (model, max_tokens, temperature) are preserved.
+     *
+     * Accepted keys:
+     *   role, tone, tone_custom, system_prompt,
+     *   allow_general_knowledge, no_closing_question, handle_vague_queries,
+     *   custom_rules, knowledge_instruction, knowledge_fallback, restricted_response
      */
-    public function updateBehavior(int $id, string $role, string $tone, string $systemPrompt): void
+    public function updateBehavior(int $id, array $fields): void
     {
         global $wpdb;
         $table = $wpdb->prefix . AgentTable::TABLE;
@@ -116,9 +121,16 @@ class AgentRepository
         $existing = $wpdb->get_var($wpdb->prepare("SELECT config FROM {$table} WHERE id = %d", $id));
         $config   = $existing ? (json_decode($existing, true) ?? []) : [];
 
-        $config['role']          = $role;
-        $config['tone']          = $tone;
-        $config['system_prompt'] = $systemPrompt;
+        $allowed = [
+            'role', 'tone', 'tone_custom', 'system_prompt',
+            'allow_general_knowledge', 'no_closing_question', 'handle_vague_queries',
+            'custom_rules', 'knowledge_instruction', 'knowledge_fallback', 'restricted_response',
+        ];
+        foreach ($allowed as $key) {
+            if (array_key_exists($key, $fields)) {
+                $config[$key] = $fields[$key];
+            }
+        }
 
         $wpdb->update(
             $table,
