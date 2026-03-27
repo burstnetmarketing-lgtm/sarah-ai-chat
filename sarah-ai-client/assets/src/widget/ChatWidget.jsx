@@ -18,6 +18,7 @@ export default function ChatWidget() {
         root.style.bottom = '0';
         root.style.width  = '100%';
         root.style.height = '100%';
+        document.body.classList.add('sac-mobile-open');
       } else {
         root.style.top    = '';
         root.style.left   = '';
@@ -25,6 +26,7 @@ export default function ChatWidget() {
         root.style.bottom = '24px';
         root.style.width  = '';
         root.style.height = '';
+        document.body.classList.remove('sac-mobile-open');
       }
       return;
     }
@@ -40,6 +42,10 @@ export default function ChatWidget() {
       root.style[isLeft ? 'left' : 'right'] = '24px';
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    return () => { document.body.classList.remove('sac-mobile-open'); };
+  }, []);
 
   return (
     <>

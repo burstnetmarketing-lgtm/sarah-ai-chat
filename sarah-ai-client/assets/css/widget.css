@@ -578,6 +578,10 @@
     border-radius: 0;
     animation: none;
   }
+
+  body.sac-mobile-open > *:not(#sarah-chat-root) {
+    display: none !important;
+  }
 }
 
 /* ── RTL bubble overrides ────────────────── */
