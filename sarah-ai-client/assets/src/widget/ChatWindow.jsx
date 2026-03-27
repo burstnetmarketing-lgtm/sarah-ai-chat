@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Header from './Header.jsx';
-import MessageArea, { LANGUAGE_OPTIONS } from './MessageArea.jsx';
+import MessageArea from './MessageArea.jsx';
 import InputBox from './InputBox.jsx';
 import { sendChatMessage, fetchChatHistory } from './chatApi.js';
 
@@ -147,7 +147,9 @@ export default function ChatWindow({ onClose }) {
   const [sessionUuid, setSessionUuid] = useState(null);
   const [lastFailed, setLastFailed]   = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [language, setLanguage]       = useState(() => loadStoredSession() ? 'en' : null); // ISO 639-1 code selected by user
+  const [language, setLanguage]       = useState(null);
+  const [awaitingLang, setAwaitingLang] = useState(() => !loadStoredSession());
+  const windowRef = useRef(null);
 
   // ── On mount: restore session + history, or show greeting ────────────────
   useEffect(() => {
@@ -169,7 +171,6 @@ export default function ChatWindow({ onClose }) {
           // Session no longer valid on server — discard and start fresh
           clearStoredSession();
           setSessionUuid(null);
-          setLanguage(null);
           setMessages(greetingMessage());
         } else if (history.length === 0) {
           // Valid session but no messages yet — show greeting
@@ -192,6 +193,30 @@ export default function ChatWindow({ onClose }) {
       .finally(() => setHistoryLoading(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Mobile: keep root fullscreen above keyboard using Visual Viewport API ─
+  useEffect(() => {
+    const vv   = window.visualViewport;
+    const root = document.getElementById('sarah-chat-root');
+    if (!vv || !root) return;
+
+    const onResize = () => {
+      if (window.innerWidth > 768) return;
+      root.style.top    = vv.offsetTop  + 'px';
+      root.style.left   = vv.offsetLeft + 'px';
+      root.style.width  = vv.width      + 'px';
+      root.style.height = vv.height     + 'px';
+    };
+
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    onResize();
+
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, []);
+
   // ── Send message ─────────────────────────────────────────────────────────
   const sendMessage = useCallback((text) => {
     const trimmed = text.trim();
@@ -201,7 +226,19 @@ export default function ChatWindow({ onClose }) {
     setMessages(prev => [...prev, { id: nextId(), type: 'user', text: trimmed, dir: detectDir(trimmed) }]);
     setIsTyping(true);
 
-    sendChatMessage(trimmed, sessionUuid, getLead(), language)
+    // If this is the language selection, pass it as language param (not in message text).
+    // Server injects it into the system prompt as a MANDATORY language rule.
+    let payload  = trimmed;
+    let langParam = language;
+
+    if (awaitingLang) {
+      setLanguage(trimmed);   // store for all future messages in this session
+      setAwaitingLang(false);
+      payload   = 'Hello! Please greet me and introduce yourself.';
+      langParam = trimmed;
+    }
+
+    sendChatMessage(payload, sessionUuid, getLead(), langParam)
       .then(data => {
         if (data.session_uuid && !sessionUuid) {
           setSessionUuid(data.session_uuid);
@@ -225,7 +262,7 @@ export default function ChatWindow({ onClose }) {
         }]);
       })
       .finally(() => setIsTyping(false));
-  }, [isTyping, sessionUuid]);
+  }, [isTyping, sessionUuid, awaitingLang, language]);
 
   // ── Task 4: retry last failed message ────────────────────────────────────
   const handleRetry = useCallback((text) => {
@@ -269,35 +306,21 @@ export default function ChatWindow({ onClose }) {
     setSessionUuid(null);
     setLastFailed(null);
     setLanguage(null);
+    setAwaitingLang(true);
     setMessages(greetingMessage());
   }, []);
 
   return (
-    <div className="sac-window" role="dialog" aria-label="Chat window">
+    <div ref={windowRef} className="sac-window" role="dialog" aria-label="Chat window">
       <Header onClose={onClose} onReset={handleReset} />
       <MessageArea
         messages={messages}
         isTyping={isTyping || historyLoading}
-        language={language}
+        awaitingLang={awaitingLang}
         onQuickQuestion={sendMessage}
-        onLanguageSelect={handleLanguageSelect}
         onRetry={handleRetry}
       />
-      {language === null ? (
-        <div className="sac-lang-bar">
-          {LANGUAGE_OPTIONS.map((opt, i) => (
-            <button
-              key={i}
-              className="sac-lang-chip"
-              onClick={() => handleLanguageSelect(opt)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <InputBox onSend={sendMessage} disabled={isTyping || historyLoading} />
-      )}
+      <InputBox onSend={sendMessage} disabled={isTyping || historyLoading} />
     </div>
   );
 }

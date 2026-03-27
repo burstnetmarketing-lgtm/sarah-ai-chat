@@ -18,14 +18,14 @@ export const LANGUAGE_OPTIONS = (window.SarahAiWidget?.languages || []).map(row 
   language: row.code,
 }));
 
-export default function MessageArea({ messages, isTyping, language, onQuickQuestion, onLanguageSelect, onRetry }) {
+export default function MessageArea({ messages, isTyping, awaitingLang, onQuickQuestion, onRetry }) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  const showLangPicker = language === null;
+  const showLangPicker = awaitingLang;
 
   if (messages.length === 0) {
     return (
@@ -35,6 +35,9 @@ export default function MessageArea({ messages, isTyping, language, onQuickQuest
             <div className="sac-welcome-emoji">👋</div>
             <p className="sac-welcome-title">Hi there!</p>
             <p className="sac-welcome-sub">{welcomeMessage}</p>
+            {showLangPicker && (
+              <p className="sac-lang-hint">What language would you like to chat in?</p>
+            )}
           </div>
 
           {customQuickQuestions.length > 0 && (

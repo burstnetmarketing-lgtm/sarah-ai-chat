@@ -8,9 +8,30 @@ export default function ChatWidget() {
   useEffect(() => {
     const root = document.getElementById('sarah-chat-root');
     if (!root) return;
+
+    if (window.innerWidth <= 768) {
+      // Mobile: stretch root to fullscreen when open, restore when closed
+      if (isOpen) {
+        root.style.top    = '0';
+        root.style.left   = '0';
+        root.style.right  = '0';
+        root.style.bottom = '0';
+        root.style.width  = '100%';
+        root.style.height = '100%';
+      } else {
+        root.style.top    = '';
+        root.style.left   = '';
+        root.style.right  = '24px';
+        root.style.bottom = '24px';
+        root.style.width  = '';
+        root.style.height = '';
+      }
+      return;
+    }
+
+    // Desktop: shift root so window sits just above the launcher
     const position = window.SarahAiWidget?.settings?.position || 'right';
     const isLeft   = position === 'left';
-
     if (isOpen) {
       root.style.bottom = '0';
       root.style[isLeft ? 'left' : 'right'] = '16px';

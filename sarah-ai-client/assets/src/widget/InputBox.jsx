@@ -1,15 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 
 export default function InputBox({ onSend, disabled }) {
   const [value, setValue] = useState('');
   const inputRef = useRef(null);
-
-  // Auto-focus the input whenever the AI finishes responding (disabled → false)
-  useEffect(() => {
-    if (!disabled) {
-      inputRef.current?.focus();
-    }
-  }, [disabled]);
 
   function handleSend() {
     if (!value.trim() || disabled) return;
@@ -34,13 +27,16 @@ export default function InputBox({ onSend, disabled }) {
         value={value}
         onChange={e => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        disabled={disabled}
         aria-label="Message input"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="sentences"
+        spellCheck="false"
       />
       <button
         className="sac-send"
         onClick={handleSend}
-        disabled={disabled || !value.trim()}
+        disabled={!value.trim()}
         aria-label="Send message"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

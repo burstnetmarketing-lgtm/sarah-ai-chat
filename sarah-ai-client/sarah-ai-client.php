@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Sarah AI Client
  * Description: AI-powered chat widget for client websites.
- * Version: 0.3.11
+ * Version: 0.3.24
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Author: Sarah AI
@@ -13,7 +13,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('SARAH_AI_CLIENT_VERSION', '0.3.0');
+define('SARAH_AI_CLIENT_VERSION', '0.3.19');
 define('SARAH_AI_CLIENT_FILE', __FILE__);
 define('SARAH_AI_CLIENT_PATH', plugin_dir_path(__FILE__));
 define('SARAH_AI_CLIENT_URL', plugin_dir_url(__FILE__));
@@ -24,9 +24,11 @@ require_once SARAH_AI_CLIENT_PATH . 'update.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/DB/MenuTable.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/DB/SettingsTable.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/DB/QuickQuestionsTable.php';
+require_once SARAH_AI_CLIENT_PATH . 'includes/DB/LanguagesTable.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Infrastructure/MenuRepository.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Infrastructure/SettingsRepository.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Infrastructure/QuickQuestionsRepository.php';
+require_once SARAH_AI_CLIENT_PATH . 'includes/Infrastructure/LanguagesRepository.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Admin/DashboardPage.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Admin/AdminMenu.php';
 require_once SARAH_AI_CLIENT_PATH . 'includes/Api/MenuItemsController.php';

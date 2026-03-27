@@ -61,5 +61,5 @@ if (container) {
     container.style.right = 'auto';
   }
 
-  createRoot(container).render(<ChatWidget />);
+createRoot(container).render(<ChatWidget />);
 }

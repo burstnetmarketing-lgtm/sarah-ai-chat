@@ -63,17 +63,22 @@ class Plugin
 
     public static function enqueueWidget(): void
     {
+        $cssFile = SARAH_AI_CLIENT_PATH . 'assets/dist/widget.css';
+        $jsFile  = SARAH_AI_CLIENT_PATH . 'assets/dist/widget.js';
+        $cssVer  = file_exists($cssFile) ? filemtime($cssFile) : SARAH_AI_CLIENT_VERSION;
+        $jsVer   = file_exists($jsFile)  ? filemtime($jsFile)  : SARAH_AI_CLIENT_VERSION;
+
         wp_enqueue_style(
             'sarah-ai-client-widget',
             SARAH_AI_CLIENT_URL . 'assets/dist/widget.css',
             [],
-            SARAH_AI_CLIENT_VERSION
+            $cssVer
         );
         wp_enqueue_script(
             'sarah-ai-client-widget',
             SARAH_AI_CLIENT_URL . 'assets/dist/widget.js',
             [],
-            SARAH_AI_CLIENT_VERSION,
+            $jsVer,
             true
         );
         add_filter('script_loader_tag', [self::class, 'addModuleType'], 10, 2);
