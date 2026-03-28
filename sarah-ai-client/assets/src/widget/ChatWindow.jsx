@@ -75,10 +75,6 @@ function parseAiResponse(rawText) {
   let dir = null;
   const metaMatch = working.match(SARAH_META_RE);
   if (metaMatch) {
-    try {
-      const meta = JSON.parse(metaMatch[1]);
-      dir = meta.dir === 'rtl' ? 'rtl' : 'ltr';
-    } catch { /* malformed — fall through to detectDir */ }
     working = working.replace(SARAH_META_RE, '').trim();
   }
 
