@@ -181,7 +181,6 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         string $language = ''
     ): string {
         $config      = is_array($agent['config']) ? $agent['config'] : [];
-        $customPrompt      = trim((string) ($config['system_prompt'] ?? ''));
         $role              = trim((string) ($config['role']          ?? ''));
         $tone              = trim((string) ($config['tone']          ?? ''));
         $toneCustom        = trim((string) ($config['tone_custom']   ?? ''));
@@ -261,11 +260,6 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
             $languageSection = "\n\n## Language — MANDATORY\nYou MUST respond exclusively in {$langName}. Never switch to any other language, even if the user writes in a different language.";
         }
 
-        // ── Custom override ────────────────────────────────────────────────
-        if ($customPrompt) {
-            return $customPrompt . $identitySection . $languageSection . $knowledgeSection . $this->buildStructuredOutputInstruction($restrictedResponse);
-        }
-
         // ── Composed prompt ────────────────────────────────────────────────
         $roleLabel = $role ?: 'helpful assistant';
         $lines     = ["You are a {$roleLabel}."];
@@ -287,14 +281,6 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
                 $lines[] = $toneMap[$tone] ?? "Tone: {$tone}.";
             }
         }
-
-        $lines[] = '';
-        $lines[] = '## Output Format — MANDATORY — NEVER VIOLATE';
-        $lines[] = 'CRITICAL: Every single response you send MUST be formatted in HTML. No exceptions.';
-        $lines[] = '- Use <p> for paragraphs, <ul>/<li> for bullet lists, <ol>/<li> for numbered lists, <strong> for bold, <em> for italic, <h3>/<h4> for headings.';
-        $lines[] = '- NEVER use Markdown syntax. Not even partially. This means: no **bold**, no *italic*, no ## headings, no - bullet lines, no `code`, no [links](url).';
-        $lines[] = '- Do NOT wrap output in <html>, <body>, or <head> — return only the inner content HTML.';
-        $lines[] = '- Do NOT add inline style attributes. Use only the HTML tags listed above.';
 
         $lines[] = '';
         $lines[] = '## Behaviour Rules';
@@ -345,7 +331,7 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
      */
     private function mergeAgentConfig(array $agentConfig, array $siteOverrides): array
     {
-        $stringFields = ['tone', 'tone_custom', 'system_prompt', 'custom_rules', 'knowledge_instruction', 'knowledge_fallback', 'restricted_response'];
+        $stringFields = ['tone', 'tone_custom', 'custom_rules', 'knowledge_instruction', 'knowledge_fallback', 'restricted_response'];
         $boolFields   = ['allow_general_knowledge', 'no_closing_question', 'handle_vague_queries'];
 
         $merged = $agentConfig;
@@ -371,6 +357,14 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         return <<<PROMPT
 
 
+## Output Format — MANDATORY — NEVER VIOLATE
+
+CRITICAL: Every single response you send MUST be formatted in HTML. No exceptions.
+- Use <p> for paragraphs, <ul>/<li> for bullet lists, <ol>/<li> for numbered lists, <strong> for bold, <em> for italic, <h3>/<h4> for headings.
+- NEVER use Markdown syntax. Not even partially. This means: no **bold**, no *italic*, no ## headings, no - bullet lines, no `code`, no [links](url).
+- Do NOT wrap output in <html>, <body>, or <head> — return only the inner content HTML.
+- Do NOT add inline style attributes. Use only the HTML tags listed above.
+
 ## Restricted Information Policy
 
 If a user asks for information that is not present in your Knowledge Base, respond with:
@@ -381,12 +375,13 @@ Do not guess, fabricate, or infer restricted details. This response is mandatory
 
 When your response mentions specific contact information (phone numbers, email addresses, website URLs, or physical addresses), append a structured data block using this exact format:
 
-<sarah_card>{"type":"contact","fields":[{"key":"contact.phone_admin","label":"Phone","value":"0449948867"}]}</sarah_card>
+<sarah_card>{"type":"contact","fields":[{"key":"contact.phone_admin","label":"Phone","value":"0400000000"}]}</sarah_card>
 
 Rules:
 - Only include fields that are actually mentioned in your response text
 - Do not include this block if your response contains no contact information
 - Canonical key names: contact.phone_admin, contact.phone_marketing, contact.phone_sales, contact.website, contact.email_support, contact.email_sales, business.address, business.hours, business.name
+- Phone numbers MUST be written as a single continuous string of digits with NO spaces, hyphens, or separators (e.g. "0412345678" not "0412 345 678")
 
 ## Language Metadata — MANDATORY in EVERY response
 

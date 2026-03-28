@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { listAgents, updateAgentBehavior } from '../api/provisioning.js';
+import FieldBox from '../components/FieldBox.jsx';
 
 const TONES = [
   { value: '',             label: '— Default —' },
@@ -18,7 +19,6 @@ function AgentPanel({ agent, onSaved }) {
   const [role,                  setRole]                 = useState(config.role                    ?? '');
   const [tone,                  setTone]                 = useState(config.tone                    ?? '');
   const [toneCustom,            setToneCustom]           = useState(config.tone_custom             ?? '');
-  const [systemPrompt,          setSystemPrompt]         = useState(config.system_prompt           ?? '');
   const [allowGeneral,          setAllowGeneral]         = useState(config.allow_general_knowledge ?? true);
   const [noClosing,             setNoClosing]            = useState(config.no_closing_question     ?? true);
   const [handleVague,           setHandleVague]          = useState(config.handle_vague_queries    ?? true);
@@ -26,6 +26,8 @@ function AgentPanel({ agent, onSaved }) {
   const [knowledgeInstruction,  setKnowledgeInstruction] = useState(config.knowledge_instruction  ?? '');
   const [knowledgeFallback,     setKnowledgeFallback]    = useState(config.knowledge_fallback      ?? '');
   const [restrictedResponse,    setRestrictedResponse]   = useState(config.restricted_response     ?? '');
+  const [maxTokens,             setMaxTokens]            = useState(config.max_tokens  ?? '');
+  const [temperature,           setTemperature]          = useState(config.temperature ?? '');
 
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
@@ -40,7 +42,6 @@ function AgentPanel({ agent, onSaved }) {
       role,
       tone,
       tone_custom:             toneCustom,
-      system_prompt:           systemPrompt,
       allow_general_knowledge: allowGeneral,
       no_closing_question:     noClosing,
       handle_vague_queries:    handleVague,
@@ -48,6 +49,8 @@ function AgentPanel({ agent, onSaved }) {
       knowledge_instruction:   knowledgeInstruction,
       knowledge_fallback:      knowledgeFallback,
       restricted_response:     restrictedResponse,
+      max_tokens:              maxTokens === '' ? null : Number(maxTokens),
+      temperature:             temperature === '' ? null : Number(temperature),
     })
       .then(res => {
         if (!res.success) throw new Error('Save failed.');
@@ -66,53 +69,66 @@ function AgentPanel({ agent, onSaved }) {
 
       <form onSubmit={handleSave}>
 
+        {/* ── Model ───────────────────────────────────────── */}
+        <FieldBox label={`Model: ${config.model ?? '—'}`}>
+          <div className="row g-3">
+            <div className="col-md-auto">
+              <label className="form-label small fw-semibold">Max Tokens</label>
+              <input
+                type="number" min="256" max="16000" step="256"
+                className="form-control form-control-sm"
+                style={{ width: '120px' }}
+                value={maxTokens}
+                onChange={e => setMaxTokens(e.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="col-md-auto">
+              <label className="form-label small fw-semibold">Temperature</label>
+              <input
+                type="number" min="0" max="2" step="0.1"
+                className="form-control form-control-sm"
+                style={{ width: '100px' }}
+                value={temperature}
+                onChange={e => setTemperature(e.target.value)}
+                disabled={saving}
+              />
+            </div>
+          </div>
+        </FieldBox>
+
         {/* ── Identity & Role ─────────────────────────────── */}
-        <h6 className="fw-semibold text-secondary small text-uppercase mb-2">Identity &amp; Role</h6>
-        <div className="row g-3 mb-4">
-          <div className="col-md-5">
-            <label className="form-label small fw-semibold">Role</label>
-            <input
-              type="text"
-              className="form-control form-control-sm"
-              value={role}
-              onChange={e => setRole(e.target.value)}
-              placeholder="e.g. customer support assistant, sales agent"
-              disabled={saving}
-            />
-            <div className="form-text">Defines what the agent does.</div>
+        <FieldBox label="Identity & Role">
+          <div className="row g-3">
+            <div className="col-md-4">
+              <label className="form-label small fw-semibold">Tone Preset</label>
+              <select className="form-select form-select-sm" value={tone} onChange={e => setTone(e.target.value)} disabled={saving}>
+                {TONES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label small fw-semibold">Role</label>
+              <input
+                type="text" className="form-control form-control-sm"
+                value={role} onChange={e => setRole(e.target.value)}
+                placeholder="e.g. customer support assistant"
+                disabled={saving}
+              />
+            </div>
+            <div className="col-md-4">
+              <label className="form-label small fw-semibold">Custom Tone Text</label>
+              <input
+                type="text" className="form-control form-control-sm"
+                value={toneCustom} onChange={e => setToneCustom(e.target.value)}
+                placeholder="e.g. Speak in a fun, energetic tone…"
+                disabled={saving}
+              />
+            </div>
           </div>
-          <div className="col-md-3">
-            <label className="form-label small fw-semibold">Tone Preset</label>
-            <select
-              className="form-select form-select-sm"
-              value={tone}
-              onChange={e => setTone(e.target.value)}
-              disabled={saving}
-            >
-              {TONES.map(t => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-md-12">
-            <label className="form-label small fw-semibold">
-              Custom Tone Text
-              <span className="text-muted fw-normal ms-2">(overrides preset)</span>
-            </label>
-            <input
-              type="text"
-              className="form-control form-control-sm"
-              value={toneCustom}
-              onChange={e => setToneCustom(e.target.value)}
-              placeholder="e.g. Speak in a fun, energetic tone suitable for a youth brand."
-              disabled={saving}
-            />
-          </div>
-        </div>
+        </FieldBox>
 
         {/* ── Behaviour Rules ──────────────────────────────── */}
-        <h6 className="fw-semibold text-secondary small text-uppercase mb-2">Behaviour Rules</h6>
-        <div className="mb-3">
+        <FieldBox label="Behaviour Rules">
           <div className="form-check mb-1">
             <input className="form-check-input" type="checkbox" id="chk-general"
               checked={allowGeneral} onChange={e => setAllowGeneral(e.target.checked)} disabled={saving} />
@@ -127,14 +143,17 @@ function AgentPanel({ agent, onSaved }) {
               Handle vague queries — treat single-word or short messages as broad questions
             </label>
           </div>
-          <div className="form-check mb-2">
+          <div className="form-check">
             <input className="form-check-input" type="checkbox" id="chk-closing"
               checked={noClosing} onChange={e => setNoClosing(e.target.checked)} disabled={saving} />
             <label className="form-check-label small" htmlFor="chk-closing">
               No closing question — do not end responses with "Is there anything else…"
             </label>
           </div>
-          <label className="form-label small fw-semibold">Custom Rules</label>
+        </FieldBox>
+
+        {/* ── Custom Rules ─────────────────────────────────── */}
+        <FieldBox label="Custom Rules">
           <textarea
             className="form-control form-control-sm"
             rows={3}
@@ -143,91 +162,45 @@ function AgentPanel({ agent, onSaved }) {
             placeholder={"One rule per line. Each line is added as a bullet point to the Behaviour Rules section.\ne.g. Always recommend booking an appointment for complex questions."}
             disabled={saving}
           />
-        </div>
+        </FieldBox>
 
         {/* ── Knowledge Base ───────────────────────────────── */}
-        <h6 className="fw-semibold text-secondary small text-uppercase mb-2">Knowledge Base</h6>
-        <div className="row g-3 mb-4">
-          <div className="col-md-6">
-            <label className="form-label small fw-semibold">
-              Knowledge Instruction
-              <span className="text-muted fw-normal ms-2">(how to present KB content)</span>
-            </label>
+        <FieldBox label="Knowledge Base">
+          <div className="mb-3">
+            <label className="form-label small fw-semibold">Knowledge Instruction</label>
             <textarea
-              className="form-control form-control-sm"
-              rows={2}
-              value={knowledgeInstruction}
-              onChange={e => setKnowledgeInstruction(e.target.value)}
-              placeholder="Present this information in a clear, helpful, and organized way. Use it to answer questions accurately."
+              className="form-control form-control-sm" rows={2}
+              value={knowledgeInstruction} onChange={e => setKnowledgeInstruction(e.target.value)}
               disabled={saving}
             />
           </div>
-          <div className="col-md-6">
-            <label className="form-label small fw-semibold">
-              Knowledge Fallback
-              <span className="text-muted fw-normal ms-2">(when KB is empty)</span>
-            </label>
+          <div className="mb-3">
+            <label className="form-label small fw-semibold">Knowledge Fallback</label>
             <textarea
-              className="form-control form-control-sm"
-              rows={2}
-              value={knowledgeFallback}
-              onChange={e => setKnowledgeFallback(e.target.value)}
-              placeholder="No business-specific information has been provided…"
+              className="form-control form-control-sm" rows={2}
+              value={knowledgeFallback} onChange={e => setKnowledgeFallback(e.target.value)}
               disabled={saving}
             />
           </div>
-          <div className="col-md-12">
-            <label className="form-label small fw-semibold">
-              Restricted Info Response
-              <span className="text-muted fw-normal ms-2">(when user asks for info not in KB)</span>
-            </label>
+          <div>
+            <label className="form-label small fw-semibold">Restricted Info Response</label>
             <input
-              type="text"
-              className="form-control form-control-sm"
-              value={restrictedResponse}
-              onChange={e => setRestrictedResponse(e.target.value)}
-              placeholder="I'm sorry, I don't have that information available right now…"
+              type="text" className="form-control form-control-sm"
+              value={restrictedResponse} onChange={e => setRestrictedResponse(e.target.value)}
               disabled={saving}
             />
           </div>
-        </div>
+        </FieldBox>
 
-        {/* ── Full Override ────────────────────────────────── */}
-        <h6 className="fw-semibold text-secondary small text-uppercase mb-2">Full Prompt Override</h6>
-        <div className="mb-3">
-          <label className="form-label small fw-semibold">
-            Custom System Prompt
-            <span className="text-muted fw-normal ms-2">(replaces everything above)</span>
-          </label>
-          <textarea
-            className="form-control form-control-sm font-monospace"
-            rows={5}
-            value={systemPrompt}
-            onChange={e => setSystemPrompt(e.target.value)}
-            placeholder={"If set, this replaces the auto-composed prompt entirely.\nLeave blank to use role + tone + guardrails."}
-            disabled={saving}
-          />
-          <div className="form-text mt-1">
-            {systemPrompt.trim()
-              ? <span className="badge bg-warning text-dark">Custom prompt active — all sections above are ignored</span>
-              : <span className="text-muted small">Composed from sections above</span>}
-          </div>
-        </div>
-
-        <div className="d-flex align-items-center gap-2">
-          <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
+        <div className="d-flex justify-content-end align-items-center gap-3 mt-1">
+          <button type="submit" className="btn btn-primary orange-bg px-4" disabled={saving}>
             {saving ? 'Saving…' : 'Save'}
           </button>
           {saved && <span className="text-success small">Saved.</span>}
           {error && <span className="text-danger small">{error}</span>}
         </div>
-      </form>
 
-      <div className="mt-3 pt-3 border-top d-flex gap-3">
-        {config.model       && <span className="text-muted small">Model: <strong>{config.model}</strong></span>}
-        {config.max_tokens  && <span className="text-muted small">Max tokens: <strong>{config.max_tokens}</strong></span>}
-        {config.temperature !== undefined && <span className="text-muted small">Temperature: <strong>{config.temperature}</strong></span>}
-      </div>
+      </form>
     </div>
   );
 }
@@ -268,7 +241,7 @@ export default function Agents() {
 
       {!loading && !error && agents.length > 0 && (
         <div className="card border-0 shadow-sm">
-          <div className="card-header bg-white border-bottom p-0">
+          <div className="card-header p-0">
             <ul className="nav nav-tabs border-0 px-2 pt-2">
               {agents.map((agent, i) => (
                 <li key={agent.id} className="nav-item">

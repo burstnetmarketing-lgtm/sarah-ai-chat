@@ -51,8 +51,8 @@ export default function CreateTenant({ onNavigate }) {
     <div className="row justify-content-center">
       <div className="col-lg-7">
 
-        <div className="d-flex align-items-center gap-2 mb-3">
-          <button className="btn btn-link p-0 text-muted small" onClick={() => onNavigate('tenants')}>
+        <div className="d-flex justify-content-end mb-3">
+          <button className="btn btn-sm btn-outline-secondary" onClick={() => onNavigate('tenants')}>
             ← Tenants
           </button>
         </div>
@@ -98,8 +98,8 @@ export default function CreateTenant({ onNavigate }) {
                   <button className="btn btn-outline-secondary btn-sm" onClick={() => setCreated(null)}>
                     Create Another
                   </button>
-                  <button className="btn btn-outline-secondary btn-sm" onClick={() => onNavigate('tenants')}>
-                    Back to List
+                  <button className="btn btn-sm btn-outline-secondary" onClick={() => onNavigate('tenants')}>
+                    ← Tenants
                   </button>
                 </div>
               </div>

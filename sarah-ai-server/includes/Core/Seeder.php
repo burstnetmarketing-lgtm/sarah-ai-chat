@@ -34,15 +34,16 @@ class Seeder
         $repo->upsertBySlug('Sarah Pro (Legacy)',   'sarah-pro',   'dummy', 'Legacy placeholder — replaced by OpenAI agents.', [], 'inactive');
 
         $behaviorDefaults = [
-            'system_prompt'           => '',
+            'role'                    => 'customer support assistant',
+            'tone'                    => 'friendly',
             'tone_custom'             => '',
             'allow_general_knowledge' => true,
             'no_closing_question'     => true,
             'handle_vague_queries'    => true,
             'custom_rules'            => '',
-            'knowledge_instruction'   => '',
-            'knowledge_fallback'      => '',
-            'restricted_response'     => '',
+            'knowledge_instruction'   => 'Present this information in a clear, helpful, and organized way. Use it to answer questions accurately.',
+            'knowledge_fallback'      => 'No business-specific information has been provided. Do NOT use your training data or any external knowledge to answer questions about this business (products, prices, contact details, addresses, staff, or any specific facts). If asked about any such details, say you do not have that information and suggest the user contact the business directly.',
+            'restricted_response'     => 'I\'m sorry, that information is not available through this channel. Please contact us directly for assistance.',
         ];
 
         // OpenAI agents — ordered cheapest to most powerful

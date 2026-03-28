@@ -320,15 +320,10 @@ class TenantController
     /** Fetches the <title> tag from a URL; returns empty string on any failure. */
     private function fetchSiteTitle(string $url): string
     {
-        $response = wp_remote_get($url, ['timeout' => 8, 'sslverify' => false]);
-        if (is_wp_error($response)) {
-            return '';
-        }
-        $body = (string) wp_remote_retrieve_body($response);
-        if (preg_match('/<title[^>]*>(.*?)<\/title>/si', $body, $m)) {
-            return html_entity_decode(trim(strip_tags($m[1])), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        }
-        return '';
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $host = preg_replace('/^www\./', '', $host);
+        $name = explode('.', $host)[0] ?? '';
+        return $name ? ucfirst($name) : '';
     }
 
     private function slugifyFromUrl(string $url): string

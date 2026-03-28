@@ -207,11 +207,11 @@ export default function Settings() {
           </div>
         </div>
 
-        <div className="d-flex align-items-center gap-2">
-          <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
+        <div className="d-flex justify-content-end align-items-center gap-3">
+          {saved && <span className="text-success small">Saved.</span>}
+          <button type="submit" className="btn btn-primary orange-bg px-4" disabled={saving}>
             {saving ? 'Saving…' : 'Save Settings'}
           </button>
-          {saved && <span className="text-success small">Saved.</span>}
         </div>
       </form>
     </>

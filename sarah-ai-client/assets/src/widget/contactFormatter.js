@@ -26,35 +26,14 @@ const ICONS = {
 };
 
 /**
- * Format a raw phone string into a display-friendly form.
- * Supports:
- *   AU mobile 10-digit:  0449948867  →  0449 948 867
- *   AU landline 10-digit: 0298765432 →  02 9876 5432
- *   AU international:    61412345678 →  +61 412 345 678
- * Returns the raw value unchanged if the pattern is not recognised.
+ * Normalise a raw phone string to a continuous digit string (no spaces).
+ * Spaces are intentionally avoided to prevent digit reversal in RTL layouts.
  *
  * @param {string} raw
  * @returns {string}
  */
 export function formatPhone(raw) {
-  const digits = String(raw).replace(/\D/g, '');
-
-  if (digits.length === 10 && digits.startsWith('0')) {
-    if (digits.startsWith('04') || digits.startsWith('05')) {
-      // AU mobile: 04XX XXX XXX
-      return digits.replace(/^(\d{4})(\d{3})(\d{3})$/, '$1 $2 $3');
-    }
-    // AU landline: 0X XXXX XXXX
-    return digits.replace(/^(\d{2})(\d{4})(\d{4})$/, '$1 $2 $3');
-  }
-
-  if (digits.length === 11 && digits.startsWith('61')) {
-    // International AU: +61 XXX XXX XXX
-    const local = digits.slice(2);
-    return '+61 ' + local.replace(/^(\d{3})(\d{3})(\d{3})$/, '$1 $2 $3');
-  }
-
-  return raw;
+  return String(raw).replace(/\D/g, '');
 }
 
 /**
