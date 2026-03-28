@@ -78,6 +78,16 @@ class ChatSessionRepository
         );
     }
 
+    /** Returns total session count for a site. */
+    public function countBySite(int $siteId): int
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . ChatSessionTable::TABLE;
+        return (int) $wpdb->get_var(
+            $wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE site_id = %d", $siteId)
+        );
+    }
+
     /** Returns all sessions for a site ordered newest first. */
     public function findBySite(int $siteId, int $limit = 50, int $offset = 0): array
     {

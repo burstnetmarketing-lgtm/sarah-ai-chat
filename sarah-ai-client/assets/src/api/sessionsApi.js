@@ -15,6 +15,14 @@ export async function getSessions(limit = 20) {
 }
 
 /**
+ * Fetch total session and message counts for this site.
+ * @returns {Promise<{success: boolean, data: {total_sessions: number, total_messages: number}}>}
+ */
+export async function getSiteStats() {
+  return apiFetch('stats');
+}
+
+/**
  * Fetch a single session's detail and full message history.
  * @param {string} uuid Session UUID
  * @returns {Promise<{success: boolean, session: object, messages: Array}>}

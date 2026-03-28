@@ -92,6 +92,25 @@ class SarahChatAdapter
         }
     }
 
+    // ─── Stats ────────────────────────────────────────────────────────────
+
+    /**
+     * Returns total session and message counts for this site.
+     *
+     * @return array { success: bool, data: array{total_sessions: int, total_messages: int}, error: string|null }
+     */
+    public static function getSiteStats(): array
+    {
+        if (! self::isAvailable()) {
+            return ['success' => false, 'data' => [], 'error' => 'Sarah Chat is not installed'];
+        }
+        try {
+            return sarah_chat_get_site_stats();
+        } catch (\Throwable $e) {
+            return ['success' => false, 'data' => [], 'error' => $e->getMessage()];
+        }
+    }
+
     // ─── Sessions ─────────────────────────────────────────────────────────
 
     /**

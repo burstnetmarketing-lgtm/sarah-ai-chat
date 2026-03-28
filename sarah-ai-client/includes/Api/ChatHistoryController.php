@@ -24,6 +24,12 @@ class ChatHistoryController
 {
     public function registerRoutes(): void
     {
+        register_rest_route('sarah-ai-client/v1', '/stats', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'stats'],
+            'permission_callback' => [$this, 'can'],
+        ]);
+
         register_rest_route('sarah-ai-client/v1', '/sessions', [
             'methods'             => 'GET',
             'callback'            => [$this, 'index'],
@@ -40,6 +46,26 @@ class ChatHistoryController
     public function can(): bool
     {
         return current_user_can('manage_options');
+    }
+
+    /**
+     * GET /stats
+     */
+    public function stats(WP_REST_Request $request): WP_REST_Response
+    {
+        $result = sarah_chat_get_site_stats();
+
+        if (! $result['success']) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => $result['error'] ?? 'Failed to fetch stats.',
+            ], 500);
+        }
+
+        return new WP_REST_Response([
+            'success' => true,
+            'data'    => $result['data'],
+        ], 200);
     }
 
     /**

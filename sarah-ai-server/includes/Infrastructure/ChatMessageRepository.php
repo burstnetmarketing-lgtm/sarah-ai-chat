@@ -23,6 +23,22 @@ class ChatMessageRepository
         return (int) $wpdb->insert_id;
     }
 
+    /** Returns total message count for a site. */
+    public function countBySite(int $siteId): int
+    {
+        global $wpdb;
+        $sessions = $wpdb->prefix . 'sarah_ai_server_chat_sessions';
+        $messages = $wpdb->prefix . ChatMessageTable::TABLE;
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$messages} m
+                 INNER JOIN {$sessions} s ON s.id = m.session_id
+                 WHERE s.site_id = %d",
+                $siteId
+            )
+        );
+    }
+
     /** Returns all messages for a session ordered oldest first. */
     public function findBySession(int $sessionId): array
     {

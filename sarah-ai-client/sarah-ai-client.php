@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Sarah AI Client
  * Description: AI-powered chat widget for client websites.
- * Version: 0.7.4
+ * Version: 0.7.5
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Author: BurstNET
@@ -14,7 +14,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('SARAH_AI_CLIENT_VERSION', '0.7.4');
+define('SARAH_AI_CLIENT_VERSION', '0.7.5');
 define('SARAH_AI_CLIENT_FILE', __FILE__);
 define('SARAH_AI_CLIENT_PATH', plugin_dir_path(__FILE__));
 define('SARAH_AI_CLIENT_URL', plugin_dir_url(__FILE__));

@@ -101,6 +101,28 @@ function sarah_chat_get_sessions(array $args = []): array
     return (new SarahAiClient\Core\PublicApiService())->getSessions($args);
 }
 
+// ─── Stats ────────────────────────────────────────────────────────────────────
+
+/**
+ * Returns total session and message counts for this site.
+ *
+ * @return array {
+ *   @type bool        $success
+ *   @type array       $data    { total_sessions: int, total_messages: int }
+ *   @type string|null $error
+ * }
+ */
+function sarah_chat_get_site_stats(): array
+{
+    if (! sarah_chat_exists()) {
+        return ['success' => false, 'data' => [], 'error' => 'Sarah Chat plugin is not installed'];
+    }
+    if (! sarah_chat_is_ready()) {
+        return ['success' => false, 'data' => [], 'error' => 'Sarah Chat is not configured'];
+    }
+    return (new SarahAiClient\Core\PublicApiService())->getSiteStats();
+}
+
 // ─── Session History ──────────────────────────────────────────────────────────
 
 /**

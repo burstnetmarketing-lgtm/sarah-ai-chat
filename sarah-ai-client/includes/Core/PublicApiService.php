@@ -166,6 +166,46 @@ class PublicApiService
         return ['success' => true, 'data' => $data['data'] ?? [], 'error' => null];
     }
 
+    // ─── Stats ────────────────────────────────────────────────────────────
+
+    /**
+     * Returns total session and message counts for this site.
+     *
+     * @return array { success: bool, data: array{total_sessions: int, total_messages: int}, error: string|null }
+     */
+    public function getSiteStats(): array
+    {
+        $conn = $this->connection();
+        if ($conn === null) {
+            return ['success' => false, 'data' => [], 'error' => 'Plugin not configured'];
+        }
+
+        [$serverUrl, $accountKey, $siteKey, $platformKey] = $conn;
+
+        $url = $serverUrl . '/client/stats?' . http_build_query([
+            'account_key' => $accountKey,
+            'site_key'    => $siteKey,
+        ]);
+
+        $response = wp_remote_get($url, [
+            'timeout' => 15,
+            'headers' => ['X-Sarah-Platform-Key' => $platformKey],
+        ]);
+
+        if (is_wp_error($response)) {
+            return ['success' => false, 'data' => [], 'error' => $response->get_error_message()];
+        }
+
+        $data = json_decode((string) wp_remote_retrieve_body($response), true);
+
+        if (! is_array($data) || empty($data['success'])) {
+            $msg = is_array($data) ? (string) ($data['message'] ?? 'Request failed') : 'Invalid response';
+            return ['success' => false, 'data' => [], 'error' => $msg];
+        }
+
+        return ['success' => true, 'data' => $data['data'] ?? [], 'error' => null];
+    }
+
     // ─── Session History ──────────────────────────────────────────────────
 
     /**

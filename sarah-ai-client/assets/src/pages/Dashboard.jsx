@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../api/client.js';
-import { getSessions } from '../api/sessionsApi.js';
+import { getSessions, getSiteStats } from '../api/sessionsApi.js';
 import sarahImg from '../images/sarah.webp';
-
-const statsItems = [
-  { label: 'Total Sessions', value: '—' },
-  { label: 'Total Messages', value: '—' },
-];
 
 const QUICK_LINKS = [
   { label: 'Appearance',      desc: 'Customise widget colours, avatar and position.',  view: 'appearance'      },
@@ -21,10 +16,15 @@ export default function Dashboard({ onNavigate }) {
   const [toggling, setToggling]   = useState(false);
   const [sessions, setSessions]   = useState([]);
   const [sessionsLoading, setSessLoading] = useState(true);
+  const [stats, setStats]         = useState({ total_sessions: null, total_messages: null });
 
   useEffect(() => {
     apiFetch('widget-settings')
       .then(res => { if (res.success) setSettings(res.data); })
+      .catch(() => {});
+
+    getSiteStats()
+      .then(res => { if (res.success) setStats(res.data); })
       .catch(() => {});
 
     getSessions(10)
@@ -180,10 +180,15 @@ export default function Dashboard({ onNavigate }) {
             </div>
             <div className="card-body border-bottom">
               <div className="d-flex flex-column gap-2">
-                {statsItems.map(item => (
+                {[
+                  { label: 'Total Sessions', value: stats.total_sessions },
+                  { label: 'Total Messages', value: stats.total_messages },
+                ].map(item => (
                   <div key={item.label} className="d-flex align-items-center justify-content-between">
                     <span className="text-muted small">{item.label}</span>
-                    <span className="small fw-semibold text-secondary">{item.value}</span>
+                    <span className="small fw-semibold text-secondary">
+                      {item.value === null ? '—' : item.value.toLocaleString()}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -192,30 +197,43 @@ export default function Dashboard({ onNavigate }) {
               <table className="table table-sm mb-0" style={{ fontSize: '0.8rem' }}>
                 <thead className="table-light">
                   <tr>
-                    <th>Session</th>
+                    <th>Visitor</th>
+                    <th>Contact</th>
                     <th>Status</th>
                     <th>Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sessionsLoading ? (
-                    <tr><td colSpan={3} className="text-muted text-center py-3">Loading…</td></tr>
+                    <tr><td colSpan={4} className="text-muted text-center py-3">Loading…</td></tr>
                   ) : sessions.length === 0 ? (
-                    <tr><td colSpan={3} className="text-muted text-center py-3">No sessions yet.</td></tr>
+                    <tr><td colSpan={4} className="text-muted text-center py-3">No sessions yet.</td></tr>
                   ) : (
-                    sessions.map(s => (
-                      <tr key={s.uuid}>
-                        <td className="font-monospace text-muted">{s.uuid?.slice(0, 8)}…</td>
-                        <td>
-                          <span className={`badge ${s.status === 'active' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'}`}>
-                            {s.status}
-                          </span>
-                        </td>
-                        <td className="text-muted">
-                          {s.created_at ? new Date(s.created_at).toLocaleDateString() : '—'}
-                        </td>
-                      </tr>
-                    ))
+                    sessions.map(s => {
+                      const ip   = s.captured_data?.ip || null;
+                      const name = s.visitor_name || null;
+                      return (
+                        <tr key={s.uuid}>
+                          <td>
+                            {name
+                              ? <><span className="fw-semibold">{name}</span><br /><span className="text-muted font-monospace" style={{ fontSize: '0.72rem' }}>{ip || '—'}</span></>
+                              : <span className="text-muted font-monospace" style={{ fontSize: '0.72rem' }}>{ip || '—'}</span>
+                            }
+                          </td>
+                          <td className="text-muted" style={{ fontSize: '0.72rem' }}>
+                            {s.visitor_email && <div>{s.visitor_email}</div>}
+                            {s.visitor_phone && <div>{s.visitor_phone}</div>}
+                            {!s.visitor_email && !s.visitor_phone && '—'}
+                          </td>
+                          <td>
+                            <span className="badge bg-secondary-subtle text-secondary">{s.status}</span>
+                          </td>
+                          <td className="text-muted">
+                            {s.created_at ? new Date(s.created_at).toLocaleDateString() : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

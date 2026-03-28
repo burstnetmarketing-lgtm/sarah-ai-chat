@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SarahAiServer\Api;
 
 use SarahAiServer\Core\KbSyncJob;
+use SarahAiServer\Infrastructure\ChatMessageRepository;
+use SarahAiServer\Infrastructure\ChatSessionRepository;
 use SarahAiServer\Infrastructure\CredentialValidator;
 use SarahAiServer\Infrastructure\SiteApiKeyRepository;
 use SarahAiServer\Infrastructure\SettingsRepository;
@@ -27,15 +29,19 @@ use SarahAiServer\Infrastructure\SettingsRepository;
  */
 class ClientSiteController
 {
-    private CredentialValidator  $credentials;
-    private SiteApiKeyRepository $siteApiKeys;
-    private SettingsRepository   $settings;
+    private CredentialValidator   $credentials;
+    private SiteApiKeyRepository  $siteApiKeys;
+    private SettingsRepository    $settings;
+    private ChatSessionRepository $sessions;
+    private ChatMessageRepository $messages;
 
     public function __construct()
     {
         $this->credentials = new CredentialValidator();
         $this->siteApiKeys = new SiteApiKeyRepository();
         $this->settings    = new SettingsRepository();
+        $this->sessions    = new ChatSessionRepository();
+        $this->messages    = new ChatMessageRepository();
     }
 
     public function registerRoutes(): void
@@ -54,6 +60,12 @@ class ClientSiteController
         register_rest_route('sarah-ai-server/v1', '/client/api-key', [
             'methods'             => 'POST',
             'callback'            => [$this, 'setKey'],
+            'permission_callback' => '__return_true',
+        ]);
+
+        register_rest_route('sarah-ai-server/v1', '/client/stats', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'getStats'],
             'permission_callback' => '__return_true',
         ]);
 
@@ -125,6 +137,28 @@ class ClientSiteController
         return new \WP_REST_Response([
             'success' => true,
             'data'    => ['providers' => $this->siteApiKeys->listProviders($siteId)],
+        ], 200);
+    }
+
+    /**
+     * GET /client/stats
+     * Returns total session and message counts for the site.
+     */
+    public function getStats(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $ctx = $this->resolveAuth($request);
+        if (! $ctx) {
+            return new \WP_REST_Response(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $siteId = (int) $ctx['site']['id'];
+
+        return new \WP_REST_Response([
+            'success' => true,
+            'data'    => [
+                'total_sessions' => $this->sessions->countBySite($siteId),
+                'total_messages' => $this->messages->countBySite($siteId),
+            ],
         ], 200);
     }
 
