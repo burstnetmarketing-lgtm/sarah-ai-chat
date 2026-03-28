@@ -210,7 +210,10 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         $knowledgeFallback     = trim((string) ($config['knowledge_fallback']     ?? ''));
         $restrictedResponse    = trim((string) ($config['restricted_response']    ?? ''));
         $description       = trim((string) ($agent['description']   ?? ''));
-        $agentDisplayName  = trim((string) ($siteIdentity['agent_display_name'] ?? '')) ?: 'سارا / Sarah';
+        $agentDisplayName  = trim((string) ($siteIdentity['agent_display_name'] ?? ''));
+        if ($agentDisplayName === '') {
+            $agentDisplayName = in_array($language, ['fa', 'ar'], true) ? 'سارا' : 'Sarah';
+        }
         $introMessage      = trim((string) ($siteIdentity['intro_message']      ?? ''));
 
         // ── Knowledge section (RAG or raw fallback) ────────────────────────
