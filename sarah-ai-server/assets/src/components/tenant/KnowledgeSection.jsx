@@ -182,7 +182,15 @@ export default function KnowledgeSection({ siteUuid, onItemsChange }) {
                   <td className="text-muted small">{item.resource_type}</td>
                   <td className="text-muted small">
                     {item.resource_type === 'link'
-                      ? <a href={item.source_content} target="_blank" rel="noreferrer" style={{ fontSize: '0.78rem' }}>link ↗</a>
+                      ? (() => {
+                          try {
+                            const m = typeof item.meta === 'string' ? JSON.parse(item.meta) : (item.meta || {});
+                            const url = m?.source_url || item.source_content;
+                            return url?.startsWith('http')
+                              ? <a href={url} target="_blank" rel="noreferrer" style={{ fontSize: '0.78rem' }}>link ↗</a>
+                              : <span className="text-secondary">—</span>;
+                          } catch { return <span className="text-secondary">—</span>; }
+                        })()
                       : item.source_content
                           ? <span title={item.source_content}>{item.source_content.slice(0, 20)}{item.source_content.length > 20 ? '…' : ''}</span>
                           : <span className="text-secondary">—</span>

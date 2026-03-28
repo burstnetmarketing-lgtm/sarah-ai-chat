@@ -88,9 +88,14 @@ class KnowledgeProcessingService
                 throw new \RuntimeException('Text extraction produced empty content after normalization.');
             }
 
-            // Step 4b: Save extracted text back to source_content so the
-            // keyword fallback in buildSystemPrompt() works even without embeddings.
-            // (For link/file resources source_content holds only the URL initially.)
+            // Step 4b: For link resources, preserve the original URL in meta.source_url
+            // before overwriting source_content with extracted text.
+            if (($resource['resource_type'] ?? '') === 'link') {
+                $this->preserveSourceUrl($resourceId, $resource);
+            }
+
+            // Save extracted text back to source_content so the keyword fallback
+            // in buildSystemPrompt() works even without embeddings.
             $this->resources->updateSourceContent($resourceId, $cleanText);
 
             // Step 5: Chunk
@@ -176,6 +181,32 @@ class KnowledgeProcessingService
     }
 
     // ─── Failure helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Persist the original URL from source_content into meta.source_url before
+     * source_content is overwritten with extracted text.
+     * Only writes if meta.source_url is not already set (idempotent on reprocess).
+     */
+    private function preserveSourceUrl(int $resourceId, array $resource): void
+    {
+        global $wpdb;
+        $meta = json_decode((string) ($resource['meta'] ?? '{}'), true) ?: [];
+        if (isset($meta['source_url'])) {
+            return;
+        }
+        $url = trim((string) ($resource['source_content'] ?? ''));
+        if ($url === '') {
+            return;
+        }
+        $meta['source_url'] = $url;
+        $wpdb->update(
+            $wpdb->prefix . KnowledgeResourceTable::TABLE,
+            ['meta' => wp_json_encode($meta), 'updated_at' => current_time('mysql')],
+            ['id'   => $resourceId],
+            ['%s',  '%s'],
+            ['%d']
+        );
+    }
 
     private function markFailed(int $resourceId, array $resource, string $error): void
     {
