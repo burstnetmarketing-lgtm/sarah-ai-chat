@@ -257,7 +257,7 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         // ── Identity section (appended to both modes) ─────────────────────
         $identitySection = '';
         if ($agentDisplayName) {
-            $identitySection .= "\nYour name is {$agentDisplayName}.";
+            $identitySection .= "\nYour name is {$agentDisplayName}. In your very first message, introduce yourself by name.";
         }
         if ($introMessage) {
             $identitySection .= "\n{$introMessage}";
