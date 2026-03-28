@@ -589,6 +589,14 @@
 
 /* ── RTL bubble overrides ────────────────── */
 
+/* RTL bubbles: right-align text explicitly (cannot rely on cascade from parent) */
+.sac-bubble[dir="rtl"],
+.sac-bubble[dir="rtl"] .sac-bubble-html,
+.sac-bubble[dir="rtl"] .sac-bubble-html p,
+.sac-bubble[dir="rtl"] .sac-bubble-html li {
+  text-align: right !important;
+}
+
 /* AI bubble in RTL: flip corner radius */
 .sac-bubble-ai[dir="rtl"] {
   border-bottom-left-radius:  14px;
