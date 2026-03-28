@@ -83,7 +83,7 @@ export default function QuickQuestions() {
               onChange={e => setNewText(e.target.value)}
               disabled={adding}
             />
-            <button type="submit" className="btn btn-primary btn-sm text-nowrap" disabled={adding || !newText.trim()}>
+            <button type="submit" className="btn btn-primary orange-bg btn-sm text-nowrap" disabled={adding || !newText.trim()}>
               {adding ? 'Adding...' : 'Add'}
             </button>
           </form>

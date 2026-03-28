@@ -67,7 +67,7 @@ export default function Settings() {
   function handleApiKeySave(e) {
     e.preventDefault();
     if (!form.server_url || !form.account_key || !form.site_key || !form.platform_key) {
-      setApiKeyError('Save server connection settings first.');
+      setApiKeyError('Connection not configured. Please run the Quick Setup first.');
       return;
     }
     setApiKeySaving(true);
@@ -106,7 +106,7 @@ export default function Settings() {
     e.preventDefault();
     setSaving(true);
     setSaved(false);
-    apiFetch('widget-settings', 'POST', form)
+    apiFetch('widget-settings', 'POST', { widget_enabled: form.widget_enabled, greeting_message: form.greeting_message })
       .then(() => setSaved(true))
       .catch(() => {})
       .finally(() => setSaving(false));
@@ -148,72 +148,13 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Server connection */}
+        {/* Greeting message */}
         <div className="card border-0 shadow-sm mb-3">
           <div className="card-header bg-white border-bottom">
-            <h6 className="mb-0 fw-semibold">Server Connection</h6>
+            <h6 className="mb-0 fw-semibold">Chat Behaviour</h6>
           </div>
           <div className="card-body">
-            <p className="text-muted small mb-3">
-              Enter the credentials provided by your Sarah AI platform administrator.
-            </p>
-
             <div className="mb-3">
-              <label className="form-label fw-semibold small">Server URL</label>
-              <input
-                type="url"
-                className="form-control form-control-sm"
-                name="server_url"
-                value={form.server_url}
-                onChange={handleChange}
-                placeholder="https://your-server.example.com/wp-json/sarah-ai-server/v1"
-                disabled={saving}
-              />
-              <div className="form-text">Base URL of the sarah-ai-server REST API.</div>
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label fw-semibold small">Account Key</label>
-              <input
-                type="text"
-                className="form-control form-control-sm font-monospace"
-                name="account_key"
-                value={form.account_key}
-                onChange={handleChange}
-                placeholder="Paste your account key here"
-                disabled={saving}
-              />
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label fw-semibold small">Site Key</label>
-              <input
-                type="text"
-                className="form-control form-control-sm font-monospace"
-                name="site_key"
-                value={form.site_key}
-                onChange={handleChange}
-                placeholder="Paste your site key here"
-                disabled={saving}
-              />
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label fw-semibold small">Platform Key</label>
-              <input
-                type="password"
-                className="form-control form-control-sm font-monospace"
-                name="platform_key"
-                value={form.platform_key}
-                onChange={handleChange}
-                placeholder="Platform secret key provided by your administrator"
-                disabled={saving}
-                autoComplete="new-password"
-              />
-              <div className="form-text">Used as <code>X-Sarah-Platform-Key</code> header for Knowledge Base sync.</div>
-            </div>
-
-            <div className="mb-0">
               <label className="form-label fw-semibold small">Greeting Message</label>
               <input
                 type="text"
@@ -226,14 +167,13 @@ export default function Settings() {
               />
               <div className="form-text">Shown instantly when the chat widget opens. Leave blank to skip.</div>
             </div>
+            <div className="d-flex align-items-center justify-content-end gap-2">
+              {saved && <span className="text-success small">Saved.</span>}
+              <button type="submit" className="btn btn-sm btn-primary orange-bg" disabled={saving}>
+                {saving ? 'Saving…' : 'Save Settings'}
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div className="d-flex align-items-center gap-2">
-          <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
-            {saving ? 'Saving…' : 'Save Settings'}
-          </button>
-          {saved && <span className="text-success small">Saved.</span>}
         </div>
       </form>
 
@@ -293,7 +233,7 @@ export default function Settings() {
                 />
               </div>
               <div className="col-auto">
-                <button type="submit" className="btn btn-sm btn-primary" disabled={apiKeySaving}>
+                <button type="submit" className="btn btn-sm btn-primary orange-bg" disabled={apiKeySaving}>
                   {apiKeySaving ? 'Saving…' : 'Save Key'}
                 </button>
               </div>

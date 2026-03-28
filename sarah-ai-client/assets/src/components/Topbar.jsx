@@ -7,7 +7,7 @@ const LABELS = {
 };
 
 export default function Topbar({ view, onNavigate }) {
-  const { adminUrl, userName, initials, canManageMenus } = window.SarahAiClientConfig || {};
+  const { adminUrl, siteUrl, userName, initials, canManageMenus } = window.SarahAiClientConfig || {};
   const title = LABELS[view] ?? view.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -29,8 +29,8 @@ export default function Topbar({ view, onNavigate }) {
     <header className="topbar">
       <span className="topbar-title">{title}</span>
       <div className="d-flex align-items-center gap-3 ms-auto">
-        <a href={adminUrl} className="topbar-action" title="Back to WordPress">
-          <i className="bi bi-arrow-left-circle"></i>
+        <a href={siteUrl} className="topbar-action" title="View Website" target="_blank" rel="noopener noreferrer">
+          <i className="bi bi-house-door"></i>
         </a>
         <div className="topbar-divider"></div>
         <div className="position-relative" ref={ref}>
@@ -54,6 +54,13 @@ export default function Topbar({ view, onNavigate }) {
                         disabled={!canManageMenus}>
                   <i className="bi bi-journal-text"></i> Log
                 </button>
+              </li>
+              <li><hr className="dropdown-divider" /></li>
+              <li>
+                <a className="dropdown-item d-flex align-items-center gap-2 text-danger"
+                   href={adminUrl}>
+                  <i className="bi bi-box-arrow-left"></i> Exit to WordPress
+                </a>
               </li>
             </ul>
           )}

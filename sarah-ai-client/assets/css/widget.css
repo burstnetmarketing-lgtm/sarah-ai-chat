@@ -584,19 +584,20 @@
   }
 }
 
+/* ── RTL Input Area ──────────────────────── */
+
+
 /* ── RTL bubble overrides ────────────────── */
 
 /* AI bubble in RTL: flip corner radius */
 .sac-bubble-ai[dir="rtl"] {
   border-bottom-left-radius:  14px;
   border-bottom-right-radius: 4px;
-  align-self: flex-end;
 }
 
-/* User bubble in RTL: flip corner radius + side */
+/* User bubble in RTL: flip corner radius */
 .sac-bubble-user[dir="rtl"] {
   border-bottom-right-radius: 14px;
   border-bottom-left-radius:  4px;
-  align-self: flex-start;
 }
 

@@ -43,7 +43,7 @@ export default function MenuManager() {
                        value={form.view_key} onChange={e => setForm(f => ({ ...f, view_key: e.target.value }))} required />
               </div>
               <div className="col-md-2">
-                <button type="submit" className="btn btn-primary btn-sm w-100" disabled={saving}>
+                <button type="submit" className="btn btn-primary orange-bg btn-sm w-100" disabled={saving}>
                   {saving ? '...' : 'Add Parent'}
                 </button>
               </div>

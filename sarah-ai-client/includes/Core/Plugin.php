@@ -104,6 +104,16 @@ class Plugin
         $quickQuestionsRepo = new QuickQuestionsRepository();
         $languagesRepo      = new LanguagesRepository();
         $settingsRepo       = new SettingsRepository();
+        $lead = [];
+        if (is_user_logged_in()) {
+            $user = wp_get_current_user();
+            if ($user->display_name) $lead['name']  = $user->display_name;
+            if ($user->user_email)   $lead['email'] = $user->user_email;
+        }
+        $ip = self::getVisitorIp();
+        if ($ip !== '') $lead['ip'] = $ip;
+        if (empty($lead)) $lead = null;
+
         wp_localize_script('sarah-ai-client-widget', 'SarahAiWidget', [
             'quickQuestions' => $quickQuestionsRepo->allEnabled(),
             'languages'      => $languagesRepo->allEnabled(),
@@ -114,8 +124,26 @@ class Plugin
                 'site_key'         => $settingsRepo->get('site_key', ''),
                 'platform_key'     => $settingsRepo->get('platform_key', ''),
                 'greeting_message' => $settingsRepo->get('greeting_message', ''),
+                'lead'             => $lead,
             ],
         ]);
+    }
+
+    private static function getVisitorIp(): string
+    {
+        foreach (['HTTP_X_FORWARDED_FOR', 'HTTP_CF_CONNECTING_IP', 'REMOTE_ADDR'] as $key) {
+            $val = isset($_SERVER[$key]) ? trim((string) $_SERVER[$key]) : '';
+            if ($val === '') {
+                continue;
+            }
+            // X-Forwarded-For can be a comma-separated list; take the first (client) IP
+            $ip = explode(',', $val)[0];
+            $ip = trim($ip);
+            if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                return $ip;
+            }
+        }
+        return '';
     }
 
     public static function addModuleType(string $tag, string $handle): string

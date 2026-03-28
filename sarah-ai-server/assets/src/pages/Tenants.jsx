@@ -85,7 +85,7 @@ export default function Tenants({ onNavigate }) {
                           className="btn btn-link p-0 text-start fw-semibold"
                           onClick={() => onNavigate('tenant-detail', row.tenant.uuid)}
                         >
-                          {row.tenant.name}
+                          {row.tenant.name} <span className="text-muted fw-normal small">(#{row.tenant.id})</span>
                         </button>
                       </td>
                       <td className="text-muted">{row.tenant.slug}</td>

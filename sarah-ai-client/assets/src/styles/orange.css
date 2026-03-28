@@ -1,0 +1,43 @@
+/* ─── Orange Brand Utilities ─────────────────────────────────────────────────
+   --sarah-orange: primary brand accent colour.
+
+   Utility classes (add to any element):
+     .orange-text  — text colour
+     .orange-bg    — background + text colour (for buttons, badges, etc.)
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --sarah-orange: #f07c00;
+  --sarah-orange-dark: #d66e00;
+}
+
+/* ── Utility classes ─────────────────────────────────────────────────────── */
+
+.orange-text {
+  color: var(--sarah-orange) !important;
+}
+
+.orange-bg {
+  background-color: var(--sarah-orange) !important;
+  border-color: var(--sarah-orange) !important;
+  color: #fff !important;
+}
+
+.orange-bg:hover,
+.orange-bg:focus,
+.orange-bg:active {
+  background-color: var(--sarah-orange-dark) !important;
+  border-color: var(--sarah-orange-dark) !important;
+  color: #fff !important;
+}
+
+/* ── Sidebar active menu item ────────────────────────────────────────────── */
+
+.sidebar-nav .nav-link.active {
+  color: var(--sarah-orange) !important;
+  background: OldLace !important;
+}
+
+.sidebar-child.active {
+  color: var(--sarah-orange) !important;
+}

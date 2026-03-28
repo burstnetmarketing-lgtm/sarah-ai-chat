@@ -70,7 +70,7 @@ export default function UrlBlacklist() {
             />
             <button
               type="submit"
-              className="btn btn-primary btn-sm text-nowrap"
+              className="btn btn-primary orange-bg btn-sm text-nowrap"
               disabled={saving || !newPattern.trim()}
             >
               Add

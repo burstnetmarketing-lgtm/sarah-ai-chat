@@ -140,12 +140,29 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
 
         $data = json_decode(wp_remote_retrieve_body($response), true);
 
-        $content    = $data['choices'][0]['message']['content'] ?? 'No response received.';
-        $tokensIn   = (int) ($data['usage']['prompt_tokens']     ?? 0) ?: null;
-        $tokensOut  = (int) ($data['usage']['completion_tokens'] ?? 0) ?: null;
+        $raw       = $data['choices'][0]['message']['content'] ?? 'No response received.';
+        $tokensIn  = (int) ($data['usage']['prompt_tokens']     ?? 0) ?: null;
+        $tokensOut = (int) ($data['usage']['completion_tokens'] ?? 0) ?: null;
+
+        // Parse structured JSON response {message, lead_data}
+        $content  = $raw;
+        $leadData = null;
+        $decoded  = json_decode($raw, true);
+        if (is_array($decoded) && isset($decoded['message'])) {
+            $content  = (string) $decoded['message'];
+            $ld       = $decoded['lead_data'] ?? null;
+            if (is_array($ld)) {
+                $leadData = [
+                    'name'  => isset($ld['name'])  && $ld['name']  ? (string) $ld['name']  : null,
+                    'email' => isset($ld['email']) && $ld['email'] ? (string) $ld['email'] : null,
+                    'phone' => isset($ld['phone']) && $ld['phone'] ? (string) $ld['phone'] : null,
+                ];
+            }
+        }
 
         return [
             'content'    => $content,
+            'lead_data'  => $leadData,
             'tokens_in'  => $tokensIn,
             'tokens_out' => $tokensOut,
             'provider'   => 'openai',
@@ -193,7 +210,7 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
         $knowledgeFallback     = trim((string) ($config['knowledge_fallback']     ?? ''));
         $restrictedResponse    = trim((string) ($config['restricted_response']    ?? ''));
         $description       = trim((string) ($agent['description']   ?? ''));
-        $agentDisplayName  = trim((string) ($siteIdentity['agent_display_name'] ?? ''));
+        $agentDisplayName  = trim((string) ($siteIdentity['agent_display_name'] ?? '')) ?: 'سارا / Sarah';
         $introMessage      = trim((string) ($siteIdentity['intro_message']      ?? ''));
 
         // ── Knowledge section (RAG or raw fallback) ────────────────────────
@@ -306,7 +323,21 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
             }
         }
 
-        return implode("\n", $lines) . $identitySection . $languageSection . $knowledgeSection . $this->buildStructuredOutputInstruction($restrictedResponse);
+        $leadCaptureSection = <<<'LEAD'
+
+
+## Lead Capture — MANDATORY
+- In your very first response, after your greeting, ask the user for their name.
+- Once the user provides their name, address them by name in every following response.
+- Do not ask for their name again after they have provided it.
+- After the user has sent 5 or more messages, find a natural moment to ask for their email. Frame it as: our team will send them similar recommendations.
+- After the user provides their email, in a SEPARATE subsequent message ask if they would like to leave their phone number so the team can follow up.
+- NEVER ask for email and phone in the same message.
+- NEVER ask for email or phone before the user has sent 5 messages.
+- NEVER ask for information the user has already provided.
+LEAD;
+
+        return implode("\n", $lines) . $identitySection . $leadCaptureSection . $languageSection . $knowledgeSection . $this->buildStructuredOutputInstruction($restrictedResponse);
     }
 
     /**
@@ -359,41 +390,41 @@ class OpenAiAgentExecutor implements AgentExecutorInterface
 
 ## Output Format — MANDATORY — NEVER VIOLATE
 
-CRITICAL: Every single response you send MUST be formatted in HTML. No exceptions.
-- Use <p> for paragraphs, <ul>/<li> for bullet lists, <ol>/<li> for numbered lists, <strong> for bold, <em> for italic, <h3>/<h4> for headings.
-- NEVER use Markdown syntax. Not even partially. This means: no **bold**, no *italic*, no ## headings, no - bullet lines, no `code`, no [links](url).
-- Do NOT wrap output in <html>, <body>, or <head> — return only the inner content HTML.
-- Do NOT add inline style attributes. Use only the HTML tags listed above.
+Your ENTIRE response MUST be a single valid JSON object with exactly two keys: "message" and "lead_data".
+Do NOT output anything outside this JSON object. No preamble, no markdown fences.
 
-## Restricted Information Policy
+Example structure:
+{"message":"<p>Your HTML response here.</p><sarah_meta>{\"lang\":\"en\",\"dir\":\"ltr\"}</sarah_meta>","lead_data":{"name":"Ali","email":null,"phone":null}}
 
-If a user asks for information that is not present in your Knowledge Base, respond with:
+### "message" rules:
+- Must contain your full response to the user formatted in HTML.
+- Use <p> for paragraphs, <ul>/<li> for lists, <strong>, <em>, <h3>/<h4> for headings.
+- NEVER use Markdown. No **bold**, no *italic*, no ## headings, no - bullet lines.
+- Do NOT wrap in <html>, <body>, or <head>.
+- Do NOT add inline style attributes.
+- All double quotes inside the HTML must be escaped as \".
+
+### "lead_data" rules:
+- Scan the ENTIRE conversation history for name, email, and phone the user has explicitly provided.
+- Include only values the user has actually stated. Use null for anything not yet provided.
+- Never fabricate or guess.
+
+### Restricted Information Policy:
+If a user asks for information not in your Knowledge Base, respond with:
 "{$safeResponse}"
-Do not guess, fabricate, or infer restricted details. This response is mandatory — do not improvise.
 
-## Structured Contact Output
-
-When your response mentions specific contact information (phone numbers, email addresses, website URLs, or physical addresses), append a structured data block using this exact format:
-
+### Structured Contact Output (inside "message"):
+When your response mentions contact information, append inside the message string:
 <sarah_card>{"type":"contact","fields":[{"key":"contact.phone_admin","label":"Phone","value":"0400000000"}]}</sarah_card>
+- Canonical keys: contact.phone_admin, contact.phone_marketing, contact.phone_sales, contact.website, contact.email_support, contact.email_sales, business.address, business.hours, business.name
+- Phone numbers: digits only, no spaces or hyphens.
 
-Rules:
-- Only include fields that are actually mentioned in your response text
-- Do not include this block if your response contains no contact information
-- Canonical key names: contact.phone_admin, contact.phone_marketing, contact.phone_sales, contact.website, contact.email_support, contact.email_sales, business.address, business.hours, business.name
-- Phone numbers MUST be written as a single continuous string of digits with NO spaces, hyphens, or separators (e.g. "0412345678" not "0412 345 678")
-
-## Language Metadata — MANDATORY in EVERY response
-
-At the very end of EVERY response (after sarah_card if present), append this tag on its own line:
-
+### Language Metadata (inside "message") — MANDATORY:
+At the very end of the "message" value append:
 <sarah_meta>{"lang":"en","dir":"ltr"}</sarah_meta>
-
-Rules:
-- lang: ISO 639-1 code of the language you are responding in (e.g. "fa", "en", "ar", "zh", "tr")
-- dir: "rtl" for right-to-left languages (Persian, Arabic, Hebrew, Urdu) — "ltr" for everything else
-- This tag is MANDATORY. Include it in every single response, no exceptions.
-- It must be the very last line of your response.
+- lang: ISO 639-1 code of your response language (fa, en, ar, zh, tr…)
+- dir: "rtl" for Persian/Arabic/Hebrew/Urdu, "ltr" for everything else.
+- This tag is MANDATORY in every response.
 PROMPT;
     }
 }

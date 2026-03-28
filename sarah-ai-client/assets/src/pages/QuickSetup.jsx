@@ -103,7 +103,7 @@ export default function QuickSetup() {
               )}
             </div>
             <button
-              className="btn btn-primary w-100"
+              className="btn btn-primary orange-bg w-100"
               onClick={() => window.location.reload()}
             >
               Open Dashboard
@@ -236,7 +236,7 @@ export default function QuickSetup() {
 
               <button
                 type="submit"
-                className="btn btn-primary w-100"
+                className="btn btn-primary orange-bg w-100"
                 disabled={step === 'loading' || !form.server_url || !form.platform_key || !form.whmcs_key || !form.openai_api_key}
               >
                 {step === 'loading' ? (

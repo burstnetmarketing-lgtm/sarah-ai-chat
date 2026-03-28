@@ -49,7 +49,7 @@ export default function App() {
       <div className="main-wrap">
         <Topbar view={view} onNavigate={navigate} />
         <main className="main-content">
-          <PageComponent />
+          <PageComponent onNavigate={navigate} />
         </main>
       </div>
     </div>

@@ -5,27 +5,12 @@ import ContactCard from './ContactCard.jsx';
 const customQuickQuestions = (window.SarahAiWidget?.quickQuestions || []).map(q => q.question);
 const welcomeMessage       = window.SarahAiWidget?.settings?.welcomeMessage || 'How can I help you today?';
 
-// ─── Language seed options ────────────────────────────────────────────────────
-// Shown in the empty state when the site owner has not configured custom
-// quick questions. Clicking one triggers handleLanguageSelect in ChatWindow,
-// which shows the label as the user bubble and sends the instruction message
-// to the API so the AI responds in the selected language from that point on.
-// Languages are loaded from the DB via wp_localize_script (SarahAiWidget.languages).
-// Each row: { code, label, message }
-export const LANGUAGE_OPTIONS = (window.SarahAiWidget?.languages || []).map(row => ({
-  label:    row.label,
-  message:  row.message,
-  language: row.code,
-}));
-
-export default function MessageArea({ messages, isTyping, awaitingLang, onQuickQuestion, onRetry }) {
+export default function MessageArea({ messages, isTyping, onQuickQuestion, onRetry }) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
-
-  const showLangPicker = awaitingLang;
 
   if (messages.length === 0) {
     return (
@@ -35,9 +20,6 @@ export default function MessageArea({ messages, isTyping, awaitingLang, onQuickQ
             <div className="sac-welcome-emoji">👋</div>
             <p className="sac-welcome-title">Hi there!</p>
             <p className="sac-welcome-sub">{welcomeMessage}</p>
-            {showLangPicker && (
-              <p className="sac-lang-hint">What language would you like to chat in?</p>
-            )}
           </div>
 
           {customQuickQuestions.length > 0 && (

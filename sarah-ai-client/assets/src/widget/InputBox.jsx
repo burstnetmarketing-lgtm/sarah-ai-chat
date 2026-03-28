@@ -25,6 +25,7 @@ export default function InputBox({ onSend, disabled }) {
         type="text"
         placeholder="Type a message..."
         value={value}
+        dir="auto"
         onChange={e => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         aria-label="Message input"

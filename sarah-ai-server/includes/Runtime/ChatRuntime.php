@@ -120,10 +120,15 @@ class ChatRuntime
         if (! empty($leadInfo)) {
             $this->sessions->updateLeadInfo(
                 (int) $session['id'],
-                $leadInfo['name']  ?? null,
-                $leadInfo['phone'] ?? null,
-                $leadInfo['email'] ?? null
+                isset($leadInfo['name'])  && $leadInfo['name']  ? $leadInfo['name']  : null,
+                isset($leadInfo['phone']) && $leadInfo['phone'] ? $leadInfo['phone'] : null,
+                isset($leadInfo['email']) && $leadInfo['email'] ? $leadInfo['email'] : null
             );
+        }
+
+        // ── Step 3c: Store visitor IP in captured_data ─────────────────────────
+        if (! empty($leadInfo['ip'])) {
+            $this->sessions->mergeCapturedData((int) $session['id'], ['ip' => $leadInfo['ip']]);
         }
 
         // ── Step 4: Persist customer message ──────────────────────────────────
@@ -167,6 +172,17 @@ class ChatRuntime
             'knowledge'        => $knowledge,
             'language'         => $language,
         ]);
+
+        // ── Step 7b: Store AI-extracted lead data ────────────────────────────
+        if (! empty($result['lead_data'])) {
+            $ld = $result['lead_data'];
+            $this->sessions->updateLeadInfo(
+                (int) $session['id'],
+                $ld['name']  ?? null,
+                $ld['phone'] ?? null,
+                $ld['email'] ?? null
+            );
+        }
 
         // ── Step 8: Persist assistant response ───────────────────────────────
         $this->messages->add(

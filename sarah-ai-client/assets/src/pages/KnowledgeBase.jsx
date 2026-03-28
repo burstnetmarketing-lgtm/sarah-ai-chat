@@ -41,19 +41,18 @@ function ResourceRow({ resource, onDelete, onToggle, onProcess }) {
 
   return (
     <tr style={{ opacity: busy ? 0.5 : 1 }}>
-      <td className="small">{resource.title || <span className="text-muted">—</span>}</td>
-      <td className="small text-muted">{resource.resource_type}</td>
+      <td>{resource.title || <span className="text-muted">—</span>}</td>
+      <td className="text-muted">{resource.resource_type}</td>
       <td>
-        <span className={`badge ${STATUS_BADGE[resource.status] ?? 'bg-secondary'}`} style={{ fontSize: '0.65rem' }}>
+        <span className={`badge ${STATUS_BADGE[resource.status] ?? 'bg-secondary'}`}>
           {resource.status}
         </span>
       </td>
-      <td className="small text-muted">{resource.processing_status ?? '—'}</td>
+      <td className="text-muted">{resource.processing_status ?? '—'}</td>
       <td>
         <div className="d-flex gap-1">
           <button
-            className="btn btn-xs btn-outline-secondary"
-            style={{ fontSize: '0.7rem', padding: '1px 6px' }}
+            className="btn btn-sm btn-outline-secondary"
             onClick={handleToggle}
             disabled={busy}
             title={resource.status === 'active' ? 'Deactivate' : 'Activate'}
@@ -61,8 +60,7 @@ function ResourceRow({ resource, onDelete, onToggle, onProcess }) {
             {resource.status === 'active' ? 'Deactivate' : 'Activate'}
           </button>
           <button
-            className="btn btn-xs btn-outline-primary"
-            style={{ fontSize: '0.7rem', padding: '1px 6px' }}
+            className="btn btn-sm btn-outline-primary"
             onClick={handleProcess}
             disabled={busy}
             title="Run processing pipeline"
@@ -70,8 +68,7 @@ function ResourceRow({ resource, onDelete, onToggle, onProcess }) {
             Process
           </button>
           <button
-            className="btn btn-xs btn-outline-danger"
-            style={{ fontSize: '0.7rem', padding: '1px 6px' }}
+            className="btn btn-sm btn-outline-danger"
             onClick={handleDelete}
             disabled={busy}
           >
@@ -83,10 +80,12 @@ function ResourceRow({ resource, onDelete, onToggle, onProcess }) {
   );
 }
 
-function AddResourceForm({ types, onAdd }) {
-  const [form, setForm]   = useState({ resource_type: '', title: '', source_content: '' });
+function AddResourceForm({ types, onAdd, onCancel }) {
+  const [form, setForm]     = useState({ resource_type: types[0]?.type_key ?? '', title: '', source_content: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
+
+  const isLink = form.resource_type === 'link';
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -104,6 +103,7 @@ function AddResourceForm({ types, onAdd }) {
     try {
       await onAdd(form);
       setForm({ resource_type: types[0]?.type_key ?? '', title: '', source_content: '' });
+      onCancel();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -113,7 +113,6 @@ function AddResourceForm({ types, onAdd }) {
 
   return (
     <form onSubmit={handleSubmit} className="border rounded p-3 bg-light mb-3">
-      <div className="fw-semibold small mb-2">Add Knowledge Resource</div>
       {error && <div className="alert alert-danger py-1 px-2 small mb-2">{error}</div>}
       <div className="row g-2 mb-2">
         <div className="col-md-3">
@@ -128,41 +127,61 @@ function AddResourceForm({ types, onAdd }) {
             {types.map(t => <option key={t.type_key} value={t.type_key}>{t.label}</option>)}
           </select>
         </div>
-        <div className="col-md-4">
+        <div className="col-md-9">
           <input
             type="text"
             className="form-control form-control-sm"
             name="title"
             value={form.title}
             onChange={handleChange}
-            placeholder="Title (optional)"
+            placeholder="Title"
             disabled={saving}
           />
         </div>
-        <div className="col-md-5">
-          <input
-            type="text"
-            className="form-control form-control-sm"
-            name="source_content"
-            value={form.source_content}
-            onChange={handleChange}
-            placeholder="Content or URL"
-            disabled={saving}
-          />
+        <div className="col-12">
+          {isLink ? (
+            <input
+              type="url"
+              className="form-control form-control-sm"
+              name="source_content"
+              value={form.source_content}
+              onChange={handleChange}
+              placeholder="https://example.com"
+              disabled={saving}
+              required
+            />
+          ) : (
+            <textarea
+              className="form-control form-control-sm"
+              name="source_content"
+              value={form.source_content}
+              onChange={handleChange}
+              placeholder="Paste your text content here…"
+              disabled={saving}
+              rows={5}
+              required
+            />
+          )}
         </div>
       </div>
-      <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
-        {saving ? 'Adding…' : 'Add Resource'}
-      </button>
+      <div className="d-flex justify-content-end gap-2">
+        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onCancel} disabled={saving}>
+          Cancel
+        </button>
+        <button type="submit" className="btn btn-sm btn-primary orange-bg" disabled={saving}>
+          {saving ? 'Adding…' : 'Add Resource'}
+        </button>
+      </div>
     </form>
   );
 }
 
 export default function KnowledgeBase() {
-  const [resources, setResources] = useState([]);
-  const [types, setTypes]         = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState('');
+  const [resources, setResources]   = useState([]);
+  const [types, setTypes]           = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState('');
+  const [showForm, setShowForm]     = useState(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -204,9 +223,14 @@ export default function KnowledgeBase() {
 
   return (
     <>
-      <div className="mb-3">
-        <h1 className="h5 fw-semibold text-dark mb-1">Knowledge Base</h1>
-        <p className="text-muted small mb-0">Manage the AI knowledge resources for this site.</p>
+      <div className="mb-3 d-flex align-items-start justify-content-between">
+        <div>
+          <h1 className="h5 fw-semibold text-dark mb-1">Knowledge Base</h1>
+          <p className="text-muted small mb-0">Manage the AI knowledge resources for this site.</p>
+        </div>
+        <button className="btn btn-sm btn-primary orange-bg" onClick={() => setShowForm(f => !f)}>
+          {showForm ? '− Cancel' : '+ Add Resource'}
+        </button>
       </div>
 
       {error && (
@@ -217,7 +241,7 @@ export default function KnowledgeBase() {
         </div>
       )}
 
-      <AddResourceForm types={types} onAdd={handleAdd} />
+      {showForm && <AddResourceForm types={types} onAdd={handleAdd} onCancel={() => setShowForm(false)} />}
 
       <div className="card border-0 shadow-sm">
         <div className="card-body p-0">
@@ -226,7 +250,7 @@ export default function KnowledgeBase() {
           ) : resources.length === 0 ? (
             <p className="text-muted small p-3">No knowledge resources yet.</p>
           ) : (
-            <table className="table table-sm table-hover mb-0" style={{ fontSize: '0.82rem' }}>
+            <table className="table table-sm table-hover mb-0">
               <thead className="table-light">
                 <tr>
                   <th>Title</th>

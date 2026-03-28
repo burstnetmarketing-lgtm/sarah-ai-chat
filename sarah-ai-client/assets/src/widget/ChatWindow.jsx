@@ -148,7 +148,7 @@ export default function ChatWindow({ onClose }) {
   const [lastFailed, setLastFailed]   = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [language, setLanguage]       = useState(null);
-  const [awaitingLang, setAwaitingLang] = useState(() => !loadStoredSession());
+  const [sessionDir, setSessionDir]   = useState('ltr');
   const windowRef = useRef(null);
 
   // ── On mount: restore session + history, or show greeting ────────────────
@@ -226,25 +226,14 @@ export default function ChatWindow({ onClose }) {
     setMessages(prev => [...prev, { id: nextId(), type: 'user', text: trimmed, dir: detectDir(trimmed) }]);
     setIsTyping(true);
 
-    // If this is the language selection, pass it as language param (not in message text).
-    // Server injects it into the system prompt as a MANDATORY language rule.
-    let payload  = trimmed;
-    let langParam = language;
-
-    if (awaitingLang) {
-      setLanguage(trimmed);   // store for all future messages in this session
-      setAwaitingLang(false);
-      payload   = 'Hello! Please greet me and introduce yourself.';
-      langParam = trimmed;
-    }
-
-    sendChatMessage(payload, sessionUuid, getLead(), langParam)
+    sendChatMessage(trimmed, sessionUuid, getLead(), language)
       .then(data => {
         if (data.session_uuid && !sessionUuid) {
           setSessionUuid(data.session_uuid);
           saveStoredSession(data.session_uuid);
         }
         const { text: aiText, cardData, dir } = parseAiResponse(data.message);
+        setSessionDir(dir);
         setMessages(prev => [...prev, { id: nextId(), type: 'ai', text: aiText, cardData, dir }]);
       })
       .catch(err => {
@@ -262,7 +251,7 @@ export default function ChatWindow({ onClose }) {
         }]);
       })
       .finally(() => setIsTyping(false));
-  }, [isTyping, sessionUuid, awaitingLang, language]);
+  }, [isTyping, sessionUuid, language]);
 
   // ── Task 4: retry last failed message ────────────────────────────────────
   const handleRetry = useCallback((text) => {
@@ -272,41 +261,13 @@ export default function ChatWindow({ onClose }) {
     sendMessage(text);
   }, [sendMessage]);
 
-  // ── Language selection from seed quick questions ──────────────────────────
-  // Displays the short label (e.g. "🇮🇷 فارسی") as the user bubble but sends
-  // the full instruction message to the API so the AI switches language.
-  const handleLanguageSelect = useCallback(({ label, message, language: lang }) => {
-    if (isTyping) return;
-    setLanguage(lang);
-    setLastFailed(null);
-    setMessages(prev => [...prev, { id: nextId(), type: 'user', text: label, dir: detectDir(label) }]);
-    setIsTyping(true);
-
-    sendChatMessage(message, sessionUuid, getLead(), lang)
-      .then(data => {
-        if (data.session_uuid && !sessionUuid) {
-          setSessionUuid(data.session_uuid);
-          saveStoredSession(data.session_uuid);
-        }
-        const { text: aiText, cardData, dir } = parseAiResponse(data.message);
-        setMessages(prev => [...prev, { id: nextId(), type: 'ai', text: aiText, cardData, dir }]);
-      })
-      .catch(() => {
-        setMessages(prev => [...prev, {
-          id: nextId(), type: 'ai', text: 'Unable to connect. Please try again.',
-          isError: true, retryText: message,
-        }]);
-      })
-      .finally(() => setIsTyping(false));
-  }, [isTyping, sessionUuid]);
-
   // ── Task 6: reset chat ────────────────────────────────────────────────────
   const handleReset = useCallback(() => {
     clearStoredSession();
     setSessionUuid(null);
     setLastFailed(null);
     setLanguage(null);
-    setAwaitingLang(true);
+    setSessionDir('ltr');
     setMessages(greetingMessage());
   }, []);
 
@@ -316,7 +277,6 @@ export default function ChatWindow({ onClose }) {
       <MessageArea
         messages={messages}
         isTyping={isTyping || historyLoading}
-        awaitingLang={awaitingLang}
         onQuickQuestion={sendMessage}
         onRetry={handleRetry}
       />

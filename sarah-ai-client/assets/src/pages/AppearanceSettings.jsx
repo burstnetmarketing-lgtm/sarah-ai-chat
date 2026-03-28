@@ -270,7 +270,7 @@ function TabGeneral({ form, update, canPublish, isDirty, saving, publishing, res
             <button className="btn btn-sm btn-outline-primary" onClick={onSaveDraft} disabled={!isDirty || saving}>
               {saving ? 'Saving...' : 'Save Draft'}
             </button>
-            <button className="btn btn-sm btn-primary" onClick={onPublish} disabled={!canPublish || publishing}>
+            <button className="btn btn-sm btn-primary orange-bg" onClick={onPublish} disabled={!canPublish || publishing}>
               {publishing ? 'Publishing...' : '▲ Publish'}
             </button>
           </div>

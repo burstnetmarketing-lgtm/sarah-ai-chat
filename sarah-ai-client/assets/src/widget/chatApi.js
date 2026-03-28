@@ -32,7 +32,7 @@ export async function sendChatMessage(text, sessionUuid = null, lead = null, lan
 
   const body = { account_key, site_key, message: text };
   if (sessionUuid) body.session_uuid = sessionUuid;
-  if (lead && (lead.name || lead.phone || lead.email)) body.lead = lead;
+  if (lead && (lead.name || lead.phone || lead.email || lead.ip)) body.lead = lead;
   if (language) body.language = language;
 
   const res = await fetch(`${server_url}/chat`, {
