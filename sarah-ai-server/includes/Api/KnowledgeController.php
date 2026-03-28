@@ -131,7 +131,10 @@ class KnowledgeController
             return new \WP_REST_Response(['success' => false, 'message' => 'Failed to create resource'], 500);
         }
 
-        return new \WP_REST_Response(['success' => true, 'data' => $this->repo->findById($id)], 201);
+        $resource = $this->repo->findById($id);
+        $this->dispatchAsyncProcessing((string) ($resource['uuid'] ?? ''));
+
+        return new \WP_REST_Response(['success' => true, 'data' => $resource], 201);
     }
 
     public function show(\WP_REST_Request $request): \WP_REST_Response
@@ -213,7 +216,34 @@ class KnowledgeController
             return new \WP_REST_Response(['success' => false, 'message' => 'Failed to create knowledge resource.'], 500);
         }
 
-        return new \WP_REST_Response(['success' => true, 'data' => $this->repo->findById($id)], 201);
+        $resource = $this->repo->findById($id);
+        $this->dispatchAsyncProcessing((string) ($resource['uuid'] ?? ''));
+
+        return new \WP_REST_Response(['success' => true, 'data' => $resource], 201);
+    }
+
+    /**
+     * Fires a non-blocking HTTP POST to the process endpoint so chunking + embedding
+     * happen in the background without blocking the current request.
+     * Falls back gracefully if the loopback request cannot be sent.
+     */
+    private function dispatchAsyncProcessing(string $uuid): void
+    {
+        if ($uuid === '') {
+            return;
+        }
+
+        $url = rest_url('sarah-ai-server/v1/knowledge-resources/' . $uuid . '/process');
+
+        wp_remote_post($url, [
+            'blocking'  => false,
+            'timeout'   => 1,
+            'sslverify' => apply_filters('https_local_ssl_verify', false),
+            'headers'   => [
+                'X-WP-Nonce' => wp_create_nonce('wp_rest'),
+                'Cookie'     => isset($_SERVER['HTTP_COOKIE']) ? $_SERVER['HTTP_COOKIE'] : '',
+            ],
+        ]);
     }
 
     public function updateStatus(\WP_REST_Request $request): \WP_REST_Response

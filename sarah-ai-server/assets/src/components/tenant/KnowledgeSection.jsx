@@ -4,9 +4,11 @@ import {
   processKnowledge, uploadKnowledgeFile, getKnowledgeResourceTypes,
   updateKnowledgeVisibility,
 } from '../../api/provisioning.js';
+
+const PROCESSING_LABELS = { none: 'None', queued: 'Queued', processing: 'Processing', done: 'Done', failed: 'Failed' };
 import { Alert, StatusBadge } from './helpers.jsx';
 
-const PROCESSING_COLORS = { none: 'secondary', queued: 'info', done: 'success', failed: 'danger' };
+const PROCESSING_COLORS = { none: 'secondary', queued: 'warning', processing: 'info', done: 'success', failed: 'danger' };
 const EMPTY_FORM = { title: '', resource_type: 'text', source_content: '', file: null };
 
 export default function KnowledgeSection({ siteUuid, onItemsChange }) {
@@ -54,8 +56,8 @@ export default function KnowledgeSection({ siteUuid, onItemsChange }) {
       }
       if (res.success) {
         setForm(EMPTY_FORM); setExpanded(false); load();
-        const newUuid = res.data?.uuid;
-        if (newUuid) processKnowledge(newUuid).then(() => load()).catch(() => load());
+        // Server dispatches async processing; poll once after 5 s to reflect updated status.
+        setTimeout(() => load(), 5000);
       } else setMsg({ type: 'danger', text: res.message ?? 'Failed.' });
     } catch { setMsg({ type: 'danger', text: 'Request failed.' }); }
     finally { setSaving(false); }
@@ -197,15 +199,22 @@ export default function KnowledgeSection({ siteUuid, onItemsChange }) {
                     </button>
                   </td>
                   <td><StatusBadge status={item.status} /></td>
-                  <td><StatusBadge status={item.processing_status ?? 'none'} map={PROCESSING_COLORS} /></td>
+                  <td>
+                    <StatusBadge status={item.processing_status ?? 'none'} map={PROCESSING_COLORS} />
+                    {item.processing_status === 'failed' && (
+                      <div className="text-danger" style={{ fontSize: '0.7rem' }}>
+                        {(() => { try { const m = typeof item.meta === 'string' ? JSON.parse(item.meta) : item.meta; return m?.processing_error || null; } catch { return null; } })()}
+                      </div>
+                    )}
+                  </td>
                   <td className="text-end" style={{ whiteSpace: 'nowrap' }}>
                     <button
-                      className="btn btn-sm btn-outline-primary py-0 me-1"
+                      className={`btn btn-sm py-0 me-1 ${item.processing_status === 'failed' ? 'btn-danger' : 'btn-outline-primary'}`}
                       onClick={() => handleProcess(item.uuid)}
                       disabled={!!processing[item.uuid]}
                       title="Process / reprocess this resource"
                     >
-                      {processing[item.uuid] ? '…' : '⚙ Process'}
+                      {processing[item.uuid] ? '…' : item.processing_status === 'failed' ? '↺ Retry' : '⚙ Process'}
                     </button>
                     <button className="btn btn-sm btn-outline-danger py-0"
                       onClick={() => handleDelete(item.uuid)}>×</button>
