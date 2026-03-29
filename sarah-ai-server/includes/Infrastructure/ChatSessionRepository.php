@@ -143,7 +143,7 @@ class ChatSessionRepository
      * Returns open sessions whose last message was at least $minutes ago
      * and have not yet been summarized (or have new messages since summarized_at).
      */
-    public function findNeedingSummary(int $minutes = 30): array
+    public function findNeedingSummary(int $minutes = 30, int $limit = 5): array
     {
         global $wpdb;
         $table = $wpdb->prefix . ChatSessionTable::TABLE;
@@ -154,8 +154,10 @@ class ChatSessionRepository
                    AND last_message_at IS NOT NULL
                    AND last_message_at <= DATE_SUB(NOW(), INTERVAL %d MINUTE)
                    AND (summarized_at IS NULL OR summarized_at < last_message_at)
-                 ORDER BY last_message_at ASC",
-                $minutes
+                 ORDER BY last_message_at ASC
+                 LIMIT %d",
+                $minutes,
+                $limit
             ),
             ARRAY_A
         );
