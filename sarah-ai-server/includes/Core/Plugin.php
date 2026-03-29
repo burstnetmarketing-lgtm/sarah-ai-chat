@@ -42,7 +42,9 @@ use SarahAiServer\Api\KnowledgeProcessingController;
 use SarahAiServer\Api\ClientKnowledgeController;
 use SarahAiServer\Api\ClientSiteController;
 use SarahAiServer\Api\AuthTestController;
+use SarahAiServer\Api\SummarizerController;
 use SarahAiServer\DB\SiteApiKeyTable;
+use SarahAiServer\DB\SummarizerLogTable;
 use SarahAiServer\Core\KbSyncJob;
 use SarahAiServer\Infrastructure\MenuRepository;
 use SarahAiServer\Infrastructure\SettingsRepository;
@@ -104,6 +106,7 @@ class Plugin
         add_action('rest_api_init', [(new ClientSiteController()), 'registerRoutes']);
         add_action('rest_api_init', [(new \SarahAiServer\Api\WhmcsTestController()), 'registerRoutes']);
         add_action('rest_api_init', [(new AuthTestController()), 'registerRoutes']);
+        add_action('rest_api_init', [(new SummarizerController()), 'registerRoutes']);
 
         if (! is_admin()) {
             return;
@@ -180,6 +183,7 @@ class Plugin
         PlanAgentTable::create();
         ChatSessionTable::create();
         ChatMessageTable::create();
+        SummarizerLogTable::create();
         SiteApiKeyTable::create();
 
         (new MenuRepository())->ensureCoreItems();

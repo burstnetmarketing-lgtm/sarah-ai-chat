@@ -31,6 +31,9 @@ class ChatSessionTable
             visitor_email VARCHAR(190) NULL DEFAULT NULL,
             captured_data LONGTEXT NULL DEFAULT NULL,
             meta LONGTEXT NULL DEFAULT NULL,
+            last_message_at DATETIME NULL DEFAULT NULL,
+            summary LONGTEXT NULL DEFAULT NULL,
+            summarized_at DATETIME NULL DEFAULT NULL,
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,
             PRIMARY KEY (id),
@@ -38,7 +41,8 @@ class ChatSessionTable
             KEY idx_tenant_id (tenant_id),
             KEY idx_site_id (site_id),
             KEY idx_status (status),
-            KEY idx_created_at (created_at)
+            KEY idx_created_at (created_at),
+            KEY idx_last_message_at (last_message_at)
         ) {$charset};";
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta($sql);

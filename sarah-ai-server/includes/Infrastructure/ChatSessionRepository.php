@@ -127,4 +127,49 @@ class ChatSessionRepository
             ['id' => $id]
         );
     }
+
+    public function updateLastMessageAt(int $id): void
+    {
+        global $wpdb;
+        $now = current_time('mysql');
+        $wpdb->update(
+            $wpdb->prefix . ChatSessionTable::TABLE,
+            ['last_message_at' => $now, 'updated_at' => $now],
+            ['id' => $id]
+        );
+    }
+
+    /**
+     * Returns open sessions whose last message was at least $minutes ago
+     * and have not yet been summarized (or have new messages since summarized_at).
+     */
+    public function findNeedingSummary(int $minutes = 30): array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . ChatSessionTable::TABLE;
+        $rows  = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM {$table}
+                 WHERE status = 'open'
+                   AND last_message_at IS NOT NULL
+                   AND last_message_at <= DATE_SUB(NOW(), INTERVAL %d MINUTE)
+                   AND (summarized_at IS NULL OR summarized_at < last_message_at)
+                 ORDER BY last_message_at ASC",
+                $minutes
+            ),
+            ARRAY_A
+        );
+        return is_array($rows) ? $rows : [];
+    }
+
+    public function saveSummary(int $id, string $summary): void
+    {
+        global $wpdb;
+        $now = current_time('mysql');
+        $wpdb->update(
+            $wpdb->prefix . ChatSessionTable::TABLE,
+            ['summary' => $summary, 'summarized_at' => $now, 'updated_at' => $now],
+            ['id' => $id]
+        );
+    }
 }

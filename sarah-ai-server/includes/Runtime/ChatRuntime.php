@@ -133,6 +133,7 @@ class ChatRuntime
 
         // ── Step 4: Persist customer message ──────────────────────────────────
         $this->messages->add((int) $session['id'], ChatMessageTable::ROLE_CUSTOMER, $message);
+        $this->sessions->updateLastMessageAt((int) $session['id']);
 
         // ── Step 5: Load site knowledge ───────────────────────────────────────
         $knowledge = $this->knowledge->findActiveBySite((int) $site['id']);
